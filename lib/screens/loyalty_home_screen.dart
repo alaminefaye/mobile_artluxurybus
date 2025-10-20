@@ -47,17 +47,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
         ),
       ),
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.primaryBlue,
-              AppTheme.primaryBlue.withValues(alpha: 0.8),
-              Colors.white,
-            ],
-          ),
-        ),
+        color: Colors.white,
         child: SafeArea(
           child: Column(
             children: [
@@ -83,23 +73,23 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
         children: [
           // Icône principale responsive
           Container(
-            width: screenWidth * 0.25,
-            height: screenWidth * 0.25,
+            width: screenWidth * 0.18,
+            height: screenWidth * 0.18,
             decoration: BoxDecoration(
               gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(screenWidth * 0.08),
+              borderRadius: BorderRadius.circular(screenWidth * 0.06),
               boxShadow: [
                 BoxShadow(
                   color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                  spreadRadius: 3,
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+                  spreadRadius: 2,
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
             child: Icon(
               Icons.card_giftcard_rounded,
-              size: screenWidth * 0.12,
+              size: screenWidth * 0.09,
               color: Colors.white,
             ),
           ),
@@ -113,8 +103,8 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                 'Bienvenue dans votre',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: screenWidth * 0.05,
-                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: screenWidth * 0.04,
+                  color: AppTheme.primaryBlue,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -123,83 +113,16 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                 'Programme Fidélité',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: screenWidth * 0.07,
-                  color: Colors.white,
+                  fontSize: screenWidth * 0.055,
+                  color: AppTheme.primaryBlue,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.8,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      offset: const Offset(0, 1),
-                      blurRadius: 3,
-                    ),
-                  ],
                 ),
               ),
             ],
           ),
 
           SizedBox(height: screenHeight * 0.03),
-
-          // Aperçu de la carte de fidélité
-          _buildPreviewLoyaltyCard(screenWidth, screenHeight),
-
-          SizedBox(height: screenHeight * 0.02),
-
-          // Description responsive
-          Container(
-            padding: EdgeInsets.all(screenWidth * 0.04),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(screenWidth * 0.04),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  spreadRadius: 2,
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Cumulez des points à chaque voyage et bénéficiez de tickets et envois de courrier gratuits !',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.04,
-                    color: AppTheme.textDark,
-                    height: 1.5,
-                  ),
-                ),
-
-                SizedBox(height: screenHeight * 0.025),
-
-                // Avantages responsives
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildBenefit(
-                      Icons.confirmation_number_rounded,
-                      '10 Points',
-                      'Ticket Gratuit',
-                      AppTheme.primaryBlue,
-                      screenWidth,
-                    ),
-                    _buildBenefit(
-                      Icons.mail_rounded,
-                      '10 Points',
-                      'Courrier Gratuit',
-                      AppTheme.primaryOrange,
-                      screenWidth,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: screenHeight * 0.05),
 
           // Bouton d'action responsive
           Container(
@@ -251,6 +174,54 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+
+          SizedBox(height: screenHeight * 0.03),
+
+          // Aperçu de la carte de fidélité
+          _buildPreviewLoyaltyCard(screenWidth, screenHeight),
+
+          SizedBox(height: screenHeight * 0.03),
+
+          // Description responsive
+          Container(
+            padding: EdgeInsets.all(screenWidth * 0.04),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(screenWidth * 0.04),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  spreadRadius: 2,
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Avantages responsives
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildBenefit(
+                      Icons.confirmation_number_rounded,
+                      '10 Points',
+                      'Ticket Gratuit',
+                      AppTheme.primaryBlue,
+                      screenWidth,
+                    ),
+                    _buildBenefit(
+                      Icons.mail_rounded,
+                      '10 Points',
+                      'Courrier Gratuit',
+                      AppTheme.primaryOrange,
+                      screenWidth,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],

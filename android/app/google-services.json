@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "755144690437",
+    "project_id": "artluxurybus-d7a63",
+    "storage_bucket": "artluxurybus-d7a63.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:755144690437:android:873a47459ad0a21aa9456c",
+        "android_client_info": {
+          "package_name": "com.example.artluxurybus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVdaOnzbqbNmXE6uF10RMDGO5tp7h3Oog"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
