@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/loyalty_provider.dart';
 import '../models/simple_loyalty_models.dart';
+import '../widgets/loyalty_card.dart';
 import 'loyalty_check_screen.dart';
 
 class LoyaltyHomeScreen extends ConsumerStatefulWidget {
@@ -13,6 +14,7 @@ class LoyaltyHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
+  LoyaltyCardType _selectedCardType = LoyaltyCardType.tickets;
 
   @override
   Widget build(BuildContext context) {
@@ -139,12 +141,17 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
 
           SizedBox(height: screenHeight * 0.03),
 
+          // Aperçu de la carte de fidélité
+          _buildPreviewLoyaltyCard(screenWidth, screenHeight),
+
+          SizedBox(height: screenHeight * 0.02),
+
           // Description responsive
           Container(
-            padding: EdgeInsets.all(screenWidth * 0.05),
+            padding: EdgeInsets.all(screenWidth * 0.04),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(screenWidth * 0.05),
+              borderRadius: BorderRadius.circular(screenWidth * 0.04),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -262,43 +269,130 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Carte de profil responsive
-            _buildProfileCard(client, screenWidth, screenHeight),
+            // Boutons de sélection
+            Container(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    spreadRadius: 2,
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedCardType = LoyaltyCardType.tickets;
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenWidth * 0.03,
+                          horizontal: screenWidth * 0.04,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _selectedCardType == LoyaltyCardType.tickets
+                              ? AppTheme.primaryBlue
+                              : Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.confirmation_number_rounded,
+                              color: _selectedCardType == LoyaltyCardType.tickets
+                                  ? Colors.white
+                                  : AppTheme.primaryBlue,
+                              size: screenWidth * 0.05,
+                            ),
+                            SizedBox(width: screenWidth * 0.02),
+                            Text(
+                              'TICKETS',
+                              style: TextStyle(
+                                color: _selectedCardType == LoyaltyCardType.tickets
+                                    ? Colors.white
+                                    : AppTheme.primaryBlue,
+                                fontSize: screenWidth * 0.035,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedCardType = LoyaltyCardType.courriers;
+                        });
+                      },
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          vertical: screenWidth * 0.03,
+                          horizontal: screenWidth * 0.04,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _selectedCardType == LoyaltyCardType.courriers
+                              ? AppTheme.primaryOrange
+                              : Colors.grey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.mail_rounded,
+                              color: _selectedCardType == LoyaltyCardType.courriers
+                                  ? Colors.white
+                                  : AppTheme.primaryOrange,
+                              size: screenWidth * 0.05,
+                            ),
+                            SizedBox(width: screenWidth * 0.02),
+                            Text(
+                              'COURRIERS',
+                              style: TextStyle(
+                                color: _selectedCardType == LoyaltyCardType.courriers
+                                    ? Colors.white
+                                    : AppTheme.primaryOrange,
+                                fontSize: screenWidth * 0.035,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             SizedBox(height: screenHeight * 0.03),
 
-            // Cartes de points responsives
-            Row(
-              children: [
-                Expanded(
-                  child: _buildPointsCard(
-                    title: 'Tickets',
-                    points: client.pointsTickets,
-                    maxPoints: 10,
-                    progress: client.ticketsProgress,
-                    color: AppTheme.primaryBlue,
-                    icon: Icons.confirmation_number_rounded,
-                    canGetFree: client.canGetFreeTicket,
-                    screenWidth: screenWidth,
-                    screenHeight: screenHeight,
-                  ),
-                ),
-                SizedBox(width: screenWidth * 0.04),
-                Expanded(
-                  child: _buildPointsCard(
-                    title: 'Courriers',
-                    points: client.pointsCourriers,
-                    maxPoints: 10,
-                    progress: client.mailsProgress,
-                    color: AppTheme.primaryOrange,
-                    icon: Icons.mail_rounded,
-                    canGetFree: client.canGetFreeMail,
-                    screenWidth: screenWidth,
-                    screenHeight: screenHeight,
-                  ),
-                ),
-              ],
+            // Carte de fidélité interactive
+            LoyaltyCard(
+              client: client,
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
+              cardType: _selectedCardType,
             ),
+
+            SizedBox(height: screenHeight * 0.03),
+
+            // Historique des transactions
+            _buildTransactionHistory(screenWidth, screenHeight),
 
             SizedBox(height: screenHeight * 0.1), // Espace pour le scroll
           ],
@@ -307,201 +401,29 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
     );
   }
 
-  Widget _buildProfileCard(LoyaltyClient client, double screenWidth, double screenHeight) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(screenWidth * 0.06),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(screenWidth * 0.05),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            spreadRadius: 2,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Photo de profil et nom
-          Row(
-            children: [
-              CircleAvatar(
-                radius: screenWidth * 0.08,
-                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                child: Icon(
-                  Icons.person_rounded,
-                  size: screenWidth * 0.08,
-                  color: AppTheme.primaryBlue,
-                ),
-              ),
-              SizedBox(width: screenWidth * 0.04),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      client.nomComplet,
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.045,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textDark,
-                      ),
-                    ),
-                    Text(
-                      'Membre fidélité',
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.035,
-                        color: AppTheme.primaryBlue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          SizedBox(height: screenHeight * 0.025),
-
-          // Statistiques
-          Container(
-            padding: EdgeInsets.all(screenWidth * 0.04),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  AppTheme.primaryOrange.withValues(alpha: 0.1),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(screenWidth * 0.03),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStat(
-                  'Total Points',
-                  '${client.pointsTickets + client.pointsCourriers}',
-                  Icons.star_rounded,
-                  screenWidth,
-                ),
-                _buildStat(
-                  'Téléphone',
-                  client.telephone,
-                  Icons.phone_rounded,
-                  screenWidth,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildPreviewLoyaltyCard(double screenWidth, double screenHeight) {
+    // Client factice pour la prévisualisation
+    final previewClient = LoyaltyClient(
+      id: 0,
+      nomComplet: 'Votre Nom',
+      nom: 'Nom',
+      prenom: 'Prénom',
+      telephone: '****',
+      pointsTickets: 3,
+      pointsCourriers: 5,
+      totalPoints: 8,
+      canGetFreeTicket: false,
+      canGetFreeMail: false,
+      createdAt: '2024',
     );
-  }
 
-  Widget _buildPointsCard({
-    required String title,
-    required int points,
-    required int maxPoints,
-    required double progress,
-    required Color color,
-    required IconData icon,
-    required bool canGetFree,
-    required double screenWidth,
-    required double screenHeight,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(screenWidth * 0.05),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(screenWidth * 0.04),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header avec icône
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(
-                icon,
-                color: color,
-                size: screenWidth * 0.07,
-              ),
-              if (canGetFree)
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.02,
-                    vertical: screenWidth * 0.01,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                  ),
-                  child: Text(
-                    'GRATUIT !',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: screenWidth * 0.025,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-
-          SizedBox(height: screenHeight * 0.015),
-
-          // Points
-          Text(
-            '$points/$maxPoints',
-            style: TextStyle(
-              fontSize: screenWidth * 0.06,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: screenWidth * 0.035,
-              color: AppTheme.textDark,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-
-          SizedBox(height: screenHeight * 0.015),
-
-          // Barre de progression
-          Container(
-            width: double.infinity,
-            height: screenHeight * 0.01,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(screenHeight * 0.005),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: progress.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(screenHeight * 0.005),
-                ),
-              ),
-            ),
-          ),
-        ],
+    return SizedBox(
+      height: screenHeight * 0.32,
+      child: LoyaltyCard(
+        client: previewClient,
+        screenWidth: screenWidth,
+        screenHeight: screenHeight,
+        cardType: LoyaltyCardType.tickets,
       ),
     );
   }
@@ -543,31 +465,202 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
     );
   }
 
-  Widget _buildStat(String label, String value, IconData icon, double screenWidth) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: AppTheme.primaryBlue,
-          size: screenWidth * 0.05,
-        ),
-        SizedBox(height: screenWidth * 0.01),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: screenWidth * 0.035,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textDark,
+  Widget _buildTransactionHistory(double screenWidth, double screenHeight) {
+    // Générer des transactions factices pour la démo
+    // En production, ceci viendrait de l'historique du client
+    final List<Map<String, dynamic>> recentTransactions = [
+      {
+        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
+        'description': _selectedCardType == LoyaltyCardType.tickets 
+            ? 'Voyage Abidjan → Bouaké'
+            : 'Envoi courrier Abidjan',
+        'points': '+1',
+        'date': '15 Oct 2024',
+        'icon': _selectedCardType == LoyaltyCardType.tickets 
+            ? Icons.directions_bus_rounded
+            : Icons.mail_rounded,
+      },
+      {
+        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
+        'description': _selectedCardType == LoyaltyCardType.tickets 
+            ? 'Voyage Bouaké → Yamoussoukro'
+            : 'Envoi courrier Bouaké',
+        'points': '+1',
+        'date': '12 Oct 2024',
+        'icon': _selectedCardType == LoyaltyCardType.tickets 
+            ? Icons.directions_bus_rounded
+            : Icons.mail_rounded,
+      },
+      {
+        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
+        'description': _selectedCardType == LoyaltyCardType.tickets 
+            ? 'Voyage Yamoussoukro → Abidjan'
+            : 'Envoi courrier Yamoussoukro',
+        'points': '+1',
+        'date': '10 Oct 2024',
+        'icon': _selectedCardType == LoyaltyCardType.tickets 
+            ? Icons.directions_bus_rounded
+            : Icons.mail_rounded,
+      },
+      {
+        'type': 'gratuit',
+        'description': _selectedCardType == LoyaltyCardType.tickets 
+            ? 'Ticket gratuit utilisé'
+            : 'Courrier gratuit utilisé',
+        'points': '-10',
+        'date': '08 Oct 2024',
+        'icon': Icons.card_giftcard,
+      },
+      {
+        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
+        'description': _selectedCardType == LoyaltyCardType.tickets 
+            ? 'Voyage Abidjan → San-Pédro'
+            : 'Envoi courrier San-Pédro',
+        'points': '+1',
+        'date': '05 Oct 2024',
+        'icon': _selectedCardType == LoyaltyCardType.tickets 
+            ? Icons.directions_bus_rounded
+            : Icons.mail_rounded,
+      },
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(screenWidth * 0.04),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: screenWidth * 0.025,
-            color: AppTheme.textDark.withValues(alpha: 0.7),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: EdgeInsets.all(screenWidth * 0.04),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.history,
+                  color: _selectedCardType == LoyaltyCardType.tickets 
+                      ? AppTheme.primaryBlue 
+                      : AppTheme.primaryOrange,
+                  size: screenWidth * 0.06,
+                ),
+                SizedBox(width: screenWidth * 0.03),
+                Text(
+                  'Historique récent',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.045,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          
+          // Liste des transactions
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+            itemCount: 5,
+            separatorBuilder: (context, index) => Divider(
+              color: Colors.grey.withValues(alpha: 0.3),
+              height: 1,
+            ),
+            itemBuilder: (context, index) {
+              final transaction = recentTransactions[index];
+              final isPositive = transaction['points'].startsWith('+');
+              
+              return Padding(
+                padding: EdgeInsets.symmetric(vertical: screenWidth * 0.03),
+                child: Row(
+                  children: [
+                    // Icône
+                    Container(
+                      padding: EdgeInsets.all(screenWidth * 0.02),
+                      decoration: BoxDecoration(
+                        color: (transaction['type'] == 'gratuit' 
+                            ? Colors.green 
+                            : (_selectedCardType == LoyaltyCardType.tickets 
+                                ? AppTheme.primaryBlue 
+                                : AppTheme.primaryOrange))
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                      ),
+                      child: Icon(
+                        transaction['icon'],
+                        color: transaction['type'] == 'gratuit' 
+                            ? Colors.green 
+                            : (_selectedCardType == LoyaltyCardType.tickets 
+                                ? AppTheme.primaryBlue 
+                                : AppTheme.primaryOrange),
+                        size: screenWidth * 0.05,
+                      ),
+                    ),
+                    
+                    SizedBox(width: screenWidth * 0.03),
+                    
+                    // Description
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            transaction['description'],
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.035,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.textDark,
+                            ),
+                          ),
+                          Text(
+                            transaction['date'],
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.03,
+                              color: AppTheme.textDark.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Points
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.025,
+                        vertical: screenWidth * 0.01,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isPositive ? Colors.green : Colors.red,
+                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
+                      ),
+                      child: Text(
+                        '${transaction['points']} pts',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.03,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          
+          SizedBox(height: screenWidth * 0.02),
+        ],
+      ),
     );
   }
+
 }
