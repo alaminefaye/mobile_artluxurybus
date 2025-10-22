@@ -53,6 +53,16 @@
 		<string>background-fetch</string>
 	</array>
 	
+	<!-- Permissions pour la géolocalisation -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Art Luxury Bus souhaite accéder à votre localisation pour vous proposer les meilleurs services de transport près de chez vous.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Art Luxury Bus souhaite accéder à votre localisation pour améliorer votre expérience de voyage.</string>
+	
+	<!-- Permission pour la caméra -->
+	<key>NSCameraUsageDescription</key>
+	<string>Art Luxury Bus souhaite accéder à votre caméra pour scanner les QR codes de pointage.</string>
+	
 	<!-- Configuration Firebase pour iOS -->
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>

@@ -121,12 +121,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
-                          style: TextStyle(fontSize: 14),
+                          style: const TextStyle(fontSize: 14),
                           decoration: InputDecoration(
                             labelText: 'Adresse email',
-                            labelStyle: TextStyle(fontSize: 13),
+                            labelStyle: const TextStyle(fontSize: 13),
                             hintText: 'exemple@email.com',
-                            hintStyle: TextStyle(fontSize: 14),
+                            hintStyle: const TextStyle(fontSize: 14),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
@@ -141,7 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             filled: true,
                             fillColor: Colors.grey[50],
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -159,12 +159,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: TextStyle(fontSize: 14),
+                          style: const TextStyle(fontSize: 14),
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
-                            labelStyle: TextStyle(fontSize: 13),
+                            labelStyle: const TextStyle(fontSize: 13),
                             hintText: 'Votre mot de passe',
-                            hintStyle: TextStyle(fontSize: 14),
+                            hintStyle: const TextStyle(fontSize: 14),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
@@ -191,7 +191,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             filled: true,
                             fillColor: Colors.grey[50],
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -237,7 +237,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,
                               shadowColor: Colors.transparent,
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -286,7 +286,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: AppTheme.errorRed.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.error_outline,
                             color: AppTheme.errorRed,
                             size: 20,
@@ -296,7 +296,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Expanded(
                           child: Text(
                             authState.error!,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppTheme.errorRed,
                               fontWeight: FontWeight.w500,
                             ),

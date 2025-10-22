@@ -377,15 +377,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Row(
+                                    content: const Row(
                                       children: [
                                         Icon(
                                           Icons.info_outline,
                                           color: Colors.white,
                                           size: 20,
                                         ),
-                                        const SizedBox(width: 12),
-                                        const Text('Inscription bientôt disponible !'),
+                                        SizedBox(width: 12),
+                                        Text('Inscription bientôt disponible !'),
                                       ],
                                     ),
                                     backgroundColor: AppTheme.primaryOrange,
@@ -409,7 +409,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.person_add_rounded,
                                     color: Colors.white,
                                     size: 24,

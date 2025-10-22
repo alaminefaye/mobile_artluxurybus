@@ -81,7 +81,7 @@ class _LoyaltyCardState extends State<LoyaltyCard>
           final isShowingFront = angle < math.pi / 2;
           
           // Calcul de la perspective et de l'échelle
-          final perspective = 0.002; // Perspective plus prononcée
+          const perspective = 0.002; // Perspective plus prononcée
           final scale = (1.0 - (math.sin(angle) * 0.1)).clamp(0.9, 1.0); // Léger rétrécissement au milieu
           final shadowOpacity = (math.sin(angle) * 0.3).clamp(0.0, 0.3); // Ombre dynamique
           

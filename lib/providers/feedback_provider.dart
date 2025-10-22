@@ -72,13 +72,17 @@ class FeedbackNotifier extends StateNotifier<AsyncValue<String?>> {
       if (result['success'] == true) {
         state = AsyncValue.data(result['message'] ?? 'Suggestion envoyée avec succès');
       } else {
-        state = AsyncValue.error(
-          result['message'] ?? 'Erreur lors de l\'envoi',
-          StackTrace.current,
-        );
+        // Extraire un message d'erreur clair
+        String errorMsg = result['message'] ?? 'Erreur lors de l\'envoi';
+        state = AsyncValue.error(errorMsg, StackTrace.current);
       }
     } catch (e) {
-      state = AsyncValue.error(e, StackTrace.current);
+      // Nettoyer le message d'erreur
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.substring(11);
+      }
+      state = AsyncValue.error(errorMsg, StackTrace.current);
     }
   }
 

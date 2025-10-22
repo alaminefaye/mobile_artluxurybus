@@ -6,6 +6,7 @@ import '../models/simple_auth_models.dart';
 import '../models/user.dart';
 import '../utils/api_config.dart';
 import '../utils/debug_logger.dart';
+import 'fcm_service.dart';
 
 class AuthService {
   static const String tokenKey = 'auth_token';
@@ -72,6 +73,9 @@ class AuthService {
       if (authResponse.success && authResponse.data != null) {
         // Sauvegarder le token et les données utilisateur
         await _saveAuthData(authResponse.data!);
+        
+        // 🔥 NOUVEAU: Initialiser FCM pour le nouvel utilisateur
+        await _initializeFCMForUser(authResponse.data!);
       }
 
       return authResponse;
@@ -112,7 +116,14 @@ class AuthService {
   Future<bool> logout() async {
     try {
       final token = await getToken();
+      final user = await getSavedUser();
+      
       if (token != null) {
+        // 🔥 NOUVEAU: Nettoyer FCM avant la déconnexion
+        if (user != null) {
+          await _cleanupFCMForUser(user, token);
+        }
+        
         await http.post(
           Uri.parse(ApiConfig.logoutEndpoint.fullUrl),
           headers: await _authHeaders,
@@ -124,6 +135,8 @@ class AuthService {
     } catch (e) {
       // Même en cas d'erreur, on supprime les données locales
       await _clearAuthData();
+      // Nettoyage FCM de sécurité
+      await FCMService.cleanupAllTokens();
       return false;
     }
   }
@@ -218,5 +231,67 @@ class AuthService {
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null;
+  }
+
+  // 🔥 NOUVEAU: Initialiser FCM pour un utilisateur
+  Future<void> _initializeFCMForUser(AuthData authData) async {
+    try {
+      DebugLogger.log('🔔 Initialisation FCM pour: ${authData.user.name}');
+      
+      // Nettoyer d'abord tous les anciens tokens (sécurité)
+      await FCMService.cleanupAllTokens();
+      
+      // Initialiser FCM pour le nouvel utilisateur
+      await FCMService.initializeFCMForUser(
+        authData.user.id.toString(),
+        authData.token,
+      );
+      
+      DebugLogger.log('✅ FCM initialisé avec succès');
+    } catch (e) {
+      DebugLogger.error('❌ Erreur initialisation FCM', e);
+    }
+  }
+
+  // 🔥 NOUVEAU: Nettoyer FCM pour un utilisateur
+  Future<void> _cleanupFCMForUser(User user, String token) async {
+    try {
+      DebugLogger.log('🧹 Nettoyage FCM pour: ${user.name}');
+      
+      await FCMService.cleanupFCMForUser(
+        user.id.toString(),
+        token,
+      );
+      
+      DebugLogger.log('✅ FCM nettoyé avec succès');
+    } catch (e) {
+      DebugLogger.error('❌ Erreur nettoyage FCM', e);
+      // En cas d'erreur, nettoyage de sécurité
+      await FCMService.cleanupAllTokens();
+    }
+  }
+
+  // 🔥 NOUVEAU: Vérifier et réparer FCM si nécessaire
+  Future<void> ensureFCMIsValid() async {
+    try {
+      final user = await getSavedUser();
+      final token = await getToken();
+      
+      if (user != null && token != null) {
+        // Vérifier si l'utilisateur a un token valide
+        bool hasValidToken = await FCMService.hasValidTokenForUser(user.id.toString());
+        
+        if (!hasValidToken) {
+          DebugLogger.log('🔧 Réparation FCM nécessaire pour: ${user.name}');
+          await _initializeFCMForUser(AuthData(
+            user: user, 
+            token: token,
+            tokenType: 'Bearer',
+          ));
+        }
+      }
+    } catch (e) {
+      DebugLogger.error('❌ Erreur vérification FCM', e);
+    }
   }
 }

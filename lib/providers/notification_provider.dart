@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../services/notification_api_service.dart';
+import 'auth_provider.dart';
 
 /// État des notifications
 class NotificationState {
@@ -218,6 +219,91 @@ final notificationProvider = StateNotifierProvider<NotificationNotifier, Notific
 );
 
 /// Provider pour le compteur de notifications non lues uniquement
+/// Filtre les notifications de feedback pour les utilisateurs Pointage
 final unreadNotificationCountProvider = Provider<int>((ref) {
-  return ref.watch(notificationProvider).unreadCount;
+  final notificationState = ref.watch(notificationProvider);
+  final authState = ref.watch(authProvider);
+  
+  // Si pas d'utilisateur connecté, retourner 0
+  if (authState.user == null) {
+    return 0;
+  }
+  
+  final user = authState.user!;
+  
+  // Vérifier si l'utilisateur a le rôle Pointage
+  bool hasAttendanceRole = false;
+  
+  // 1. Vérifier d'abord le rôle (si présent)
+  if (user.role != null) {
+    final roleLower = user.role!.toLowerCase();
+    
+    // Si c'est un admin, ne pas filtrer
+    if (roleLower.contains('admin') || 
+        roleLower.contains('super') ||
+        roleLower.contains('administrateur')) {
+      return notificationState.unreadCount;
+    }
+    
+    // Si c'est un rôle pointage
+    if (roleLower.contains('pointage') || 
+        roleLower.contains('attendance') ||
+        roleLower.contains('employee') ||
+        roleLower.contains('employé') ||
+        roleLower.contains('staff')) {
+      hasAttendanceRole = true;
+    }
+  }
+  
+  // 2. Si pas de rôle, vérifier les permissions
+  if (user.permissions != null && user.permissions!.isNotEmpty) {
+    // Vérifier si l'utilisateur a des permissions admin
+    for (var permission in user.permissions!) {
+      final permLower = permission.toLowerCase();
+      if (permLower.contains('manage_all') || 
+          permLower.contains('admin') ||
+          permLower.contains('super')) {
+        return notificationState.unreadCount;
+      }
+    }
+    
+    // Vérifier si l'utilisateur a UNIQUEMENT des permissions de pointage
+    bool hasOnlyAttendancePermissions = true;
+    for (var permission in user.permissions!) {
+      final permLower = permission.toLowerCase();
+      
+      // Si la permission n'est pas liée au pointage/attendance, c'est un utilisateur normal
+      if (!permLower.contains('attendance') && 
+          !permLower.contains('pointage') &&
+          !permLower.contains('qr') &&
+          !permLower.contains('scan') &&
+          !permLower.contains('mark_attendance') &&
+          !permLower.contains('view_own_attendance') &&
+          !permLower.contains('personal_dashboard') &&
+          !permLower.contains('locations')) {
+        hasOnlyAttendancePermissions = false;
+        break;
+      }
+    }
+    
+    if (hasOnlyAttendancePermissions) {
+      hasAttendanceRole = true;
+    }
+  }
+  
+  // Si c'est un utilisateur Pointage, filtrer les notifications de feedback
+  if (hasAttendanceRole) {
+    final filteredNotifications = notificationState.notifications.where((notif) {
+      return !notif.isRead && 
+             notif.type != 'feedback' && 
+             notif.type != 'suggestion' &&
+             notif.type != 'new_feedback' &&
+             notif.type != 'urgent_feedback';
+    }).length;
+    
+    return filteredNotifications;
+  }
+  
+  // Pour les autres utilisateurs, retourner le compteur complet
+  return notificationState.unreadCount;
 });

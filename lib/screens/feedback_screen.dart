@@ -23,6 +23,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   final _departureController = TextEditingController();
 
   String _selectedCategory = 'suggestion';
+  String? _selectedStation;
+  String? _selectedRoute;
   
   final List<Map<String, dynamic>> _categories = [
     {'value': 'suggestion', 'label': 'Suggestion d\'amélioration', 'icon': Icons.lightbulb},
@@ -31,6 +33,18 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     {'value': 'securite', 'label': 'Sécurité', 'icon': Icons.security},
     {'value': 'confort', 'label': 'Confort', 'icon': Icons.airline_seat_recline_extra},
     {'value': 'autre', 'label': 'Autre', 'icon': Icons.more_horiz},
+  ];
+
+  final List<String> _stations = [
+    'GARE DE BOUAKE',
+    'GARE DE YAKRO',
+    'GARE DE YOPOUGON',
+  ];
+
+  final List<String> _routes = [
+    'Abidjan - Bouaké',
+    'Abidjan - Yamoussoukro',
+    'Bouaké - Yamoussoukro',
   ];
 
   @override
@@ -95,27 +109,27 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
             children: [
               // En-tête informatif
               _buildInfoHeader(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Sélection de catégorie
               _buildCategorySection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Informations personnelles
               _buildPersonalInfoSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
               // Détails de la suggestion/préoccupation
               _buildFeedbackSection(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               
-              // Informations de voyage (optionnel)
+              // Informations de voyage
               _buildTravelInfoSection(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               
               // Bouton d'envoi
               _buildSubmitButton(feedbackState),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -125,45 +139,52 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
 
   Widget _buildInfoHeader() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryBlue.withValues(alpha: 0.1),
-            AppTheme.primaryOrange.withValues(alpha: 0.1),
+            AppTheme.primaryBlue.withValues(alpha: 0.08),
+            AppTheme.primaryOrange.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+          color: AppTheme.primaryBlue.withValues(alpha: 0.15),
         ),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: AppTheme.primaryBlue,
-            size: 24,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.feedback_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Votre avis compte !',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryBlue,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  'Partagez vos suggestions et préoccupations pour améliorer nos services.',
+                  'Partagez vos idées pour améliorer nos services',
                   style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
+                    fontSize: 12,
+                    color: Colors.grey[600],
                   ),
                 ),
               ],
@@ -181,15 +202,15 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         Text(
           'Type de retour',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             color: Colors.grey[800],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 6,
           children: _categories.map((category) {
             final isSelected = _selectedCategory == category['value'];
             return GestureDetector(
@@ -199,16 +220,17 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: isSelected 
                       ? AppTheme.primaryBlue 
-                      : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(20),
+                      : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isSelected 
                         ? AppTheme.primaryBlue 
                         : Colors.grey[300]!,
+                    width: 1,
                   ),
                 ),
                 child: Row(
@@ -216,14 +238,14 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                   children: [
                     Icon(
                       category['icon'],
-                      size: 16,
-                      color: isSelected ? Colors.white : Colors.grey[600],
+                      size: 14,
+                      color: isSelected ? Colors.white : AppTheme.primaryBlue,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Text(
                       category['label'],
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: isSelected ? Colors.white : Colors.grey[700],
                       ),
@@ -245,51 +267,44 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         Text(
           'Informations de contact',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             color: Colors.grey[800],
           ),
         ),
-        const SizedBox(height: 12),
-        TextFormField(
+        const SizedBox(height: 8),
+        _buildCompactTextField(
           controller: _nameController,
-          decoration: const InputDecoration(
-            labelText: 'Nom complet *',
-            prefixIcon: Icon(Icons.person),
-            border: OutlineInputBorder(),
-          ),
+          label: 'Nom complet',
+          icon: Icons.person_outline,
+          isRequired: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Veuillez saisir votre nom';
+              return 'Nom requis';
             }
             return null;
           },
         ),
-        const SizedBox(height: 16),
-        TextFormField(
+        const SizedBox(height: 12),
+        _buildCompactTextField(
           controller: _phoneController,
-          decoration: const InputDecoration(
-            labelText: 'Téléphone *',
-            prefixIcon: Icon(Icons.phone),
-            border: OutlineInputBorder(),
-            hintText: '+225 XX XX XX XX XX',
-          ),
+          label: 'Téléphone',
+          icon: Icons.phone_outlined,
+          hint: '+225 XX XX XX XX XX',
+          isRequired: true,
           keyboardType: TextInputType.phone,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Veuillez saisir votre numéro';
+              return 'Téléphone requis';
             }
             return null;
           },
         ),
-        const SizedBox(height: 16),
-        TextFormField(
+        const SizedBox(height: 12),
+        _buildCompactTextField(
           controller: _emailController,
-          decoration: const InputDecoration(
-            labelText: 'Email (optionnel)',
-            prefixIcon: Icon(Icons.email),
-            border: OutlineInputBorder(),
-          ),
+          label: 'Email (optionnel)',
+          icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
         ),
       ],
@@ -303,43 +318,39 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         Text(
           'Votre message',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.bold,
             color: Colors.grey[800],
           ),
         ),
-        const SizedBox(height: 12),
-        TextFormField(
+        const SizedBox(height: 8),
+        _buildCompactTextField(
           controller: _subjectController,
-          decoration: const InputDecoration(
-            labelText: 'Sujet *',
-            prefixIcon: Icon(Icons.subject),
-            border: OutlineInputBorder(),
-            hintText: 'Résumé de votre message',
-          ),
+          label: 'Sujet',
+          icon: Icons.subject_outlined,
+          hint: 'Résumé de votre message',
+          isRequired: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Veuillez saisir un sujet';
+              return 'Sujet requis';
             }
             return null;
           },
         ),
-        const SizedBox(height: 16),
-        TextFormField(
+        const SizedBox(height: 12),
+        _buildCompactTextField(
           controller: _messageController,
-          decoration: const InputDecoration(
-            labelText: 'Message détaillé *',
-            prefixIcon: Icon(Icons.message),
-            border: OutlineInputBorder(),
-            hintText: 'Décrivez en détail votre suggestion ou préoccupation...',
-          ),
-          maxLines: 5,
+          label: 'Message détaillé',
+          icon: Icons.message_outlined,
+          hint: 'Décrivez votre suggestion ou préoccupation...',
+          isRequired: true,
+          maxLines: 4,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Veuillez saisir votre message';
+              return 'Message requis';
             }
             if (value.length < 20) {
-              return 'Votre message doit faire au moins 20 caractères';
+              return 'Message trop court (min 20 caractères)';
             }
             return null;
           },
@@ -349,102 +360,244 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   }
 
   Widget _buildTravelInfoSection() {
-    return ExpansionTile(
-      title: Text(
-        'Informations de voyage (optionnel)',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey[800],
-        ),
-      ),
-      subtitle: const Text('Si votre message concerne un trajet spécifique'),
-      leading: const Icon(Icons.directions_bus),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _stationController,
-                decoration: const InputDecoration(
-                  labelText: 'Gare de départ',
-                  prefixIcon: Icon(Icons.location_on),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _routeController,
-                decoration: const InputDecoration(
-                  labelText: 'Itinéraire',
-                  prefixIcon: Icon(Icons.route),
-                  border: OutlineInputBorder(),
-                  hintText: 'Ex: Abidjan → Bouaké',
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _seatController,
-                      decoration: const InputDecoration(
-                        labelText: 'Siège',
-                        prefixIcon: Icon(Icons.event_seat),
-                        border: OutlineInputBorder(),
-                        hintText: 'Ex: 12A',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _departureController,
-                      decoration: const InputDecoration(
-                        labelText: 'N° Départ',
-                        prefixIcon: Icon(Icons.confirmation_number),
-                        border: OutlineInputBorder(),
-                        hintText: 'Ex: D-001',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+        Text(
+          'Informations de voyage',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[800],
           ),
+        ),
+        const SizedBox(height: 8),
+        _buildCompactDropdown(
+          value: _selectedStation,
+          items: _stations,
+          label: 'Gare de départ',
+          icon: Icons.location_on_outlined,
+          onChanged: (value) {
+            setState(() {
+              _selectedStation = value;
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        _buildCompactDropdown(
+          value: _selectedRoute,
+          items: _routes,
+          label: 'Itinéraire',
+          icon: Icons.route_outlined,
+          onChanged: (value) {
+            setState(() {
+              _selectedRoute = value;
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildCompactTextField(
+                controller: _seatController,
+                label: 'Numéro de siège',
+                icon: Icons.event_seat_outlined,
+                hint: 'Ex: 12',
+                isRequired: true,
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Numéro de siège requis';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Doit être un nombre';
+                  }
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildCompactTextField(
+                controller: _departureController,
+                label: 'N° de départ',
+                icon: Icons.confirmation_number_outlined,
+                hint: 'Ex: 001',
+                isRequired: true,
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Numéro de départ requis';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Doit être un nombre';
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
   Widget _buildSubmitButton(AsyncValue<String?> feedbackState) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      height: 50,
+      height: 44,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryBlue, AppTheme.primaryBlue.withValues(alpha: 0.8)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: ElevatedButton.icon(
         onPressed: feedbackState.isLoading ? null : _submitFeedback,
         icon: feedbackState.isLoading
             ? const SizedBox(
-                width: 20,
-                height: 20,
+                width: 16,
+                height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
-            : const Icon(Icons.send),
+            : const Icon(Icons.send_rounded, size: 18),
         label: Text(
-          feedbackState.isLoading ? 'Envoi en cours...' : 'Envoyer ma suggestion',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          feedbackState.isLoading ? 'Envoi...' : 'Envoyer',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppTheme.primaryBlue,
+          backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
+      ),
+    );
+  }
+
+  // Méthode pour créer des champs de texte compacts
+  Widget _buildCompactTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    String? hint,
+    bool isRequired = false,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        style: const TextStyle(fontSize: 13),
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: isRequired ? '$label *' : label,
+          labelStyle: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+          hintText: hint,
+          hintStyle: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[400],
+          ),
+          prefixIcon: Icon(
+            icon,
+            size: 18,
+            color: AppTheme.primaryBlue,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          errorStyle: const TextStyle(fontSize: 11),
+        ),
+      ),
+    );
+  }
+
+  // Méthode pour créer des dropdowns compacts
+  Widget _buildCompactDropdown({
+    required String? value,
+    required List<String> items,
+    required String label,
+    required IconData icon,
+    required Function(String?) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        items: items.map((item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(
+              item,
+              style: const TextStyle(fontSize: 13),
+            ),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        style: const TextStyle(fontSize: 13, color: Colors.black87),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+          prefixIcon: Icon(
+            icon,
+            size: 18,
+            color: AppTheme.primaryBlue,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+        ),
+        dropdownColor: Colors.white,
+        borderRadius: BorderRadius.circular(10),
       ),
     );
   }
@@ -464,18 +617,11 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
       email: _emailController.text.trim().isNotEmpty 
           ? _emailController.text.trim() 
           : null,
-      station: _stationController.text.trim().isNotEmpty 
-          ? _stationController.text.trim() 
-          : null,
-      route: _routeController.text.trim().isNotEmpty 
-          ? _routeController.text.trim() 
-          : null,
-      seatNumber: _seatController.text.trim().isNotEmpty 
-          ? _seatController.text.trim() 
-          : null,
-      departureNumber: _departureController.text.trim().isNotEmpty 
-          ? _departureController.text.trim() 
-          : null,
+      station: _selectedStation,
+      route: _selectedRoute,
+      // Champs obligatoires - toujours envoyés
+      seatNumber: _seatController.text.trim(),
+      departureNumber: _departureController.text.trim(),
     );
   }
 
@@ -493,6 +639,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     
     setState(() {
       _selectedCategory = 'suggestion';
+      _selectedStation = null;
+      _selectedRoute = null;
     });
     
     // Reset l'état du provider

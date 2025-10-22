@@ -52,12 +52,12 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
                 Expanded(
-                  child: const Text(
+                  child: Text(
                     'Inscription réussie ! Bienvenue dans votre dashboard !',
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -86,7 +86,7 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
         foregroundColor: Colors.white,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -147,18 +147,18 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                       TextFormField(
                         initialValue: widget.phoneNumber,
                         enabled: false,
-                        style: TextStyle(fontSize: 14),
+                        style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           labelText: 'Numéro de téléphone',
-                          labelStyle: TextStyle(fontSize: 13),
-                          prefixIcon: Icon(
+                          labelStyle: const TextStyle(fontSize: 13),
+                          prefixIcon: const Icon(
                             Icons.phone_rounded,
                             color: AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
                           fillColor: Colors.grey[100],
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide.none,
@@ -171,25 +171,25 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                       // Nom
                       TextFormField(
                         controller: _nomController,
-                        style: TextStyle(fontSize: 14),
+                        style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           labelText: 'Nom *',
-                          labelStyle: TextStyle(fontSize: 13),
-                          prefixIcon: Icon(
+                          labelStyle: const TextStyle(fontSize: 13),
+                          prefixIcon: const Icon(
                             Icons.person_rounded,
                             color: AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
                           fillColor: Colors.grey[50],
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
+                            borderSide: const BorderSide(
                               color: AppTheme.primaryBlue,
                               width: 2,
                             ),
@@ -208,25 +208,25 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                       // Prénom
                       TextFormField(
                         controller: _prenomController,
-                        style: TextStyle(fontSize: 14),
+                        style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           labelText: 'Prénom *',
-                          labelStyle: TextStyle(fontSize: 13),
-                          prefixIcon: Icon(
+                          labelStyle: const TextStyle(fontSize: 13),
+                          prefixIcon: const Icon(
                             Icons.person_outline_rounded,
                             color: AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
                           fillColor: Colors.grey[50],
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
+                            borderSide: const BorderSide(
                               color: AppTheme.primaryBlue,
                               width: 2,
                             ),
@@ -246,25 +246,25 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: TextStyle(fontSize: 14),
+                        style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           labelText: 'Email (optionnel)',
-                          labelStyle: TextStyle(fontSize: 13),
-                          prefixIcon: Icon(
+                          labelStyle: const TextStyle(fontSize: 13),
+                          prefixIcon: const Icon(
                             Icons.email_outlined,
                             color: AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
                           fillColor: Colors.grey[50],
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
+                            borderSide: const BorderSide(
                               color: AppTheme.primaryBlue,
                               width: 2,
                             ),
@@ -330,7 +330,7 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
-                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -344,16 +344,16 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                                     valueColor: AlwaysStoppedAnimation(Colors.white),
                                   ),
                                 )
-                              : Row(
+                              : const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.person_add_rounded,
                                       color: Colors.white,
                                       size: 18,
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Text(
+                                    SizedBox(width: 8),
+                                    Text(
                                       'S\'INSCRIRE',
                                       style: TextStyle(
                                         fontSize: 13,
@@ -382,14 +382,14 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
                           Icon(
                             Icons.stars_rounded,
                             color: AppTheme.primaryOrange,
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
+                          SizedBox(width: 8),
+                          Text(
                             'Vos avantages',
                             style: TextStyle(
                               fontSize: 18,
@@ -421,7 +421,7 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle_rounded,
             color: Colors.green,
             size: 20,

@@ -57,12 +57,12 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
+            content: const Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
                 Expanded(
-                  child: const Text(
+                  child: Text(
                     'Points trouvés ! Bienvenue dans votre dashboard',
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -89,7 +89,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         contentPadding: const EdgeInsets.all(16),
-        title: Row(
+        title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
@@ -97,7 +97,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
               color: AppTheme.primaryOrange,
               size: 20,
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Compte non trouvé',
@@ -260,15 +260,15 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                     enabled: !loyaltyState.isLoading,
                     textInputAction: TextInputAction.search,
                     onFieldSubmitted: (_) => _checkPoints(),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                     decoration: InputDecoration(
                       labelText: 'Numéro de téléphone',
-                      labelStyle: TextStyle(fontSize: 13),
+                      labelStyle: const TextStyle(fontSize: 13),
                       hintText: '0123456789',
-                      hintStyle: TextStyle(fontSize: 14),
+                      hintStyle: const TextStyle(fontSize: 14),
                       prefixIcon: Container(
                         margin: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
@@ -323,7 +323,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -337,15 +337,15 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : Row(
+                        : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.search_rounded,
                                 color: Colors.white,
                                 size: 18,
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Text(
                                 'RECHERCHER',
                                 style: TextStyle(

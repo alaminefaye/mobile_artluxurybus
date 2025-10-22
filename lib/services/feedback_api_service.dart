@@ -52,12 +52,77 @@ class FeedbackApiService {
       if (response.statusCode == 201) {
         return data;
       } else {
-        throw Exception(data['message'] ?? 'Erreur lors de l\'envoi');
+        // Extraire un message d'erreur convivial
+        String errorMessage = _extractUserFriendlyError(data, response.statusCode);
+        throw Exception(errorMessage);
       }
     } on SocketException {
-      throw Exception('Pas de connexion internet');
+      throw Exception('Pas de connexion internet. Veuillez vérifier votre connexion.');
+    } on FormatException {
+      throw Exception('Erreur de format des données. Veuillez réessayer.');
     } catch (e) {
-      throw Exception('Erreur: ${e.toString()}');
+      // Nettoyer le message d'erreur pour l'utilisateur
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.substring(11);
+      }
+      // Éviter d'afficher les erreurs SQL brutes
+      if (errorMsg.contains('SQLSTATE') || errorMsg.contains('Integrity constraint')) {
+        errorMsg = 'Une erreur s\'est produite. Veuillez vérifier vos informations et réessayer.';
+      }
+      throw Exception(errorMsg);
+    }
+  }
+
+  /// Extraire un message d'erreur convivial depuis la réponse API
+  static String _extractUserFriendlyError(Map<String, dynamic> data, int statusCode) {
+    // Vérifier les différents formats de messages d'erreur
+    
+    // 1. Message direct
+    if (data['message'] != null && data['message'] is String) {
+      String msg = data['message'];
+      // Éviter les messages SQL
+      if (!msg.contains('SQLSTATE') && !msg.contains('Integrity constraint')) {
+        return msg;
+      }
+    }
+    
+    // 2. Erreurs de validation Laravel
+    if (data['errors'] != null && data['errors'] is Map) {
+      final errors = data['errors'] as Map;
+      if (errors.isNotEmpty) {
+        // Prendre la première erreur
+        final firstError = errors.values.first;
+        if (firstError is List && firstError.isNotEmpty) {
+          return firstError.first.toString();
+        }
+        return firstError.toString();
+      }
+    }
+    
+    // 3. Erreur dans data.error
+    if (data['error'] != null) {
+      return data['error'].toString();
+    }
+    
+    // 4. Messages par défaut selon le code HTTP
+    switch (statusCode) {
+      case 400:
+        return 'Données invalides. Veuillez vérifier les informations saisies.';
+      case 401:
+        return 'Non autorisé. Veuillez vous reconnecter.';
+      case 403:
+        return 'Accès refusé.';
+      case 404:
+        return 'Service non trouvé. Veuillez réessayer plus tard.';
+      case 422:
+        return 'Données invalides. Veuillez vérifier tous les champs requis.';
+      case 500:
+        return 'Erreur serveur. Veuillez réessayer dans quelques instants.';
+      case 503:
+        return 'Service temporairement indisponible. Veuillez réessayer plus tard.';
+      default:
+        return 'Une erreur s\'est produite. Veuillez réessayer.';
     }
   }
 

@@ -374,7 +374,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
 
   Widget _buildPreviewLoyaltyCard(double screenWidth, double screenHeight) {
     // Client factice pour la prévisualisation
-    final previewClient = LoyaltyClient(
+    const previewClient = LoyaltyClient(
       id: 0,
       nomComplet: 'Votre Nom',
       nom: 'Nom',

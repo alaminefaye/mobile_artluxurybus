@@ -9,24 +9,31 @@ import '../services/auth_service.dart';
 import '../services/notification_api_service.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
+import '../widgets/location_display_widget.dart';
 import 'notification_detail_screen.dart';
 import 'loyalty_home_screen.dart';
 import 'auth/login_screen.dart';
 import 'feedback_screen.dart';
+import 'qr_scanner_screen.dart';
+import 'attendance_history_screen.dart';
+import 'bus/bus_dashboard_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+  final int initialTabIndex;
+  
+  const HomePage({super.key, this.initialTabIndex = 0});
 
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialTabIndex;
     // Initialiser le token pour l'API des feedbacks et FCM
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authState = ref.read(authProvider);
@@ -38,11 +45,13 @@ class _HomePageState extends ConsumerState<HomePage> {
           FeedbackApiService.setToken(token);
           NotificationApiService.setToken(token);
           
-          // Charger les notifications
+          // Charger les notifications pour tous les utilisateurs
+          // Le filtrage des notifications de feedback se fera côté affichage
           ref.read(notificationProvider.notifier).loadNotifications(refresh: true);
         }
         
-        // Obtenir et enregistrer le token FCM
+        // Obtenir et enregistrer le token FCM pour tous les utilisateurs
+        // Tous peuvent recevoir des notifications (sauf feedback pour pointage)
         try {
           final fcmToken = await NotificationService.getCurrentToken();
           if (fcmToken != null) {
@@ -79,12 +88,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       return const LoginScreen();
     }
 
+    // Tous les utilisateurs ont accès aux notifications
+    // Le filtrage se fait dans le contenu (feedback exclu pour Pointage)
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
         children: [
           _buildHomeTab(user),
-          _buildNotificationsTab(),
+          _buildNotificationsTab(user),
           _buildServicesTab(user),
           _buildProfileTab(user),
         ],
@@ -104,6 +115,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           builder: (context, ref, child) {
             final unreadCount = ref.watch(unreadNotificationCountProvider);
             
+            // Tous les utilisateurs ont les mêmes onglets
             return BottomNavigationBar(
               currentIndex: _currentIndex,
               onTap: (index) {
@@ -188,237 +200,629 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  Widget _buildHomeTab(User user) {
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header moderne avec couleurs Art Luxury Bus
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.primaryBlue,
-                    AppTheme.primaryBlue.withValues(alpha: 0.8),
-                  ],
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+  // Vérifier si l'utilisateur a le rôle de pointage
+  bool _hasAttendanceRole(User user) {
+    // Les admins et super admins DOIVENT voir les notifications
+    // Seuls les utilisateurs avec rôle UNIQUEMENT "Pointage" ne les voient pas
+    
+    // 1. Vérifier d'abord le rôle (si présent)
+    if (user.role != null) {
+      final roleLower = user.role!.toLowerCase();
+      
+      // Si c'est un admin ou super admin, toujours afficher les notifications
+      if (roleLower.contains('admin') || 
+          roleLower.contains('super') ||
+          roleLower.contains('administrateur')) {
+        return false; // Ne PAS cacher les notifications pour les admins
+      }
+      
+      // Cacher les notifications uniquement pour les rôles de pointage
+      if (roleLower.contains('pointage') || 
+          roleLower.contains('attendance') ||
+          roleLower.contains('employee') ||
+          roleLower.contains('employé') ||
+          roleLower.contains('staff')) {
+        return true; // Cacher pour pointage
+      }
+    }
+    
+    // 2. Si pas de rôle, vérifier les permissions
+    if (user.permissions != null && user.permissions!.isNotEmpty) {
+      // Si l'utilisateur a des permissions admin, ne pas cacher
+      for (var permission in user.permissions!) {
+        final permLower = permission.toLowerCase();
+        if (permLower.contains('manage_all') || 
+            permLower.contains('admin') ||
+            permLower.contains('super')) {
+          return false; // Ne PAS cacher pour les admins
+        }
+      }
+      
+      // Vérifier si l'utilisateur a UNIQUEMENT des permissions de pointage
+      bool hasOnlyAttendancePermissions = true;
+      for (var permission in user.permissions!) {
+        final permLower = permission.toLowerCase();
+        
+        // Si la permission n'est pas liée au pointage/attendance, c'est un utilisateur normal
+        if (!permLower.contains('attendance') && 
+            !permLower.contains('pointage') &&
+            !permLower.contains('qr') &&
+            !permLower.contains('scan') &&
+            !permLower.contains('mark_attendance') &&
+            !permLower.contains('view_own_attendance') &&
+            !permLower.contains('personal_dashboard') &&
+            !permLower.contains('locations')) {
+          hasOnlyAttendancePermissions = false;
+          break;
+        }
+      }
+      
+      if (hasOnlyAttendancePermissions) {
+        return true; // Cacher pour pointage
+      }
+    }
+    
+    return false; // Par défaut, afficher les notifications
+  }
+
+  // Ouvre un menu rapide lié au pointage dans le logo (avatar)
+  void _openAttendanceMenu(User user) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              child: Column(
-                children: [
-                  // Barre du haut avec menu et profil
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.menu,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'Côte d\'Ivoire',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ],
-                      ),
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        child: Text(
-                          user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+              ListTile(
+                leading: const Icon(Icons.qr_code_scanner_rounded),
+                title: const Text('Scanner QR Code'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const QrScannerScreen(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.history_rounded),
+                title: const Text('Historique de pointage'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const AttendanceHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHomeTab(User user) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: CustomScrollView(
+        slivers: [
+          // Header avec effet parallax
+          SliverAppBar(
+            expandedHeight: 200,
+            floating: false,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: AppTheme.primaryBlue,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.primaryBlue,
+                      AppTheme.primaryBlue.withValues(alpha: 0.85),
+                      const Color(0xFF1E3A8A),
                     ],
                   ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Bonjour, ${user.name.split(' ').first}',
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Où souhaitez-vous voyager ?',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 8,
+                                    spreadRadius: 2,
+                                  ),
+                                ],
+                              ),
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_hasAttendanceRole(user)) {
+                                    _openAttendanceMenu(user);
+                                  }
+                                },
+                                child: CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: Colors.white.withValues(alpha: 0.2),
+                                  child: Text(
+                                    user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            leading: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.menu_rounded,
+                color: Colors.white,
+              ),
+            ),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: LocationDisplayWidget(
+                  iconColor: Colors.white,
+                  textColor: Colors.white,
+                  fontSize: 13,
+                  showDropdownIcon: true,
+                ),
+              ),
+            ],
+          ),
+          
+          // Contenu principal
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Barre de recherche
+                  _buildSearchBar(),
                   
                   const SizedBox(height: 20),
                   
-                  // Message de bienvenue
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Bienvenue !',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  // Quick Actions
+                  _buildQuickActions(user),
                   
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
                   
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Où souhaitez-vous voyager aujourd\'hui ?',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ),
+                  // Section Services
+                  _buildServicesHeader(user),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Catégories de services
+                  _buildServicesCategories(user),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Section Promotions
+                  _buildPromotionsSection(),
+                  
+                  const SizedBox(height: 100), // Espace pour bottom nav
                 ],
               ),
             ),
-            
-            // Contenu scrollable
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Catégories de services
-                    _buildServicesCategories(),
-                    
-                    const SizedBox(height: 100), // Espace pour bottom nav
-                  ],
-                ),
-              ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Barre de recherche moderne
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Rechercher un trajet, une ville...',
+          hintStyle: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 14,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: AppTheme.primaryBlue,
+            size: 22,
+          ),
+          suffixIcon: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(10),
             ),
-          ],
+            child: const Icon(
+              Icons.tune_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildServicesCategories() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Catégories de Services',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+  // Quick Actions
+  Widget _buildQuickActions(User user) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryBlue.withValues(alpha: 0.1),
+            AppTheme.primaryOrange.withValues(alpha: 0.05),
+          ],
         ),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 4,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 0.85,
-          crossAxisSpacing: 15,
-          mainAxisSpacing: 15,
-          children: [
-            _buildServiceIcon(
-              icon: Icons.directions_bus,
-              label: 'Voyages',
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          if (!_hasAttendanceRole(user)) ...[
+            _buildQuickActionItem(
+              icon: Icons.confirmation_number_rounded,
+              label: 'Réserver',
               color: AppTheme.primaryBlue,
-              onTap: () {
-                // TODO: Navigation vers voyages
-              },
             ),
-            _buildServiceIcon(
-              icon: Icons.card_giftcard,
-              label: 'Fidélité',
-              color: Colors.purple,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const LoyaltyHomeScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildServiceIcon(
-              icon: Icons.local_shipping,
-              label: 'Courrier',
+            _buildQuickActionItem(
+              icon: Icons.history_rounded,
+              label: 'Mes trajets',
               color: AppTheme.primaryOrange,
-              onTap: () {
-                // TODO: Navigation vers courrier
-              },
             ),
-            _buildServiceIcon(
-              icon: Icons.schedule,
-              label: 'Horaires',
-              color: Colors.green,
-              onTap: () {
-                // TODO: Navigation vers horaires
-              },
-            ),
-            _buildServiceIcon(
-              icon: Icons.feedback,
-              label: 'Suggestions',
-              color: Colors.teal,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const FeedbackScreen(),
-                  ),
-                );
-              },
-            ),
-            _buildServiceIcon(
-              icon: Icons.location_on,
-              label: 'Gares',
-              color: Colors.red,
-              onTap: () {
-                // TODO: Navigation vers gares
-              },
-            ),
-            _buildServiceIcon(
-              icon: Icons.payment,
-              label: 'Paiement',
-              color: Colors.indigo,
-              onTap: () {
-                // TODO: Navigation vers paiement
-              },
-            ),
-            _buildServiceIcon(
-              icon: Icons.more_horiz,
-              label: 'Plus',
-              color: Colors.grey,
-              onTap: () {
-                setState(() {
-                  _currentIndex = 2; // Aller vers l'onglet Services
-                });
-              },
+            _buildQuickActionItem(
+              icon: Icons.card_giftcard_rounded,
+              label: 'Offres',
+              color: Colors.purple,
             ),
           ],
+          if (_hasAttendanceRole(user)) ...[
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const QrScannerScreen(),
+                  ),
+                );
+              },
+              child: _buildQuickActionItem(
+                icon: Icons.qr_code_scanner_rounded,
+                label: 'Scanner',
+                color: Colors.purple,
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const AttendanceHistoryScreen(),
+                  ),
+                );
+              },
+              child: _buildQuickActionItem(
+                icon: Icons.history_rounded,
+                label: 'Historique',
+                color: AppTheme.primaryOrange,
+              ),
+            ),
+            _buildQuickActionItem(
+              icon: Icons.access_time_rounded,
+              label: 'Statut',
+              color: AppTheme.primaryBlue,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
+          ),
         ),
       ],
     );
   }
 
+  // Header Section Services
+  Widget _buildServicesHeader(User user) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Nos Services',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+                letterSpacing: 0.5,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Tout ce dont vous avez besoin',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              // Index 2 pour tous (Services)
+              _currentIndex = 2;
+            });
+          },
+          child: const Row(
+            children: [
+              Text(
+                'Voir tout',
+                style: TextStyle(
+                  color: AppTheme.primaryBlue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: AppTheme.primaryBlue,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServicesCategories(User user) {
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 0.9,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 16,
+        children: [
+        // If user has attendance role, only show Fidélité and Feedback in categories
+        if (_hasAttendanceRole(user)) ...[
+          _buildServiceIcon(
+            icon: Icons.card_giftcard_rounded,
+            label: 'Fidélité',
+            color: const Color(0xFF9333EA),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const LoyaltyHomeScreen(),
+                ),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.feedback_rounded,
+            label: 'Feedback',
+            color: const Color(0xFF14B8A6),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FeedbackScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+        if (!_hasAttendanceRole(user)) ...[
+          _buildServiceIcon(
+            icon: Icons.directions_bus_rounded,
+            label: 'Gestion Bus',
+            color: AppTheme.primaryBlue,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const BusDashboardScreen(),
+                ),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.card_giftcard_rounded,
+            label: 'Fidélité',
+            color: const Color(0xFF9333EA),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const LoyaltyHomeScreen(),
+                ),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.local_shipping_rounded,
+            label: 'Courrier',
+            color: AppTheme.primaryOrange,
+            onTap: () {
+              // TODO: Navigation vers courrier
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.schedule_rounded,
+            label: 'Horaires',
+            color: const Color(0xFF10B981),
+            onTap: () {
+              // TODO: Navigation vers horaires
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.feedback_rounded,
+            label: 'Feedback',
+            color: const Color(0xFF14B8A6),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FeedbackScreen(),
+                ),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.location_on_rounded,
+            label: 'Gares',
+            color: const Color(0xFFEF4444),
+            onTap: () {
+              // TODO: Navigation vers gares
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.payment_rounded,
+            label: 'Paiement',
+            color: const Color(0xFF6366F1),
+            onTap: () {
+              // TODO: Navigation vers paiement
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.apps_rounded,
+            label: 'Plus',
+            color: const Color(0xFF64748B),
+            onTap: () {
+              setState(() {
+                // Index 2 pour tous (Services)
+                _currentIndex = 2;
+              });
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+
+  // Attendance-specific widget removed; use _buildAttendanceServices instead
   Widget _buildServiceIcon({
     required IconData icon,
     required String label,
@@ -427,267 +831,275 @@ class _HomePageState extends ConsumerState<HomePage> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.3),
-                  spreadRadius: 1,
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.15),
+              blurRadius: 10,
+              spreadRadius: 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color,
+                    color.withValues(alpha: 0.8),
+                  ],
                 ),
-              ],
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[800],
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Section Promotions
+  Widget _buildPromotionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Offres Spéciales',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+                letterSpacing: 0.5,
+              ),
+            ),
+            TextButton(
+              onPressed: () {},
+              child: const Text(
+                'Voir tout',
+                style: TextStyle(
+                  color: AppTheme.primaryOrange,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 200,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildPromotionCard(
+                title: '-20% Fidélité',
+                subtitle: 'Sur votre 10ème voyage',
+                icon: Icons.card_giftcard_rounded,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF9333EA),
+                    Color(0xFF7C3AED),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildPromotionCard(
+                title: 'Courrier Gratuit',
+                subtitle: 'Pour tout achat de 2 billets',
+                icon: Icons.local_shipping_rounded,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryOrange,
+                    Color(0xFFF97316),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildPromotionCard(
+                title: 'Weekend Pass',
+                subtitle: 'Voyagez tout le weekend',
+                icon: Icons.calendar_month_rounded,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryBlue,
+                    Color(0xFF2563EB),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromotionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Gradient gradient,
+  }) {
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 15,
+            spreadRadius: 0,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'NOUVEAU',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'En savoir plus',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(width: 3),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 13,
+                      color: Colors.black87,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  // NOTE: role-specific content is provided via the section builders
+
+  // Role-specific content removed: services are now built via section builders
 
 
-
-
-
-
-
-
-
-
-
-  Widget _buildRoleBasedContent(BuildContext context, User user) {
-    final role = user.role?.toLowerCase() ?? '';
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Vos fonctionnalités',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textDark,
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Contenu spécifique par rôle
-        if (role.contains('admin') || role.contains('administrateur'))
-          _buildAdminContent(context)
-        else if (role.contains('manager') || role.contains('gestionnaire'))
-          _buildManagerContent(context)
-        else if (role.contains('driver') || role.contains('chauffeur'))
-          _buildDriverContent(context)
-        else if (role.contains('agent') || role.contains('employe'))
-          _buildAgentContent(context)
-        else
-          _buildDefaultUserContent(context),
-      ],
-    );
-  }
-
-  Widget _buildAdminContent(BuildContext context) {
-    return Column(
-      children: [
-        _buildFeatureCard(
-          icon: Icons.dashboard,
-          title: 'Tableau de bord Admin',
-          subtitle: 'Vue d\'ensemble complète du système',
-          color: AppTheme.primaryBlue,
-          onTap: () {
-            // TODO: Navigation vers admin dashboard
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureCard(
-          icon: Icons.people,
-          title: 'Gestion des utilisateurs',
-          subtitle: 'Gérer les comptes et les rôles',
-          color: AppTheme.primaryOrange,
-          onTap: () {
-            // TODO: Navigation vers gestion utilisateurs
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureCard(
-          icon: Icons.directions_bus,
-          title: 'Gestion des véhicules',
-          subtitle: 'Gérer la flotte de bus',
-          color: Colors.green,
-          onTap: () {
-            // TODO: Navigation vers gestion véhicules
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildManagerContent(BuildContext context) {
-    return Column(
-      children: [
-        _buildFeatureCard(
-          icon: Icons.schedule,
-          title: 'Planification des trajets',
-          subtitle: 'Organiser les horaires et itinéraires',
-          color: AppTheme.primaryBlue,
-          onTap: () {
-            // TODO: Navigation vers planification
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureCard(
-          icon: Icons.assignment,
-          title: 'Rapports de gestion',
-          subtitle: 'Consulter les statistiques',
-          color: AppTheme.primaryOrange,
-          onTap: () {
-            // TODO: Navigation vers rapports
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDriverContent(BuildContext context) {
-    return Column(
-      children: [
-        _buildFeatureCard(
-          icon: Icons.map,
-          title: 'Mes trajets',
-          subtitle: 'Voir mes trajets assignés',
-          color: AppTheme.primaryBlue,
-          onTap: () {
-            // TODO: Navigation vers trajets chauffeur
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureCard(
-          icon: Icons.checklist,
-          title: 'État du véhicule',
-          subtitle: 'Signaler l\'état du bus',
-          color: Colors.green,
-          onTap: () {
-            // TODO: Navigation vers état véhicule
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAgentContent(BuildContext context) {
-    return Column(
-      children: [
-        _buildFeatureCard(
-          icon: Icons.confirmation_number,
-          title: 'Vente de billets',
-          subtitle: 'Gérer les ventes et réservations',
-          color: AppTheme.primaryBlue,
-          onTap: () {
-            // TODO: Navigation vers vente billets
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureCard(
-          icon: Icons.support_agent,
-          title: 'Service client',
-          subtitle: 'Assistance et support',
-          color: AppTheme.primaryOrange,
-          onTap: () {
-            // TODO: Navigation vers service client
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDefaultUserContent(BuildContext context) {
-    return Column(
-      children: [
-        _buildFeatureCard(
-          icon: Icons.search,
-          title: 'Rechercher un trajet',
-          subtitle: 'Trouver et réserver vos billets',
-          color: AppTheme.primaryBlue,
-          onTap: () {
-            // TODO: Navigation vers recherche trajets
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildFeatureCard(
-          icon: Icons.history,
-          title: 'Mes réservations',
-          subtitle: 'Historique de vos voyages',
-          color: AppTheme.primaryOrange,
-          onTap: () {
-            // TODO: Navigation vers réservations
-          },
-        ),
-      ],
-    );
-  }
-
-
-  Widget _buildFeatureCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      elevation: 3,
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 14,
-          ),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: onTap,
-      ),
-    );
-  }
+  // Old feature card helper removed in favor of modern service card
 
   String _getRoleDisplayName(String? role) {
     if (role == null) return 'Utilisateur';
@@ -708,7 +1120,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return roleMap[role.toLowerCase()] ?? 'Utilisateur';
   }
 
-  Widget _buildNotificationsTab() {
+  Widget _buildNotificationsTab(User user) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
@@ -737,6 +1149,17 @@ class _HomePageState extends ConsumerState<HomePage> {
       body: Consumer(
         builder: (context, ref, child) {
           final notificationState = ref.watch(notificationProvider);
+          
+          // Filtrer les notifications de feedback pour les utilisateurs pointage
+          final filteredNotifications = _hasAttendanceRole(user)
+              ? notificationState.notifications.where((notif) {
+                  // Exclure les notifications de type feedback/suggestion
+                  return notif.type != 'feedback' && 
+                         notif.type != 'suggestion' &&
+                         notif.type != 'new_feedback' &&
+                         notif.type != 'urgent_feedback';
+                }).toList()
+              : notificationState.notifications;
 
           if (notificationState.isLoading && notificationState.notifications.isEmpty) {
             return const Center(
@@ -781,7 +1204,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             );
           }
 
-          if (notificationState.notifications.isEmpty) {
+          if (filteredNotifications.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -829,10 +1252,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             color: AppTheme.primaryBlue,
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: notificationState.notifications.length + 
+              itemCount: filteredNotifications.length + 
                          (notificationState.hasMore ? 1 : 0),
               itemBuilder: (context, index) {
-                if (index == notificationState.notifications.length) {
+                if (index == filteredNotifications.length) {
                   // Bouton "Charger plus"
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -855,7 +1278,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   );
                 }
 
-                final notification = notificationState.notifications[index];
+                final notification = filteredNotifications[index];
                 return _buildDynamicNotificationCard(notification);
               },
             ),
@@ -867,80 +1290,221 @@ class _HomePageState extends ConsumerState<HomePage> {
 
 
   Widget _buildDynamicNotificationCard(NotificationModel notification) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: notification.isRead 
-          ? Colors.white 
-          : AppTheme.primaryBlue.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.withValues(alpha: 0.2),
+    return Dismissible(
+      key: Key('notification_${notification.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Icon(
+              Icons.delete_outline,
+              color: Colors.white,
+              size: 24,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Supprimer',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
-      child: ListTile(
-        onTap: () {
-          // Ouvrir l'écran de détail
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NotificationDetailScreen(
-                notification: notification,
-              ),
+      confirmDismiss: (direction) async {
+        // Afficher une confirmation avant de supprimer
+        return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          );
-        },
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: _getNotificationTypeColor(notification.type).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            _getNotificationTypeIcon(notification.type),
-            color: _getNotificationTypeColor(notification.type),
-            size: 20,
-          ),
-        ),
-        title: Text(
-          notification.title,
-          style: TextStyle(
-            fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
-        subtitle: Text(
-          notification.message,
-          style: const TextStyle(fontSize: 12),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // Badge de priorité
-            if (notification.data != null && notification.data!['priority'] != null)
-              _buildPriorityBadge(notification.data!['priority'].toString()),
-            
-            Text(
-              notification.getTimeAgo(),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  color: Colors.red[600],
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Supprimer notification',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Voulez-vous vraiment supprimer cette notification ?\n\n"${notification.title}"',
               style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[600],
+                fontSize: 14,
+                color: Colors.grey[700],
               ),
             ),
-            if (!notification.isRead)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppTheme.primaryBlue,
-                  shape: BoxShape.circle,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Annuler',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Supprimer',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ) ?? false;
+      },
+      onDismissed: (direction) {
+        // Supprimer la notification
+        ref.read(notificationProvider.notifier).deleteNotification(notification.id);
+        
+        // Afficher un message de confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Notification supprimée',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: notification.isRead 
+            ? Colors.white 
+            : AppTheme.primaryBlue.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.2),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
           ],
+        ),
+        child: ListTile(
+          onTap: () {
+            // Marquer comme lu avant d'ouvrir
+            if (!notification.isRead) {
+              ref.read(notificationProvider.notifier).markAsRead(notification.id);
+            }
+            
+            // Ouvrir l'écran de détail
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NotificationDetailScreen(
+                  notification: notification,
+                ),
+              ),
+            );
+          },
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _getNotificationTypeColor(notification.type).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _getNotificationTypeIcon(notification.type),
+              color: _getNotificationTypeColor(notification.type),
+              size: 20,
+            ),
+          ),
+          title: Text(
+            notification.title,
+            style: TextStyle(
+              fontWeight: notification.isRead ? FontWeight.w500 : FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          subtitle: Text(
+            notification.message,
+            style: const TextStyle(fontSize: 12),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Badge de priorité
+              if (notification.data != null && notification.data!['priority'] != null)
+                _buildPriorityBadge(notification.data!['priority'].toString()),
+              
+              Text(
+                notification.getTimeAgo(),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[600],
+                ),
+              ),
+              if (!notification.isRead)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.primaryBlue,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1028,7 +1592,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: badgeColor.withOpacity(0.3),
+            color: badgeColor.withValues(alpha: 0.3),
             spreadRadius: 1,
             blurRadius: 2,
             offset: const Offset(0, 1),
@@ -1060,148 +1624,36 @@ class _HomePageState extends ConsumerState<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Tous nos services',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            
-            // Services basés sur le rôle
-            _buildRoleBasedContent(context, user),
-            
-            const SizedBox(height: 24),
-            
-            // Services communs
-            const Text(
-              'Services généraux',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            _buildFeatureCard(
-              icon: Icons.card_giftcard,
-              title: 'Programme Fidélité',
-              subtitle: 'Cumulez des points et obtenez des avantages',
-              color: Colors.purple,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const LoyaltyHomeScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildFeatureCard(
-              icon: Icons.feedback,
-              title: 'Suggestions & Préoccupations',
-              subtitle: 'Partagez vos idées et signalez vos problèmes',
-              color: Colors.teal,
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const FeedbackScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _buildFeatureCard(
-              icon: Icons.support,
-              title: 'Support & Aide',
-              subtitle: 'Contactez notre équipe de support',
-              color: Colors.orange,
-              onTap: () {
-                // TODO: Navigation vers support
-              },
-            ),
-            
-            const SizedBox(height: 100), // Espace pour la bottom nav
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileTab(User user) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil'),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {
-              // TODO: Navigation vers édition profil
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Photo de profil et infos
+            // En-tête avec description
             Container(
-              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
-                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    AppTheme.primaryOrange.withValues(alpha: 0.05),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
-                    child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      fontSize: 24,
+                  const Text(
+                    'Tous nos services',
+                    style: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    user.email,
+                    'Découvrez tout ce que nous pouvons faire pour vous',
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _getRoleDisplayName(user.role),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                      fontSize: 14,
+                      color: Colors.grey[600],
                     ),
                   ),
                 ],
@@ -1210,104 +1662,620 @@ class _HomePageState extends ConsumerState<HomePage> {
             
             const SizedBox(height: 24),
             
-            // Options du profil
-            _buildProfileOption(
-              icon: Icons.person,
-              title: 'Informations personnelles',
-              onTap: () {
-                // TODO: Navigation vers infos personnelles
-              },
-            ),
-            _buildProfileOption(
-              icon: Icons.security,
-              title: 'Sécurité et mot de passe',
-              onTap: () {
-                // TODO: Navigation vers sécurité
-              },
-            ),
-            _buildProfileOption(
-              icon: Icons.notifications,
-              title: 'Préférences de notification',
-              onTap: () {
-                // TODO: Navigation vers préférences
-              },
-            ),
-            _buildProfileOption(
-              icon: Icons.help,
-              title: 'Aide et support',
-              onTap: () {
-                // TODO: Navigation vers aide
-              },
-            ),
-            _buildProfileOption(
-              icon: Icons.info,
-              title: 'À propos',
-              onTap: () {
-                // TODO: Navigation vers à propos
-              },
-            ),
+            // Grille de services en 2 colonnes
+            _buildServicesGrid(user),
             
-            const SizedBox(height: 24),
-            
-            // Bouton de déconnexion
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: TextButton.icon(
-                onPressed: () async {
-                  await ref.read(authProvider.notifier).logout();
-                },
-                icon: const Icon(Icons.logout, color: Colors.red),
-                label: const Text(
-                  'Se déconnecter',
-                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
-                ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 100), // Espace pour la bottom nav
+            const SizedBox(height: 100), // Espace pour bottom nav
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfileOption({
+  // Grille de services compacte
+  Widget _buildServicesGrid(User user) {
+    final services = _getServicesForUser(user);
+    
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.85,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: services.length,
+      itemBuilder: (context, index) {
+        final service = services[index];
+        return _buildCompactServiceCard(
+          icon: service['icon'],
+          title: service['title'],
+          subtitle: service['subtitle'],
+          color: service['color'],
+          onTap: service['onTap'],
+        );
+      },
+    );
+  }
+
+  // Liste des services selon le rôle
+  List<Map<String, dynamic>> _getServicesForUser(User user) {
+    List<Map<String, dynamic>> services = [
+      {
+        'icon': Icons.card_giftcard_rounded,
+        'title': 'Programme Fidélité',
+        'subtitle': 'Cumulez des points et avantages',
+        'color': const Color(0xFF9333EA),
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoyaltyHomeScreen())),
+      },
+      {
+        'icon': Icons.feedback_rounded,
+        'title': 'Suggestions',
+        'subtitle': 'Partagez vos idées',
+        'color': const Color(0xFF14B8A6),
+        'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackScreen())),
+      },
+    ];
+
+    if (_hasAttendanceRole(user)) {
+      services.addAll([
+        {
+          'icon': Icons.qr_code_scanner_rounded,
+          'title': 'Scanner QR',
+          'subtitle': 'Pointage rapide',
+          'color': const Color(0xFF9333EA),
+          'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const QrScannerScreen())),
+        },
+        {
+          'icon': Icons.history_rounded,
+          'title': 'Historique',
+          'subtitle': 'Vos pointages',
+          'color': AppTheme.primaryOrange,
+          'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen())),
+        },
+      ]);
+    } else {
+      services.addAll([
+        {
+          'icon': Icons.directions_bus_rounded,
+          'title': 'Gestion Bus',
+          'subtitle': 'Flotte et maintenance',
+          'color': AppTheme.primaryBlue,
+          'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BusDashboardScreen())),
+        },
+        {
+          'icon': Icons.schedule_rounded,
+          'title': 'Horaires',
+          'subtitle': 'Consulter les horaires',
+          'color': const Color(0xFF10B981),
+          'onTap': () {}, // TODO: Navigation
+        },
+        {
+          'icon': Icons.local_shipping_rounded,
+          'title': 'Courrier',
+          'subtitle': 'Envoyer un colis',
+          'color': AppTheme.primaryOrange,
+          'onTap': () {}, // TODO: Navigation
+        },
+        {
+          'icon': Icons.location_on_rounded,
+          'title': 'Stations',
+          'subtitle': 'Localiser les gares',
+          'color': const Color(0xFFEF4444),
+          'onTap': () {}, // TODO: Navigation
+        },
+      ]);
+    }
+
+    services.addAll([
+      {
+        'icon': Icons.support_agent_rounded,
+        'title': 'Support',
+        'subtitle': 'Aide et assistance',
+        'color': const Color(0xFFEF4444),
+        'onTap': () {}, // TODO: Navigation
+      },
+      {
+        'icon': Icons.help_center_rounded,
+        'title': 'Aide',
+        'subtitle': 'Centre d\'aide',
+        'color': const Color(0xFF8B5CF6),
+        'onTap': () {}, // TODO: Navigation
+      },
+    ]);
+
+    return services;
+  }
+
+  // Carte de service compacte
+  Widget _buildCompactServiceCard({
     required IconData icon,
     required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.15),
+              blurRadius: 10,
+              spreadRadius: 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: color.withValues(alpha: 0.1),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color,
+                    color.withValues(alpha: 0.8),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileTab(User user) {
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: CustomScrollView(
+        slivers: [
+          // Header compact et moderne
+          SliverAppBar(
+            expandedHeight: 200,
+            floating: false,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: AppTheme.primaryBlue,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.primaryBlue,
+                      AppTheme.primaryBlue.withValues(alpha: 0.9),
+                      const Color(0xFF1E3A8A),
+                    ],
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Photo de profil compacte
+                        Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 35,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              child: Text(
+                                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: -2,
+                              right: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryOrange,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          user.name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user.email,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _getRoleDisplayName(user.role),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Section Compte
+                  _buildProfileSection(
+                    title: 'Mon Compte',
+                    icon: Icons.person_rounded,
+                    options: [
+                      _buildModernProfileOption(
+                        icon: Icons.person_outline,
+                        title: 'Informations personnelles',
+                        subtitle: 'Modifier vos données',
+                        color: AppTheme.primaryBlue,
+                        onTap: () {},
+                      ),
+                      _buildModernProfileOption(
+                        icon: Icons.security_rounded,
+                        title: 'Sécurité',
+                        subtitle: 'Mot de passe et sécurité',
+                        color: Colors.green,
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  
+                  // Section Préférences (seulement pour non-pointeurs)
+                  if (!_hasAttendanceRole(user)) ...[
+                    _buildProfileSection(
+                      title: 'Préférences',
+                      icon: Icons.settings_rounded,
+                      options: [
+                        _buildModernProfileOption(
+                          icon: Icons.notifications_outlined,
+                          title: 'Notifications',
+                          subtitle: 'Gérer vos alertes',
+                          color: AppTheme.primaryOrange,
+                          onTap: () {},
+                        ),
+                        _buildModernProfileOption(
+                          icon: Icons.language_rounded,
+                          title: 'Langue',
+                          subtitle: 'Français',
+                          color: Colors.purple,
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  
+                  // Section Support
+                  _buildProfileSection(
+                    title: 'Support',
+                    icon: Icons.help_center_rounded,
+                    options: [
+                      _buildModernProfileOption(
+                        icon: Icons.help_outline,
+                        title: 'Aide et support',
+                        subtitle: 'Contactez notre équipe',
+                        color: Colors.teal,
+                        onTap: () {},
+                      ),
+                      _buildModernProfileOption(
+                        icon: Icons.info_outline,
+                        title: 'À propos',
+                        subtitle: 'Version 1.0.0',
+                        color: Colors.indigo,
+                        onTap: () {},
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Bouton de déconnexion compact
+                  _buildLogoutButton(),
+                  
+                  const SizedBox(height: 80), // Espace pour bottom nav
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Section de profil compacte
+  Widget _buildProfileSection({
+    required String title,
+    required IconData icon,
+    required List<Widget> options,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppTheme.primaryBlue,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...options,
+      ],
+    );
+  }
+
+  // Option de profil compacte
+  Widget _buildModernProfileOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
     required VoidCallback onTap,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.08),
+            blurRadius: 4,
+            spreadRadius: 0,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: AppTheme.primaryBlue, size: 20),
+          child: Icon(
+            icon,
+            color: color,
+            size: 18,
+          ),
         ),
         title: Text(
           title,
           style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: Colors.black87,
           ),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[600],
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 14,
+          color: Colors.grey[400],
+        ),
         onTap: onTap,
+      ),
+    );
+  }
+
+  // Bouton de déconnexion compact
+  Widget _buildLogoutButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.red.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () async {
+            // Afficher une confirmation
+            final shouldLogout = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                title: const Text(
+                  'Déconnexion',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                content: const Text(
+                  'Êtes-vous sûr de vouloir vous déconnecter ?',
+                  style: TextStyle(fontSize: 14),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(
+                      'Annuler',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Déconnecter',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            );
+
+            if (shouldLogout == true) {
+              await ref.read(authProvider.notifier).logout();
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.logout_rounded,
+                  color: Colors.red[600],
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Se déconnecter',
+                  style: TextStyle(
+                    color: Colors.red[600],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

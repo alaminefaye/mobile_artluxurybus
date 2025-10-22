@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/feedback_api_service.dart';
+import '../firebase_options.dart';
 
 // Handler pour les notifications en arrière-plan
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Notification en arrière-plan reçue - traitement silencieux
   
   // Traiter la notification en arrière-plan
@@ -19,6 +22,7 @@ class NotificationService {
   static FirebaseMessaging? _messaging;
   static FlutterLocalNotificationsPlugin? _localNotifications;
   static StreamController<Map<String, dynamic>>? _notificationStreamController;
+  static bool _bgHandlerRegistered = false;
   
   // Stream pour écouter les notifications
   static Stream<Map<String, dynamic>>? get notificationStream => 
@@ -27,41 +31,85 @@ class NotificationService {
   /// Initialiser Firebase et les notifications
   static Future<void> initialize() async {
     try {
-      // Initialiser Firebase
-      await Firebase.initializeApp();
-      // Firebase initialisé avec succès
+      debugPrint('🔔 [NotificationService] Début initialisation...');
+      
+      // Vérifier si Firebase est déjà initialisé
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        debugPrint('✅ [NotificationService] Firebase initialisé');
+      } catch (e) {
+        if (e.toString().contains('duplicate-app')) {
+          debugPrint('ℹ️ [NotificationService] Firebase déjà initialisé, on continue...');
+        } else {
+          rethrow;
+        }
+      }
 
       // Initialiser Firebase Messaging
       _messaging = FirebaseMessaging.instance;
+      debugPrint('✅ [NotificationService] Firebase Messaging initialisé');
       
       // Initialiser les notifications locales
       await _initializeLocalNotifications();
+      debugPrint('✅ [NotificationService] Notifications locales initialisées');
       
-      // Configurer le handler pour les notifications en arrière-plan
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      // Configurer le handler pour les notifications en arrière-plan (une seule fois)
+      if (!_bgHandlerRegistered) {
+        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+        _bgHandlerRegistered = true;
+      }
+      debugPrint('✅ [NotificationService] Handler arrière-plan configuré');
       
       // Demander les permissions
       await _requestPermissions();
+      debugPrint('✅ [NotificationService] Permissions demandées');
       
       // Obtenir et enregistrer le token FCM
       await _getAndRegisterToken();
+      debugPrint('✅ [NotificationService] Token FCM obtenu');
       
       // Configurer les listeners
       await _setupMessageHandlers();
+      debugPrint('✅ [NotificationService] Listeners configurés');
       
       // Initialiser le stream controller
       _notificationStreamController = StreamController<Map<String, dynamic>>.broadcast();
       
-      // Service de notifications initialisé avec succès
+      debugPrint('🎉 [NotificationService] Initialisation complète avec succès !');
       
-    } catch (e) {
-      // Erreur lors de l'initialisation des notifications - gestion silencieuse
+    } catch (e, stackTrace) {
+      debugPrint('❌ [NotificationService] ERREUR lors de l\'initialisation: $e');
+      debugPrint('Stack trace: $stackTrace');
     }
   }
 
   /// Initialiser les notifications locales
   static Future<void> _initializeLocalNotifications() async {
     _localNotifications = FlutterLocalNotificationsPlugin();
+    
+    // Créer le canal de notification Android (requis pour Android 8.0+)
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'art_luxury_bus_channel', // ID du canal
+      'Art Luxury Bus Notifications', // Nom du canal
+      description: 'Notifications de l\'application Art Luxury Bus',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    );
+    
+    // Créer le canal sur l'appareil Android
+    final androidPlugin = _localNotifications!
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    
+    if (androidPlugin != null) {
+      await androidPlugin.createNotificationChannel(channel);
+      debugPrint('✅ [NotificationService] Canal Android créé: ${channel.id}');
+    } else {
+      debugPrint('❌ [NotificationService] Impossible de créer le canal Android');
+    }
     
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -255,6 +303,9 @@ class NotificationService {
       priority: Priority.high,
       showWhen: true,
       icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      enableLights: true,
       // color: Color(0xFF1976D2), // Bleu Art Luxury Bus
     );
     
@@ -309,11 +360,26 @@ class NotificationService {
 
   /// Tester les notifications
   static Future<void> testNotification() async {
-    await _showLocalNotification(
-      title: 'Test Notification',
-      body: 'Ceci est un test des notifications push Art Luxury Bus',
-      data: {'type': 'test'},
-    );
+    debugPrint('🔔 [NotificationService] TEST - Début du test de notification...');
+    
+    if (_localNotifications == null) {
+      debugPrint('❌ [NotificationService] TEST - Plugin de notifications locales non initialisé !');
+      return;
+    }
+    
+    debugPrint('✅ [NotificationService] TEST - Plugin OK, envoi de la notification...');
+    
+    try {
+      await _showLocalNotification(
+        title: 'Test Notification',
+        body: 'Ceci est un test des notifications push Art Luxury Bus 🔔',
+        data: {'type': 'test'},
+      );
+      debugPrint('✅ [NotificationService] TEST - Notification envoyée avec succès !');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [NotificationService] TEST - Erreur lors de l\'envoi: $e');
+      debugPrint('Stack trace: $stackTrace');
+    }
   }
 
   /// Nettoyer les ressources
