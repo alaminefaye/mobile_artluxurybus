@@ -115,7 +115,9 @@ class BusDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${bus.brand ?? 'N/A'} ${bus.model ?? ''}',
+                      bus.capacity != null 
+                          ? '${bus.capacity} sièges'
+                          : 'Capacité inconnue',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 16,
@@ -242,6 +244,36 @@ class BusDetailScreen extends ConsumerWidget {
       children: [
         Column(
           children: [
+        // Filtres
+        Container(
+          padding: const EdgeInsets.all(16),
+          color: Colors.white,
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildFilterDropdown(
+                  'Période',
+                  ['Aujourd\'hui', 'Ce mois', 'Année'],
+                  'Ce mois',
+                  (value) {
+                    // TODO: Implémenter filtrage
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildFilterDropdown(
+                  'Année',
+                  ['2025', '2024', '2023'],
+                  '2025',
+                  (value) {
+                    // TODO: Implémenter filtrage
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
         // Statistiques de carburant
         fuelStatsAsync.when(
           data: (stats) => Container(
@@ -261,19 +293,17 @@ class BusDetailScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildStatBox(
-                        'Moyenne',
-                        stats.averageConsumption != null 
-                            ? '${stats.averageConsumption!.toStringAsFixed(0)} FCFA'
-                            : 'N/A',
-                        Colors.green,
+                        'Ce mois',
+                        '${stats.lastMonthConsumption.toStringAsFixed(0)} FCFA',
+                        Colors.orange,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildStatBox(
-                        'Ce mois',
-                        '${stats.lastMonthConsumption.toStringAsFixed(0)} FCFA',
-                        Colors.orange,
+                        'Année passée',
+                        '0 FCFA', // TODO: Calculer depuis API
+                        Colors.green,
                       ),
                     ),
                   ],
@@ -305,18 +335,16 @@ class BusDetailScreen extends ConsumerWidget {
                         backgroundColor: Colors.blue.withValues(alpha: 0.1),
                         child: const Icon(Icons.local_gas_station, color: Colors.blue),
                       ),
-                      title: Text(fuel.quantity != null ? '${fuel.quantity!.toStringAsFixed(1)} L' : 'Quantité non spécifiée'),
-                      subtitle: Text(
-                        '${_formatDate(fuel.fueledAt ?? fuel.date)}${fuel.fuelStation != null ? ' - ${fuel.fuelStation}' : ''}',
+                      title: Text(
+                        '${fuel.cost.toStringAsFixed(0)} FCFA',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
                       ),
-                      trailing: fuel.cost != null
-                          ? Text(
-                              '${fuel.cost!.toStringAsFixed(0)} FCFA',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.deepPurple,
-                              ),
-                            )
+                      subtitle: Text(_formatDateTime(fuel.fueledAt)),
+                      trailing: fuel.notes != null && fuel.notes!.isNotEmpty
+                          ? const Icon(Icons.note, color: Colors.grey)
                           : null,
                       onTap: () {
                         Navigator.push(
@@ -715,6 +743,38 @@ class BusDetailScreen extends ConsumerWidget {
       ),
     );
   }
+  
+  Widget _buildFilterDropdown(
+    String label,
+    List<String> items,
+    String value,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(
+                item,
+                style: const TextStyle(fontSize: 14),
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+          hint: Text(label),
+        ),
+      ),
+    );
+  }
 
   Widget _buildEmptyState(String message) {
     return Center(
@@ -891,6 +951,10 @@ class BusDetailScreen extends ConsumerWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+  
+  String _formatDateTime(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }
 

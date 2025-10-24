@@ -11,6 +11,7 @@ class LoyaltyCard extends StatefulWidget {
   final double screenWidth;
   final double screenHeight;
   final LoyaltyCardType cardType;
+  final ValueNotifier<bool>? showingDeparturesNotifier;
 
   const LoyaltyCard({
     super.key,
@@ -18,6 +19,7 @@ class LoyaltyCard extends StatefulWidget {
     required this.screenWidth,
     required this.screenHeight,
     required this.cardType,
+    this.showingDeparturesNotifier,
   });
 
   @override
@@ -30,6 +32,10 @@ class _LoyaltyCardState extends State<LoyaltyCard>
   late Animation<double> _animation;
   bool _isFlipped = false;
   Timer? _autoFlipTimer;
+  Timer? _departureTimer;
+  int _currentView = 0; // 0 = front, 1 = back, 2 = departures
+  int _flipCount = 0;
+  bool _showingDepartures = false;
 
   @override
   void initState() {
@@ -53,6 +59,7 @@ class _LoyaltyCardState extends State<LoyaltyCard>
   @override
   void dispose() {
     _autoFlipTimer?.cancel();
+    _departureTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -66,12 +73,47 @@ class _LoyaltyCardState extends State<LoyaltyCard>
       }
       setState(() {
         _isFlipped = !_isFlipped;
+        _flipCount++;
+        
+        // Après 3 flips, afficher les départs
+        if (_flipCount >= 3 && !_showingDepartures) {
+          _showingDepartures = true;
+          _currentView = 2;
+          _flipCount = 0;
+          
+          // Notifier le parent que les départs sont affichés
+          debugPrint('🚀 [LoyaltyCard] Affichage du tableau des départs - Notification envoyée');
+          widget.showingDeparturesNotifier?.value = true;
+          
+          // Retour automatique après 1 minute
+          _departureTimer?.cancel();
+          _departureTimer = Timer(const Duration(minutes: 1), () {
+            if (mounted) {
+              setState(() {
+                _showingDepartures = false;
+                _currentView = 0;
+                _isFlipped = false;
+                _controller.reset();
+              });
+              // Notifier le parent que les départs sont masqués
+              widget.showingDeparturesNotifier?.value = false;
+            }
+          });
+        } else if (!_showingDepartures) {
+          // Alterner entre front (0) et back (1)
+          _currentView = _isFlipped ? 1 : 0;
+        }
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Si on affiche les départs, pas d'animation de flip
+    if (_showingDepartures) {
+      return _buildDeparturesBoard();
+    }
+    
     return GestureDetector(
       onTap: _flip,
       child: AnimatedBuilder(
@@ -516,6 +558,196 @@ class _LoyaltyCardState extends State<LoyaltyCard>
           ),
         );
       },
+    );
+  }
+
+  // Tableau des départs style aéroport
+  Widget _buildDeparturesBoard() {
+    // Données fictives de départs (à remplacer par des vraies données de l'API)
+    final departures = [
+      {'destination': 'Dakar', 'time': '08:30', 'gate': 'A1', 'status': 'À l\'heure'},
+      {'destination': 'Thiès', 'time': '09:15', 'gate': 'A2', 'status': 'À l\'heure'},
+      {'destination': 'Saint-Louis', 'time': '10:00', 'gate': 'B1', 'status': 'Embarquement'},
+      {'destination': 'Kaolack', 'time': '10:45', 'gate': 'B2', 'status': 'À l\'heure'},
+      {'destination': 'Ziguinchor', 'time': '11:30', 'gate': 'C1', 'status': 'Retardé'},
+      {'destination': 'Tambacounda', 'time': '12:15', 'gate': 'C2', 'status': 'À l\'heure'},
+    ];
+
+    return Container(
+      width: double.infinity,
+      height: widget.screenHeight * 0.32,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(widget.screenWidth * 0.04),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1A1A1A),
+            Color(0xFF2D2D2D),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            spreadRadius: 3,
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header style aéroport
+          Container(
+            padding: EdgeInsets.all(widget.screenWidth * 0.03),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(widget.screenWidth * 0.04),
+                topRight: Radius.circular(widget.screenWidth * 0.04),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.flight_takeoff,
+                      color: const Color(0xFFD4AF37),
+                      size: widget.screenWidth * 0.05,
+                    ),
+                    SizedBox(width: widget.screenWidth * 0.02),
+                    Text(
+                      'DÉPARTS',
+                      style: TextStyle(
+                        color: const Color(0xFFD4AF37),
+                        fontSize: widget.screenWidth * 0.035,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  DateTime.now().toString().substring(11, 16),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: widget.screenWidth * 0.03,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Tableau des départs
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: departures.length,
+              itemBuilder: (context, index) {
+                final departure = departures[index];
+                final isDelayed = departure['status'] == 'Retardé';
+                final isBoarding = departure['status'] == 'Embarquement';
+                
+                return Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: widget.screenWidth * 0.03,
+                    vertical: widget.screenWidth * 0.02,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        width: 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Heure
+                      SizedBox(
+                        width: widget.screenWidth * 0.12,
+                        child: Text(
+                          departure['time']!,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: widget.screenWidth * 0.032,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      
+                      // Destination
+                      Expanded(
+                        child: Text(
+                          departure['destination']!,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: widget.screenWidth * 0.03,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      
+                      // Porte
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.screenWidth * 0.02,
+                          vertical: widget.screenWidth * 0.01,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
+                        ),
+                        child: Text(
+                          departure['gate']!,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: widget.screenWidth * 0.025,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      
+                      SizedBox(width: widget.screenWidth * 0.02),
+                      
+                      // Statut
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.screenWidth * 0.02,
+                          vertical: widget.screenWidth * 0.01,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDelayed 
+                              ? Colors.red.withValues(alpha: 0.2)
+                              : isBoarding
+                                  ? Colors.green.withValues(alpha: 0.2)
+                                  : Colors.blue.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
+                        ),
+                        child: Text(
+                          departure['status']!,
+                          style: TextStyle(
+                            color: isDelayed 
+                                ? Colors.red
+                                : isBoarding
+                                    ? Colors.green
+                                    : Colors.blue,
+                            fontSize: widget.screenWidth * 0.022,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

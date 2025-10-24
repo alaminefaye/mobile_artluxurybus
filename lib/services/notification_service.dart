@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/feedback_api_service.dart';
+import '../services/device_info_service.dart';
 import '../firebase_options.dart';
 
 // Handler pour les notifications en arrière-plan
@@ -23,6 +23,7 @@ class NotificationService {
   static FlutterLocalNotificationsPlugin? _localNotifications;
   static StreamController<Map<String, dynamic>>? _notificationStreamController;
   static bool _bgHandlerRegistered = false;
+  static String? _deviceId;
   
   // Stream pour écouter les notifications
   static Stream<Map<String, dynamic>>? get notificationStream => 
@@ -43,36 +44,76 @@ class NotificationService {
         if (e.toString().contains('duplicate-app')) {
           debugPrint('ℹ️ [NotificationService] Firebase déjà initialisé, on continue...');
         } else {
-          rethrow;
+          debugPrint('⚠️ [NotificationService] Erreur Firebase (non bloquante): $e');
+          // Ne pas bloquer l'app si Firebase échoue
         }
       }
 
-      // Initialiser Firebase Messaging
-      _messaging = FirebaseMessaging.instance;
-      debugPrint('✅ [NotificationService] Firebase Messaging initialisé');
+      // Récupérer l'ID unique de l'appareil
+      try {
+        _deviceId = await DeviceInfoService().getDeviceId();
+        debugPrint('📱 [NotificationService] Device ID: $_deviceId');
+      } catch (e) {
+        debugPrint('⚠️ [NotificationService] Erreur récupération Device ID: $e');
+      }
+
+      // Initialiser Firebase Messaging avec gestion d'erreur
+      try {
+        _messaging = FirebaseMessaging.instance;
+        debugPrint('✅ [NotificationService] Firebase Messaging initialisé');
+      } catch (e) {
+        debugPrint('⚠️ [NotificationService] Firebase Messaging non disponible: $e');
+        // Continuer sans notifications push
+      }
       
       // Initialiser les notifications locales
-      await _initializeLocalNotifications();
-      debugPrint('✅ [NotificationService] Notifications locales initialisées');
+      try {
+        await _initializeLocalNotifications();
+        debugPrint('✅ [NotificationService] Notifications locales initialisées');
+      } catch (e) {
+        debugPrint('⚠️ [NotificationService] Notifications locales non disponibles: $e');
+      }
       
       // Configurer le handler pour les notifications en arrière-plan (une seule fois)
-      if (!_bgHandlerRegistered) {
-        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-        _bgHandlerRegistered = true;
+      if (!_bgHandlerRegistered && _messaging != null) {
+        try {
+          FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+          _bgHandlerRegistered = true;
+          debugPrint('✅ [NotificationService] Handler arrière-plan configuré');
+        } catch (e) {
+          debugPrint('⚠️ [NotificationService] Handler arrière-plan non configuré: $e');
+        }
       }
-      debugPrint('✅ [NotificationService] Handler arrière-plan configuré');
       
       // Demander les permissions
-      await _requestPermissions();
-      debugPrint('✅ [NotificationService] Permissions demandées');
+      if (_messaging != null) {
+        try {
+          await _requestPermissions();
+          debugPrint('✅ [NotificationService] Permissions demandées');
+        } catch (e) {
+          debugPrint('⚠️ [NotificationService] Permissions non obtenues: $e');
+        }
+      }
       
       // Obtenir et enregistrer le token FCM
-      await _getAndRegisterToken();
-      debugPrint('✅ [NotificationService] Token FCM obtenu');
+      if (_messaging != null) {
+        try {
+          await _getAndRegisterToken();
+          debugPrint('✅ [NotificationService] Token FCM obtenu');
+        } catch (e) {
+          debugPrint('⚠️ [NotificationService] Token FCM non obtenu: $e');
+        }
+      }
       
       // Configurer les listeners
-      await _setupMessageHandlers();
-      debugPrint('✅ [NotificationService] Listeners configurés');
+      if (_messaging != null) {
+        try {
+          await _setupMessageHandlers();
+          debugPrint('✅ [NotificationService] Listeners configurés');
+        } catch (e) {
+          debugPrint('⚠️ [NotificationService] Listeners non configurés: $e');
+        }
+      }
       
       // Initialiser le stream controller
       _notificationStreamController = StreamController<Map<String, dynamic>>.broadcast();
@@ -82,6 +123,8 @@ class NotificationService {
     } catch (e, stackTrace) {
       debugPrint('❌ [NotificationService] ERREUR lors de l\'initialisation: $e');
       debugPrint('Stack trace: $stackTrace');
+      // NE PAS faire crasher l'app - initialiser quand même le stream
+      _notificationStreamController = StreamController<Map<String, dynamic>>.broadcast();
     }
   }
 
@@ -189,8 +232,14 @@ class NotificationService {
   /// Enregistrer le token sur le serveur
   static Future<void> _registerTokenWithServer(String token) async {
     try {
-      String deviceType = Platform.isAndroid ? 'android' : 'ios';
-      String deviceId = Platform.isAndroid ? 'android_device' : 'ios_device';
+      final deviceInfoService = DeviceInfoService();
+      
+      // Obtenir les informations réelles de l'appareil
+      final deviceType = await deviceInfoService.getDeviceType();
+      final deviceId = await deviceInfoService.getDeviceId();
+      
+      debugPrint('📱 Enregistrement FCM Token avec device_id: $deviceId');
+      debugPrint('📱 Type d\'appareil: $deviceType');
       
       final result = await FeedbackApiService.registerFcmToken(
         token,
@@ -199,12 +248,12 @@ class NotificationService {
       );
       
       if (result['success'] == true) {
-        // Token enregistré avec succès sur le serveur
+        debugPrint('✅ Token FCM enregistré avec succès sur le serveur');
       } else {
-        // Erreur lors de l'enregistrement du token
+        debugPrint('❌ Erreur lors de l\'enregistrement du token: ${result['message']}');
       }
     } catch (e) {
-      // Erreur lors de l'enregistrement du token sur le serveur
+      debugPrint('❌ Exception lors de l\'enregistrement du token sur le serveur: $e');
     }
   }
 
@@ -234,6 +283,11 @@ class NotificationService {
 
   /// Gérer les messages en premier plan
   static void _handleForegroundMessage(RemoteMessage message) {
+    // 🔊 Vérifier si c'est une annonce vocale
+    if (message.data['msg_type'] == 'annonce' || message.data['type'] == 'message_notification') {
+      _handleAnnouncementMessage(message);
+    }
+    
     // Afficher une notification locale
     _showLocalNotification(
       title: message.notification?.title ?? 'Art Luxury Bus',
@@ -248,6 +302,54 @@ class NotificationService {
       'body': message.notification?.body,
       'data': message.data,
     });
+  }
+
+  /// 🔊 Gérer les annonces vocales
+  static Future<void> _handleAnnouncementMessage(RemoteMessage message) async {
+    try {
+      debugPrint('🔊 [NotificationService] Annonce vocale reçue');
+      
+      // Vérifier si l'annonce est destinée à cet appareil
+      final appareil = message.data['appareil']?.toString().trim();
+      
+      // Si pas d'appareil spécifié ou 'tous', traiter l'annonce
+      if (appareil == null || appareil.isEmpty || appareil.toLowerCase() == 'tous') {
+        debugPrint('✅ [NotificationService] Annonce pour tous les appareils');
+      }
+      // Si c'est la catégorie 'mobile', traiter l'annonce
+      else if (appareil.toLowerCase() == 'mobile') {
+        debugPrint('✅ [NotificationService] Annonce pour catégorie mobile');
+      }
+      // Vérifier si c'est l'identifiant unique de CET appareil
+      else if (_deviceId != null && appareil == _deviceId) {
+        debugPrint('✅ [NotificationService] Annonce pour cet appareil spécifique');
+      }
+      // Vérifier si l'identifiant est dans une liste séparée par des virgules
+      else if (appareil.contains(',')) {
+        final deviceIds = appareil.split(',').map((e) => e.trim()).toList();
+        if (_deviceId != null && deviceIds.contains(_deviceId)) {
+          debugPrint('✅ [NotificationService] Annonce pour cet appareil (liste multiple)');
+        } else {
+          debugPrint('⚠️ [NotificationService] Annonce non destinée à cet appareil (liste: $appareil, device_id: $_deviceId)');
+          return;
+        }
+      }
+      // Sinon, ne pas traiter (autre catégorie ou autre device_id)
+      else {
+        debugPrint('⚠️ [NotificationService] Annonce non destinée à cet appareil (appareil: $appareil, device_id: $_deviceId)');
+        return;
+      }
+      
+      // Importer dynamiquement pour éviter les dépendances circulaires
+      final messageId = message.data['message_id'];
+      if (messageId != null) {
+        // Lancer le gestionnaire d'annonces pour traiter cette annonce
+        debugPrint('📢 [NotificationService] Déclenchement annonce #$messageId');
+        // Le AnnouncementManager va détecter et traiter automatiquement
+      }
+    } catch (e) {
+      debugPrint('❌ [NotificationService] Erreur traitement annonce: $e');
+    }
   }
 
   /// Gérer les notifications en arrière-plan

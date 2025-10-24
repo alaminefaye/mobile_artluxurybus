@@ -12,6 +12,12 @@ import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 
 void main() async {
+  // Capturer toutes les erreurs Flutter
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('❌ [FLUTTER ERROR] ${details.exception}');
+    debugPrint('Stack trace: ${details.stack}');
+  };
+
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize logging AVANT tout
@@ -22,10 +28,16 @@ void main() async {
   
   debugPrint('🚀 [MAIN] Démarrage de l\'application...');
   
-  // Initialiser les notifications Firebase
-  debugPrint('🔔 [MAIN] Initialisation des notifications...');
-  await NotificationService.initialize();
-  debugPrint('✅ [MAIN] Notifications initialisées');
+  try {
+    // Initialiser les notifications Firebase avec gestion d'erreur
+    debugPrint('🔔 [MAIN] Initialisation des notifications...');
+    await NotificationService.initialize();
+    debugPrint('✅ [MAIN] Notifications initialisées');
+  } catch (e, stackTrace) {
+    debugPrint('❌ [MAIN ERROR] Erreur lors de l\'initialisation: $e');
+    debugPrint('Stack trace: $stackTrace');
+    // Continuer malgré l'erreur pour éviter le crash
+  }
   
   debugPrint('🎯 [MAIN] Lancement de l\'app...');
   runApp(

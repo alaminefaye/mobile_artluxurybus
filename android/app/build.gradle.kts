@@ -9,7 +9,7 @@ plugins {
 android {
     namespace = "com.example.artluxurybus"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         // Flag pour activer core library desugaring
@@ -31,6 +31,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Support pour les grands écrans et différentes densités
+        multiDexEnabled = true
+        
+        // Configuration pour totems (grands écrans)
+        resConfigs("fr", "en") // Limiter aux langues nécessaires pour réduire la taille
     }
 
     buildTypes {
@@ -38,7 +44,21 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Désactiver le shrinking qui peut causer des crashes
+            isMinifyEnabled = false
+            isShrinkResources = false
+            
+            // Configuration ProGuard si nécessaire
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
+    }
+    
+    buildFeatures {
+        buildConfig = true
     }
 }
 
@@ -50,4 +70,7 @@ dependencies {
     // Core library desugaring pour les fonctionnalités Java 8+
     // Version 2.1.4+ requise par flutter_local_notifications
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    
+    // MultiDex support pour les grands écrans et applications volumineuses
+    implementation("androidx.multidex:multidex:2.0.1")
 }

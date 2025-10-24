@@ -99,6 +99,40 @@ class LoyaltyService {
       _debugLog('Response body: ${response.body}');
 
       final Map<String, dynamic> data = json.decode(response.body);
+      
+      // Debug détaillé de la structure de données
+      _debugLog('🔍 SUCCESS: ${data['success']}');
+      _debugLog('🔍 MESSAGE: ${data['message']}');
+      _debugLog('🔍 CLIENT EXISTS: ${data['client'] != null}');
+      _debugLog('🔍 HISTORY EXISTS: ${data['history'] != null}');
+      
+      if (data['history'] != null) {
+        final history = data['history'] as Map<String, dynamic>;
+        _debugLog('📊 HISTORY STRUCTURE:');
+        _debugLog('  - recent_tickets: ${history['recent_tickets']?.runtimeType} (length: ${(history['recent_tickets'] as List?)?.length ?? 0})');
+        _debugLog('  - recent_mails: ${history['recent_mails']?.runtimeType} (length: ${(history['recent_mails'] as List?)?.length ?? 0})');
+        _debugLog('  - total_tickets_count: ${history['total_tickets_count']}');
+        _debugLog('  - total_mails_count: ${history['total_mails_count']}');
+        
+        if (history['recent_tickets'] != null) {
+          final tickets = history['recent_tickets'] as List;
+          _debugLog('🎫 TICKETS DATA: ${tickets.length} items');
+          if (tickets.isNotEmpty) {
+            _debugLog('   First ticket: ${tickets.first}');
+          }
+        }
+        
+        if (history['recent_mails'] != null) {
+          final mails = history['recent_mails'] as List;
+          _debugLog('📧 MAILS DATA: ${mails.length} items');
+          if (mails.isNotEmpty) {
+            _debugLog('   First mail: ${mails.first}');
+          }
+        }
+      } else {
+        _debugLog('❌ HISTORY IS NULL IN RESPONSE');
+      }
+      
       return LoyaltyProfileResponse.fromJson(data);
       
     } catch (e) {

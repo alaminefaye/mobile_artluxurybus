@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/simple_loyalty_models.dart';
 import '../services/loyalty_service.dart';
@@ -117,12 +118,25 @@ class LoyaltyNotifier extends StateNotifier<LoyaltyState> {
 
   // Obtenir le profil complet avec historique
   Future<LoyaltyProfileResponse?> getClientProfile() async {
-    if (state.client?.telephone == null) return null;
+    debugPrint('🔵 [LoyaltyProvider] getClientProfile called');
+    debugPrint('  - Client exists: ${state.client != null}');
+    debugPrint('  - Client phone: ${state.client?.telephone}');
+    
+    if (state.client?.telephone == null) {
+      debugPrint('❌ [LoyaltyProvider] No client in state, returning null');
+      return null;
+    }
 
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
       final response = await LoyaltyService.getProfile(state.client!.telephone);
+      
+      debugPrint('📥 [LoyaltyProvider] Response received:');
+      debugPrint('  - success: ${response.success}');
+      debugPrint('  - message: ${response.message}');
+      debugPrint('  - client exists: ${response.client != null}');
+      debugPrint('  - history exists: ${response.history != null}');
       
       if (response.success && response.client != null) {
         state = state.copyWith(
@@ -135,9 +149,11 @@ class LoyaltyNotifier extends StateNotifier<LoyaltyState> {
           isLoading: false,
           error: response.message,
         );
-        return null;
+        debugPrint('⚠️ [LoyaltyProvider] Response not successful or no client');
+        return response; // Retourner la réponse même en cas d'échec pour voir l'erreur
       }
     } catch (e) {
+      debugPrint('❌ [LoyaltyProvider] Exception: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Erreur lors de la récupération du profil: ${e.toString()}',

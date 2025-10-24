@@ -4,7 +4,8 @@ import '../../widgets/app_logo.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 // Models d'auth maintenant dans simple_auth_models.dart
-import '../loyalty_home_screen.dart';
+import '../public_screen.dart';
+import '../home_page.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -47,8 +48,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SnackBar(
             content: Text('Connexion réussie !'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 1),
           ),
         );
+        
+        // Navigation vers la page d'accueil
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const HomePage(),
+              ),
+              (route) => false,
+            );
+          }
+        });
       }
     }
   }
@@ -71,13 +85,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 40),
+        child: Stack(
+          children: [
+            // Contenu principal
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Espace transparent en haut pour le bouton Ignorer (ne bloque pas les clics)
+                  const SizedBox(height: 60),
+                  
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                 
                 // Logo moderne avec votre image
                 const AppLogo(size: 100),
@@ -344,44 +365,75 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
                 
-                const SizedBox(height: 16),
-                
-                // Bouton "Pas maintenant"
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => const LoyaltyHomeScreen(),
-                      ),
-                    );
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                    textStyle: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                const SizedBox(height: 20),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.skip_next_rounded,
-                        size: 18,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 6),
-                      const Text('Pas maintenant'),
-                    ],
+                ],
+              ),
+            ),
+            
+            // Bouton Ignorer en haut à droite (DOIT ÊTRE APRÈS le ScrollView pour être au-dessus)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    debugPrint('🔍 Bouton Ignorer cliqué');
+                    try {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const PublicScreen(),
+                        ),
+                      );
+                      debugPrint('✅ Navigation vers PublicScreen lancée');
+                    } catch (e) {
+                      debugPrint('❌ Erreur navigation: $e');
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.skip_next_rounded,
+                          size: 18,
+                          color: Colors.grey[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Ignorer',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
-} 
+}

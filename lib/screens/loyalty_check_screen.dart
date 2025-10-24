@@ -154,13 +154,19 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
     
     final loyaltyState = ref.watch(loyaltyProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vérifier mes points'),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Effacer la session si elle existe
+        ref.read(loyaltyProvider.notifier).reset();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Vérifier mes points'),
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
       resizeToAvoidBottomInset: true,
       body: Container(
         width: double.infinity,
@@ -402,6 +408,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

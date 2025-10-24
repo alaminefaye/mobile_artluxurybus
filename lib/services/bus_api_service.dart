@@ -540,13 +540,8 @@ class BusApiService {
   /// Ajouter un enregistrement de carburant
   Future<FuelRecord> addFuelRecord({
     required int busId,
-    required double quantity,
     required double cost,
-    double? unitPrice,
     required DateTime fueledAt,
-    String? fuelType,
-    String? fuelStation,
-    double? mileage,
     String? notes,
     File? invoiceImage,
   }) async {
@@ -567,13 +562,8 @@ class BusApiService {
         }
         request.headers['Accept'] = 'application/json';
         
-        request.fields['quantity'] = quantity.toString();
         request.fields['cost'] = cost.toString();
-        if (unitPrice != null) request.fields['unit_price'] = unitPrice.toString();
         request.fields['fueled_at'] = fueledAt.toIso8601String().split('T')[0];
-        if (fuelType != null) request.fields['fuel_type'] = fuelType;
-        if (fuelStation != null) request.fields['fuel_station'] = fuelStation;
-        if (mileage != null) request.fields['mileage'] = mileage.toString();
         if (notes != null) request.fields['notes'] = notes;
         
         request.files.add(await http.MultipartFile.fromPath(
@@ -594,13 +584,8 @@ class BusApiService {
       } else {
         // Sans image, utiliser JSON normal
         final body = {
-          'quantity': quantity,
           'cost': cost,
-          if (unitPrice != null) 'unit_price': unitPrice,
           'fueled_at': fueledAt.toIso8601String().split('T')[0],
-          if (fuelType != null) 'fuel_type': fuelType,
-          if (fuelStation != null) 'fuel_station': fuelStation,
-          if (mileage != null) 'mileage': mileage,
           if (notes != null) 'notes': notes,
         };
         
@@ -629,13 +614,8 @@ class BusApiService {
   Future<FuelRecord> updateFuelRecord({
     required int busId,
     required int recordId,
-    required double quantity,
     required double cost,
-    double? unitPrice,
     required DateTime fueledAt,
-    String? fuelType,
-    String? fuelStation,
-    double? mileage,
     String? notes,
     File? invoiceImage,
   }) async {
@@ -657,13 +637,8 @@ class BusApiService {
         request.headers['Accept'] = 'application/json';
         
         request.fields['_method'] = 'PUT';
-        request.fields['quantity'] = quantity.toString();
         request.fields['cost'] = cost.toString();
-        if (unitPrice != null) request.fields['unit_price'] = unitPrice.toString();
         request.fields['fueled_at'] = fueledAt.toIso8601String().split('T')[0];
-        if (fuelType != null) request.fields['fuel_type'] = fuelType;
-        if (fuelStation != null) request.fields['fuel_station'] = fuelStation;
-        if (mileage != null) request.fields['mileage'] = mileage.toString();
         if (notes != null) request.fields['notes'] = notes;
         
         request.files.add(await http.MultipartFile.fromPath(
@@ -684,13 +659,8 @@ class BusApiService {
       } else {
         // Sans image, utiliser PUT normal
         final body = {
-          'quantity': quantity,
           'cost': cost,
-          if (unitPrice != null) 'unit_price': unitPrice,
           'fueled_at': fueledAt.toIso8601String().split('T')[0],
-          if (fuelType != null) 'fuel_type': fuelType,
-          if (fuelStation != null) 'fuel_station': fuelStation,
-          if (mileage != null) 'mileage': mileage,
           if (notes != null) 'notes': notes,
         };
         

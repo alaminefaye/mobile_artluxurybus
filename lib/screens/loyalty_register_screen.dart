@@ -45,9 +45,10 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
     if (success) {
       if (mounted) {
         // Naviguer directement vers LoyaltyHomeScreen avec le nouveau client
+        // On remplace jusqu'à LoyaltyHomeScreen (2 pages en arrière: register + check)
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoyaltyHomeScreen()),
-          (route) => false, // Supprimer toute la pile de navigation
+          (route) => route.isFirst, // Garder la première page (home_page)
         );
         
         ScaffoldMessenger.of(context).showSnackBar(

@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import '../providers/loyalty_provider.dart';
 import '../models/simple_loyalty_models.dart';
 import '../widgets/loyalty_card.dart';
+import '../widgets/ad_banner.dart';
 import 'loyalty_check_screen.dart';
 
 class LoyaltyHomeScreen extends ConsumerStatefulWidget {
@@ -15,6 +16,35 @@ class LoyaltyHomeScreen extends ConsumerStatefulWidget {
 
 class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
   LoyaltyCardType _selectedCardType = LoyaltyCardType.tickets;
+  Future<LoyaltyProfileResponse?>? _profileFuture;
+  final ValueNotifier<bool> _showingDepartures = ValueNotifier<bool>(false);
+
+  @override
+  void initState() {
+    super.initState();
+    // Déclencher le chargement du profil après le premier build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final loyaltyState = ref.read(loyaltyProvider);
+      debugPrint('🟢 [LoyaltyHomeScreen] initState - Client exists: ${loyaltyState.client != null}');
+      
+      if (loyaltyState.client != null) {
+        final notifier = ref.read(loyaltyProvider.notifier);
+        setState(() {
+          _profileFuture = notifier.getClientProfile();
+        });
+      } else {
+        debugPrint('⚠️ [LoyaltyHomeScreen] No client in state, cannot load profile');
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Nettoyer les données quand on quitte définitivement la page
+    debugPrint('🔴 [LoyaltyHomeScreen] dispose - Clearing client data');
+    _showingDepartures.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,27 +55,29 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
     final loyaltyState = ref.watch(loyaltyProvider);
     final client = loyaltyState.client;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Programme Fidélité'),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () {
-            // Si on a un client (dashboard), aller à la page de recherche
-            // Sinon, retour normal
-            if (client != null) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const LoyaltyCheckScreen()),
-              );
-            } else {
+    return WillPopScope(
+      onWillPop: () async {
+        // Toujours effacer la session lors du retour
+        debugPrint('🔵 [LoyaltyHomeScreen] WillPop - Clearing session and exiting');
+        ref.read(loyaltyProvider.notifier).reset();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Programme Fidélité'),
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () {
+              // Toujours déconnecter et revenir en arrière
+              debugPrint('🔵 [LoyaltyHomeScreen] Back button - Clearing session and exiting');
+              ref.read(loyaltyProvider.notifier).reset();
               Navigator.of(context).pop();
-            }
-          },
+            },
+          ),
         ),
-      ),
       body: Container(
         color: Colors.white,
         child: SafeArea(
@@ -61,65 +93,29 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
           ),
         ),
       ),
+      ),
     );
   }
 
 
   Widget _buildWelcomeSection(double screenWidth, double screenHeight) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(screenWidth * 0.06),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return RefreshIndicator(
+      onRefresh: () async {
+        // Rafraîchir les données
+        debugPrint('🔄 [LoyaltyHomeScreen] Actualisation de la section aperçu');
+        await Future.delayed(const Duration(milliseconds: 500));
+      },
+      color: AppTheme.primaryBlue,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.all(screenWidth * 0.06),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icône principale responsive
-          Container(
-            width: screenWidth * 0.18,
-            height: screenWidth * 0.18,
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(screenWidth * 0.06),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                  spreadRadius: 2,
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.card_giftcard_rounded,
-              size: screenWidth * 0.09,
-              color: Colors.white,
-            ),
-          ),
-
-          SizedBox(height: screenHeight * 0.05),
-
-          // Titre directement en blanc sur le fond
-          Column(
-            children: [
-              Text(
-                'Bienvenue dans votre',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: screenWidth * 0.04,
-                  color: AppTheme.primaryBlue,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.01),
-              Text(
-                'Programme Fidélité',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: screenWidth * 0.055,
-                  color: AppTheme.primaryBlue,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
+          // Publicité en haut
+          ClipRRect(
+            borderRadius: BorderRadius.circular(screenWidth * 0.04),
+            child: const AdBanner(),
           ),
 
           SizedBox(height: screenHeight * 0.03),
@@ -184,25 +180,31 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
 
           SizedBox(height: screenHeight * 0.03),
 
-          // Description responsive
-          Container(
-            padding: EdgeInsets.all(screenWidth * 0.04),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(screenWidth * 0.04),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  spreadRadius: 2,
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
+          // Description responsive - Masquée complètement quand le tableau des départs est affiché
+          ValueListenableBuilder<bool>(
+            valueListenable: _showingDepartures,
+            builder: (context, showingDepartures, child) {
+              debugPrint('📦 [LoyaltyHomeScreen] Boxes - showingDepartures: $showingDepartures');
+              if (showingDepartures) {
+                debugPrint('🚫 [LoyaltyHomeScreen] Masquage des boxes');
+                return const SizedBox.shrink(); // Masquer tout le container
+              }
+              debugPrint('✅ [LoyaltyHomeScreen] Affichage des boxes');
+              return Container(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      spreadRadius: 2,
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Avantages responsives
-                Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildBenefit(
@@ -221,10 +223,11 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                     ),
                   ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         ],
+        ),
       ),
     );
   }
@@ -232,7 +235,10 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
   Widget _buildClientDashboard(LoyaltyClient client, double screenWidth, double screenHeight) {
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.read(loyaltyProvider.notifier).refreshClient();
+        final notifier = ref.read(loyaltyProvider.notifier);
+        await notifier.refreshClient();
+        setState(() { _profileFuture = notifier.getClientProfile(); });
+        await _profileFuture;
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -358,9 +364,59 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
               screenWidth: screenWidth,
               screenHeight: screenHeight,
               cardType: _selectedCardType,
+              showingDeparturesNotifier: _showingDepartures,
             ),
 
-            SizedBox(height: screenHeight * 0.03),
+            // Boxes "10 Points" - Masquées complètement quand le tableau des départs est affiché
+            ValueListenableBuilder<bool>(
+              valueListenable: _showingDepartures,
+              builder: (context, showingDepartures, child) {
+                if (showingDepartures) {
+                  debugPrint('🚫 [Client] Masquage des boxes 10 Points');
+                  return const SizedBox.shrink(); // Pas d'espace du tout
+                }
+                return Column(
+                  children: [
+                    SizedBox(height: screenHeight * 0.03),
+                    Container(
+                      padding: EdgeInsets.all(screenWidth * 0.04),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            spreadRadius: 2,
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildBenefit(
+                            Icons.confirmation_number_rounded,
+                            '10 Points',
+                            'Ticket Gratuit',
+                            AppTheme.primaryBlue,
+                            screenWidth,
+                          ),
+                          _buildBenefit(
+                            Icons.mail_rounded,
+                            '10 Points',
+                            'Courrier Gratuit',
+                            AppTheme.primaryOrange,
+                            screenWidth,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenHeight * 0.03),
+                  ],
+                );
+              },
+            ),
 
             // Historique des transactions
             _buildTransactionHistory(screenWidth, screenHeight),
@@ -395,6 +451,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
         screenWidth: screenWidth,
         screenHeight: screenHeight,
         cardType: LoyaltyCardType.tickets,
+        showingDeparturesNotifier: _showingDepartures,
       ),
     );
   }
@@ -437,65 +494,103 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
   }
 
   Widget _buildTransactionHistory(double screenWidth, double screenHeight) {
-    // Générer des transactions factices pour la démo
-    // En production, ceci viendrait de l'historique du client
-    final List<Map<String, dynamic>> recentTransactions = [
-      {
-        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
-        'description': _selectedCardType == LoyaltyCardType.tickets 
-            ? 'Voyage Abidjan → Bouaké'
-            : 'Envoi courrier Abidjan',
-        'points': '+1',
-        'date': '15 Oct 2024',
-        'icon': _selectedCardType == LoyaltyCardType.tickets 
-            ? Icons.directions_bus_rounded
-            : Icons.mail_rounded,
-      },
-      {
-        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
-        'description': _selectedCardType == LoyaltyCardType.tickets 
-            ? 'Voyage Bouaké → Yamoussoukro'
-            : 'Envoi courrier Bouaké',
-        'points': '+1',
-        'date': '12 Oct 2024',
-        'icon': _selectedCardType == LoyaltyCardType.tickets 
-            ? Icons.directions_bus_rounded
-            : Icons.mail_rounded,
-      },
-      {
-        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
-        'description': _selectedCardType == LoyaltyCardType.tickets 
-            ? 'Voyage Yamoussoukro → Abidjan'
-            : 'Envoi courrier Yamoussoukro',
-        'points': '+1',
-        'date': '10 Oct 2024',
-        'icon': _selectedCardType == LoyaltyCardType.tickets 
-            ? Icons.directions_bus_rounded
-            : Icons.mail_rounded,
-      },
-      {
-        'type': 'gratuit',
-        'description': _selectedCardType == LoyaltyCardType.tickets 
-            ? 'Ticket gratuit utilisé'
-            : 'Courrier gratuit utilisé',
-        'points': '-10',
-        'date': '08 Oct 2024',
-        'icon': Icons.card_giftcard,
-      },
-      {
-        'type': _selectedCardType == LoyaltyCardType.tickets ? 'ticket' : 'courrier',
-        'description': _selectedCardType == LoyaltyCardType.tickets 
-            ? 'Voyage Abidjan → San-Pédro'
-            : 'Envoi courrier San-Pédro',
-        'points': '+1',
-        'date': '05 Oct 2024',
-        'icon': _selectedCardType == LoyaltyCardType.tickets 
-            ? Icons.directions_bus_rounded
-            : Icons.mail_rounded,
-      },
-    ];
+    if (_profileFuture == null) {
+      // Afficher un loader la toute première fois, le fetch est lancé en initState
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(screenWidth * 0.04),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              spreadRadius: 2,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(screenWidth * 0.06),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    return Container(
+    return FutureBuilder<LoyaltyProfileResponse?>(
+      future: _profileFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(screenWidth * 0.04),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(screenWidth * 0.06),
+            child: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError || snapshot.data == null || snapshot.data!.history == null) {
+          // Debug logs
+          debugPrint('🔴 LOYALTY HISTORY ERROR:');
+          debugPrint('  - hasError: ${snapshot.hasError}');
+          debugPrint('  - error: ${snapshot.error}');
+          debugPrint('  - data is null: ${snapshot.data == null}');
+          debugPrint('  - history is null: ${snapshot.data?.history == null}');
+          if (snapshot.data != null) {
+            debugPrint('  - success: ${snapshot.data!.success}');
+            debugPrint('  - message: ${snapshot.data!.message}');
+          }
+          
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(screenWidth * 0.04),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.all(screenWidth * 0.05),
+            child: Row(
+              children: [
+                Icon(Icons.history, color: AppTheme.textDark.withValues(alpha: 0.6)),
+                SizedBox(width: screenWidth * 0.03),
+                Expanded(
+                  child: Text(
+                    'Aucun historique trouvé pour ce numéro',
+                    style: TextStyle(color: AppTheme.textDark.withValues(alpha: 0.7)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final history = snapshot.data!.history!;
+        final isTickets = _selectedCardType == LoyaltyCardType.tickets;
+        final items = isTickets ? history.recentTickets : history.recentMails;
+        
+        // Debug logs
+        debugPrint('✅ LOYALTY HISTORY LOADED:');
+        debugPrint('  - Card Type: ${isTickets ? "TICKETS" : "COURRIERS"}');
+        debugPrint('  - Recent Tickets: ${history.recentTickets.length}');
+        debugPrint('  - Recent Mails: ${history.recentMails.length}');
+        debugPrint('  - Total Tickets Count: ${history.totalTicketsCount}');
+        debugPrint('  - Total Mails Count: ${history.totalMailsCount}');
+        debugPrint('  - Items to display: ${items.length}');
+
+        return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(screenWidth * 0.04),
@@ -537,98 +632,120 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
           ),
           
           // Liste des transactions
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-            itemCount: 5,
-            separatorBuilder: (context, index) => Divider(
-              color: Colors.grey.withValues(alpha: 0.3),
-              height: 1,
+          if (items.isEmpty)
+            Padding(
+              padding: EdgeInsets.all(screenWidth * 0.04),
+              child: Text(
+                'Aucune activité récente',
+                style: TextStyle(color: AppTheme.textDark.withValues(alpha: 0.6)),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+              itemCount: items.length,
+              separatorBuilder: (context, index) => Divider(
+                color: Colors.grey.withValues(alpha: 0.3),
+                height: 1,
+              ),
+              itemBuilder: (context, index) {
+                if (isTickets) {
+                  final t = items[index] as LoyaltyTicket;
+                  final desc = 'Voyage ${t.embarquement} → ${t.destination}';
+                  final date = t.createdAt.isNotEmpty ? t.createdAt : t.dateDepart;
+                  final isLoyalty = t.isLoyaltyReward;
+                  return _historyRow(
+                    screenWidth,
+                    icon: isLoyalty ? Icons.card_giftcard_rounded : Icons.directions_bus_rounded,
+                    color: AppTheme.primaryBlue,
+                    description: desc,
+                    date: date,
+                    pointsLabel: isLoyalty ? 'GRATUIT' : '+1 pts',
+                    badgeColor: isLoyalty ? Colors.purple : Colors.green,
+                  );
+                } else {
+                  final m = items[index] as LoyaltyMail;
+                  final destinataireText = m.destinataire.isNotEmpty ? m.destinataire : 'Destinataire';
+                  final desc = 'Courrier pour $destinataireText → ${m.villeDestination}';
+                  final date = m.createdAt;
+                  final isLoyalty = m.isLoyaltyMail;
+                  return _historyRow(
+                    screenWidth,
+                    icon: isLoyalty ? Icons.card_giftcard_rounded : Icons.mail_rounded,
+                    color: AppTheme.primaryOrange,
+                    description: desc,
+                    date: date,
+                    pointsLabel: isLoyalty ? 'GRATUIT' : '+1 pts',
+                    badgeColor: isLoyalty ? Colors.purple : Colors.green,
+                  );
+                }
+              },
             ),
-            itemBuilder: (context, index) {
-              final transaction = recentTransactions[index];
-              final isPositive = transaction['points'].startsWith('+');
-              
-              return Padding(
-                padding: EdgeInsets.symmetric(vertical: screenWidth * 0.03),
-                child: Row(
-                  children: [
-                    // Icône
-                    Container(
-                      padding: EdgeInsets.all(screenWidth * 0.02),
-                      decoration: BoxDecoration(
-                        color: (transaction['type'] == 'gratuit' 
-                            ? Colors.green 
-                            : (_selectedCardType == LoyaltyCardType.tickets 
-                                ? AppTheme.primaryBlue 
-                                : AppTheme.primaryOrange))
-                            .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                      ),
-                      child: Icon(
-                        transaction['icon'],
-                        color: transaction['type'] == 'gratuit' 
-                            ? Colors.green 
-                            : (_selectedCardType == LoyaltyCardType.tickets 
-                                ? AppTheme.primaryBlue 
-                                : AppTheme.primaryOrange),
-                        size: screenWidth * 0.05,
-                      ),
-                    ),
-                    
-                    SizedBox(width: screenWidth * 0.03),
-                    
-                    // Description
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            transaction['description'],
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.035,
-                              fontWeight: FontWeight.w500,
-                              color: AppTheme.textDark,
-                            ),
-                          ),
-                          Text(
-                            transaction['date'],
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.03,
-                              color: AppTheme.textDark.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Points
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.025,
-                        vertical: screenWidth * 0.01,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isPositive ? Colors.green : Colors.red,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                      ),
-                      child: Text(
-                        '${transaction['points']} pts',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.03,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
           
           SizedBox(height: screenWidth * 0.02),
+        ],
+      ),
+    );
+      },
+    );
+  }
+
+  Widget _historyRow(double screenWidth, {required IconData icon, required Color color, required String description, required String date, required String pointsLabel, Color? badgeColor}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: screenWidth * 0.03),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(screenWidth * 0.02),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(screenWidth * 0.02),
+            ),
+            child: Icon(icon, color: color, size: screenWidth * 0.05),
+          ),
+          SizedBox(width: screenWidth * 0.03),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.035,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+                Text(
+                  date,
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.03,
+                    color: AppTheme.textDark.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.025,
+              vertical: screenWidth * 0.01,
+            ),
+            decoration: BoxDecoration(
+              color: badgeColor ?? Colors.green,
+              borderRadius: BorderRadius.circular(screenWidth * 0.03),
+            ),
+            child: Text(
+              pointsLabel,
+              style: TextStyle(
+                fontSize: screenWidth * 0.03,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
     );

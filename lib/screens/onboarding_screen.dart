@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
-import 'loyalty_home_screen.dart';
+import 'public_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -353,7 +353,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             onPressed: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (context) => const LoyaltyHomeScreen(),
+                                  builder: (context) => const PublicScreen(),
                                 ),
                               );
                             },

@@ -189,26 +189,16 @@ class MaintenanceRecord {
 // ===== Fuel Record =====
 @JsonSerializable()
 class FuelRecord {
+  @JsonKey(fromJson: _intFromJson)
   final int id;
   
-  @JsonKey(name: 'bus_id')
+  @JsonKey(name: 'bus_id', fromJson: _intFromJson)
   final int busId;
   
   final DateTime date;
-  final double? quantity;
   
-  @JsonKey(name: 'unit_price')
-  final double? unitPrice;
-  
-  final double? cost;
-  
-  @JsonKey(name: 'fuel_type')
-  final String? fuelType;
-  
-  final double? mileage;
-  
-  @JsonKey(name: 'fuel_station')
-  final String? fuelStation;
+  @JsonKey(fromJson: _costFromJson)
+  final double cost;
   
   @JsonKey(name: 'invoice_photo')
   final String? invoicePhoto;
@@ -216,7 +206,7 @@ class FuelRecord {
   final String? notes;
   
   @JsonKey(name: 'fueled_at')
-  final DateTime? fueledAt;
+  final DateTime fueledAt;
   
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
@@ -225,17 +215,28 @@ class FuelRecord {
     required this.id,
     required this.busId,
     required this.date,
-    this.quantity,
-    this.unitPrice,
-    this.cost,
-    this.fuelType,
-    this.mileage,
-    this.fuelStation,
+    required this.cost,
     this.invoicePhoto,
     this.notes,
-    this.fueledAt,
+    required this.fueledAt,
     this.createdAt,
   });
+  
+  // Convertir String ou num en int
+  static int _intFromJson(dynamic value) {
+    if (value is String) {
+      return int.parse(value);
+    }
+    return (value as num).toInt();
+  }
+  
+  // Convertir String ou num en double
+  static double _costFromJson(dynamic value) {
+    if (value is String) {
+      return double.parse(value);
+    }
+    return (value as num).toDouble();
+  }
 
   factory FuelRecord.fromJson(Map<String, dynamic> json) =>
       _$FuelRecordFromJson(json);
@@ -246,13 +247,13 @@ class FuelRecord {
 // ===== Fuel Stats =====
 @JsonSerializable()
 class FuelStats {
-  @JsonKey(name: 'total_cost')
+  @JsonKey(name: 'total_cost', fromJson: _doubleFromJson)
   final double totalConsumption;
   
-  @JsonKey(name: 'average_cost')
+  @JsonKey(name: 'average_cost', fromJson: _nullableDoubleFromJson)
   final double? averageConsumption;
   
-  @JsonKey(name: 'last_month_cost')
+  @JsonKey(name: 'last_month_cost', fromJson: _doubleFromJson)
   final double lastMonthConsumption;
   
   @JsonKey(name: 'last_refill')
@@ -264,6 +265,23 @@ class FuelStats {
     required this.lastMonthConsumption,
     this.lastRefill,
   });
+  
+  // Convertir String ou num en double
+  static double _doubleFromJson(dynamic value) {
+    if (value is String) {
+      return double.parse(value);
+    }
+    return (value as num).toDouble();
+  }
+  
+  // Version nullable
+  static double? _nullableDoubleFromJson(dynamic value) {
+    if (value == null) return null;
+    if (value is String) {
+      return double.parse(value);
+    }
+    return (value as num).toDouble();
+  }
 
   factory FuelStats.fromJson(Map<String, dynamic> json) =>
       _$FuelStatsFromJson(json);

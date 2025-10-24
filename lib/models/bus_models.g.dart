@@ -140,20 +140,13 @@ Map<String, dynamic> _$MaintenanceRecordToJson(MaintenanceRecord instance) =>
     };
 
 FuelRecord _$FuelRecordFromJson(Map<String, dynamic> json) => FuelRecord(
-      id: (json['id'] as num).toInt(),
-      busId: (json['bus_id'] as num).toInt(),
+      id: FuelRecord._intFromJson(json['id']),
+      busId: FuelRecord._intFromJson(json['bus_id']),
       date: DateTime.parse(json['date'] as String),
-      quantity: (json['quantity'] as num?)?.toDouble(),
-      unitPrice: (json['unit_price'] as num?)?.toDouble(),
-      cost: (json['cost'] as num?)?.toDouble(),
-      fuelType: json['fuel_type'] as String?,
-      mileage: (json['mileage'] as num?)?.toDouble(),
-      fuelStation: json['fuel_station'] as String?,
+      cost: FuelRecord._costFromJson(json['cost']),
       invoicePhoto: json['invoice_photo'] as String?,
       notes: json['notes'] as String?,
-      fueledAt: json['fueled_at'] == null
-          ? null
-          : DateTime.parse(json['fueled_at'] as String),
+      fueledAt: DateTime.parse(json['fueled_at'] as String),
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
@@ -164,22 +157,18 @@ Map<String, dynamic> _$FuelRecordToJson(FuelRecord instance) =>
       'id': instance.id,
       'bus_id': instance.busId,
       'date': instance.date.toIso8601String(),
-      'quantity': instance.quantity,
-      'unit_price': instance.unitPrice,
       'cost': instance.cost,
-      'fuel_type': instance.fuelType,
-      'mileage': instance.mileage,
-      'fuel_station': instance.fuelStation,
       'invoice_photo': instance.invoicePhoto,
       'notes': instance.notes,
-      'fueled_at': instance.fueledAt?.toIso8601String(),
+      'fueled_at': instance.fueledAt.toIso8601String(),
       'created_at': instance.createdAt?.toIso8601String(),
     };
 
 FuelStats _$FuelStatsFromJson(Map<String, dynamic> json) => FuelStats(
-      totalConsumption: (json['total_cost'] as num).toDouble(),
-      averageConsumption: (json['average_cost'] as num?)?.toDouble(),
-      lastMonthConsumption: (json['last_month_cost'] as num).toDouble(),
+      totalConsumption: FuelStats._doubleFromJson(json['total_cost']),
+      averageConsumption:
+          FuelStats._nullableDoubleFromJson(json['average_cost']),
+      lastMonthConsumption: FuelStats._doubleFromJson(json['last_month_cost']),
       lastRefill: json['last_refill'] == null
           ? null
           : FuelRecord.fromJson(json['last_refill'] as Map<String, dynamic>),

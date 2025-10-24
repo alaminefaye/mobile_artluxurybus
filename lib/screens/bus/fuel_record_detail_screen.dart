@@ -57,24 +57,14 @@ class FuelRecordDetailScreen extends StatelessWidget {
                     color: Colors.white,
                   ),
                   const SizedBox(height: 16),
-                  if (fuelRecord.cost != null)
-                    Text(
-                      '${fuelRecord.cost!.toStringAsFixed(0)} FCFA',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  Text(
+                    '${fuelRecord.cost.toStringAsFixed(0)} FCFA',
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                  const SizedBox(height: 8),
-                  if (fuelRecord.quantity != null)
-                    Text(
-                      '${fuelRecord.quantity!.toStringAsFixed(1)} Litres',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.white70,
-                      ),
-                    ),
+                  ),
                 ],
               ),
             ),
@@ -88,54 +78,19 @@ class FuelRecordDetailScreen extends StatelessWidget {
                   _buildInfoCard('Informations Principales', [
                     _buildInfoRow(
                       'Date de ravitaillement',
-                      _formatDate(fuelRecord.fueledAt ?? fuelRecord.date),
+                      _formatDate(fuelRecord.fueledAt),
                       Icons.calendar_today,
                     ),
-                    if (fuelRecord.quantity != null)
-                      _buildInfoRow(
-                        'Quantité',
-                        '${fuelRecord.quantity!.toStringAsFixed(2)} L',
-                        Icons.local_drink,
-                      ),
-                    if (fuelRecord.cost != null)
-                      _buildInfoRow(
-                        'Coût total',
-                        '${fuelRecord.cost!.toStringAsFixed(0)} FCFA',
-                        Icons.attach_money,
-                      ),
-                    if (fuelRecord.unitPrice != null)
-                      _buildInfoRow(
-                        'Prix unitaire',
-                        '${fuelRecord.unitPrice!.toStringAsFixed(0)} FCFA/L',
-                        Icons.price_check,
-                      ),
+                    _buildInfoRow(
+                      'Coût total',
+                      '${fuelRecord.cost.toStringAsFixed(0)} FCFA',
+                      Icons.attach_money,
+                    ),
                   ]),
 
                   const SizedBox(height: 16),
 
-                  if (fuelRecord.fuelStation != null ||
-                      fuelRecord.fuelType != null ||
-                      fuelRecord.mileage != null)
-                    _buildInfoCard('Détails Supplémentaires', [
-                      if (fuelRecord.fuelStation != null)
-                        _buildInfoRow(
-                          'Station-service',
-                          fuelRecord.fuelStation!,
-                          Icons.store,
-                        ),
-                      if (fuelRecord.fuelType != null)
-                        _buildInfoRow(
-                          'Type de carburant',
-                          fuelRecord.fuelType!,
-                          Icons.oil_barrel,
-                        ),
-                      if (fuelRecord.mileage != null)
-                        _buildInfoRow(
-                          'Kilométrage',
-                          '${fuelRecord.mileage!.toStringAsFixed(0)} km',
-                          Icons.speed,
-                        ),
-                    ]),
+                  // plus de champs supplémentaires inutilisés
 
                   const SizedBox(height: 16),
 

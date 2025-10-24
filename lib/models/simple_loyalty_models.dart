@@ -199,15 +199,13 @@ class LoyaltyHistory {
   });
 
   factory LoyaltyHistory.fromJson(Map<String, dynamic> json) {
+    final ticketsList = (json['recent_tickets'] ?? json['tickets'] ?? json['recentTickets'] ?? []) as List? ?? [];
+    final mailsList = (json['recent_mails'] ?? json['mails'] ?? json['recentMails'] ?? json['recent_courriers'] ?? []) as List? ?? [];
     return LoyaltyHistory(
-      recentTickets: (json['recent_tickets'] as List? ?? [])
-          .map((item) => LoyaltyTicket.fromJson(item))
-          .toList(),
-      recentMails: (json['recent_mails'] as List? ?? [])
-          .map((item) => LoyaltyMail.fromJson(item))
-          .toList(),
-      totalTicketsCount: json['total_tickets_count'] ?? 0,
-      totalMailsCount: json['total_mails_count'] ?? 0,
+      recentTickets: ticketsList.map((item) => LoyaltyTicket.fromJson(item as Map<String, dynamic>)).toList(),
+      recentMails: mailsList.map((item) => LoyaltyMail.fromJson(item as Map<String, dynamic>)).toList(),
+      totalTicketsCount: json['total_tickets_count'] ?? json['tickets_count'] ?? 0,
+      totalMailsCount: json['total_mails_count'] ?? json['mails_count'] ?? json['courriers_count'] ?? 0,
     );
   }
 }
@@ -220,6 +218,7 @@ class LoyaltyTicket {
   final int prix;
   final String dateDepart;
   final bool isPassthrough;
+  final bool isLoyaltyReward;
   final String createdAt;
 
   const LoyaltyTicket({
@@ -230,53 +229,102 @@ class LoyaltyTicket {
     required this.prix,
     required this.dateDepart,
     required this.isPassthrough,
+    required this.isLoyaltyReward,
     required this.createdAt,
   });
 
   factory LoyaltyTicket.fromJson(Map<String, dynamic> json) {
+    // Helper pour parser le prix (peut être String ou int)
+    int parsePrix(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) {
+        final parsed = double.tryParse(value);
+        return parsed?.toInt() ?? 0;
+      }
+      return 0;
+    }
+    
+    // Helper pour parser les booléens (peut être 0/1 ou true/false)
+    bool parseBool(dynamic value) {
+      if (value == null) return false;
+      if (value is bool) return value;
+      if (value is int) return value != 0;
+      if (value is String) return value == '1' || value.toLowerCase() == 'true';
+      return false;
+    }
+    
     return LoyaltyTicket(
       id: json['id'] ?? 0,
-      trajet: json['trajet'] ?? '',
-      embarquement: json['embarquement'] ?? '',
-      destination: json['destination'] ?? '',
-      prix: json['prix'] ?? 0,
-      dateDepart: json['date_depart'] ?? '',
-      isPassthrough: json['is_passthrough'] ?? false,
-      createdAt: json['created_at'] ?? '',
+      trajet: json['trajet'] ?? json['route'] ?? '',
+      embarquement: json['embarquement'] ?? json['ville_depart'] ?? json['from'] ?? '',
+      destination: json['destination'] ?? json['ville_destination'] ?? json['to'] ?? '',
+      prix: parsePrix(json['prix'] ?? json['price'] ?? json['amount']),
+      dateDepart: json['date_depart'] ?? json['date'] ?? json['depart_at'] ?? '',
+      isPassthrough: parseBool(json['is_passthrough'] ?? json['passthrough']),
+      isLoyaltyReward: parseBool(json['is_loyalty_reward'] ?? json['loyalty_reward'] ?? json['is_free']),
+      createdAt: json['created_at'] ?? json['createdAt'] ?? json['created'] ?? json['date'] ?? '',
     );
   }
 }
 
 class LoyaltyMail {
   final int id;
+  final String? mailNumber;
   final String destinataire;
   final String villeDestination;
   final int prix;
-  final String statut;
+  final bool isCollected;
   final bool isLoyaltyMail;
   final String createdAt;
 
   const LoyaltyMail({
     required this.id,
+    this.mailNumber,
     required this.destinataire,
     required this.villeDestination,
     required this.prix,
-    required this.statut,
+    required this.isCollected,
     required this.isLoyaltyMail,
     required this.createdAt,
   });
 
   factory LoyaltyMail.fromJson(Map<String, dynamic> json) {
+    // Helper pour parser le prix (peut être String ou int)
+    int parsePrix(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) {
+        final parsed = double.tryParse(value);
+        return parsed?.toInt() ?? 0;
+      }
+      return 0;
+    }
+    
+    // Helper pour parser les booléens (peut être 0/1 ou true/false)
+    bool parseBool(dynamic value) {
+      if (value == null) return false;
+      if (value is bool) return value;
+      if (value is int) return value != 0;
+      if (value is String) return value == '1' || value.toLowerCase() == 'true';
+      return false;
+    }
+    
     return LoyaltyMail(
       id: json['id'] ?? 0,
-      destinataire: json['destinataire'] ?? '',
-      villeDestination: json['ville_destination'] ?? '',
-      prix: json['prix'] ?? 0,
-      statut: json['statut'] ?? '',
-      isLoyaltyMail: json['is_loyalty_mail'] ?? false,
-      createdAt: json['created_at'] ?? '',
+      mailNumber: json['mail_number'],
+      destinataire: json['recipient_name'] ?? json['destinataire'] ?? json['recipient'] ?? '',
+      villeDestination: json['destination'] ?? json['ville_destination'] ?? json['to'] ?? '',
+      prix: parsePrix(json['amount'] ?? json['prix'] ?? json['price']),
+      isCollected: parseBool(json['is_collected'] ?? json['collected']),
+      isLoyaltyMail: parseBool(json['is_loyalty_mail'] ?? json['loyalty']),
+      createdAt: json['created_at'] ?? json['createdAt'] ?? json['date'] ?? '',
     );
   }
+  
+  String get statut => isCollected ? 'Collecté' : 'En attente';
 }
 
 class LoyaltyProfileResponse extends LoyaltyResponse {
@@ -290,11 +338,20 @@ class LoyaltyProfileResponse extends LoyaltyResponse {
   });
 
   factory LoyaltyProfileResponse.fromJson(Map<String, dynamic> json) {
+    // Certaines réponses peuvent être enveloppées dans { success, message, data: { client, history } }
+    final Map<String, dynamic> root = json;
+    final Map<String, dynamic> data = (json['data'] is Map<String, dynamic>)
+        ? (json['data'] as Map<String, dynamic>)
+        : root;
+
+    final clientJson = (data['client'] ?? root['client']);
+    final historyJson = (data['history'] ?? root['history']);
+
     return LoyaltyProfileResponse(
-      success: json['success'] ?? false,
-      message: json['message'] ?? '',
-      client: json['client'] != null ? LoyaltyClient.fromJson(json['client']) : null,
-      history: json['history'] != null ? LoyaltyHistory.fromJson(json['history']) : null,
+      success: (root['success'] ?? data['success'] ?? true) as bool,
+      message: (root['message'] ?? data['message'] ?? '') as String,
+      client: (clientJson is Map<String, dynamic>) ? LoyaltyClient.fromJson(clientJson) : null,
+      history: (historyJson is Map<String, dynamic>) ? LoyaltyHistory.fromJson(historyJson) : null,
     );
   }
 }
