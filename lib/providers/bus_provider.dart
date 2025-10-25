@@ -160,6 +160,11 @@ final fuelStatsProvider = FutureProvider.family<FuelStats, int>((ref, busId) asy
   return await service.getFuelStats(busId);
 });
 
+// ===== Fuel History with Filters Provider (DÉSACTIVÉ - cause boucle infinie) =====
+// Les filtres ne fonctionnent pas pour l'instant à cause d'un problème de boucle infinie
+// avec les providers family qui utilisent des Map comme paramètres.
+// Solution future : utiliser freezed pour créer une classe immutable
+
 // ===== Technical Visits Provider =====
 final technicalVisitsProvider = FutureProvider.family<PaginatedResponse<TechnicalVisit>, int>(
   (ref, busId) async {
@@ -255,14 +260,16 @@ class BreakdownsNotifier extends StateNotifier<BreakdownsState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _service.addBreakdown(
-        busId: busId,
-        description: description,
-        breakdownDate: breakdownDate,
-        severity: severity,
-        status: status,
-        notes: notes,
-      );
+      final data = {
+        'reparation_effectuee': description,
+        'date_panne': breakdownDate.toIso8601String().split('T')[0],
+        'description_probleme': description,
+        'diagnostic_mecanicien': description,
+        'statut_reparation': status == 'reported' ? 'en_cours' : status == 'resolved' ? 'terminee' : 'en_cours',
+        if (notes != null) 'notes_complementaires': notes,
+      };
+      
+      await _service.addBreakdown(busId, data);
 
       // Recharger la liste après ajout
       await loadBreakdowns();
@@ -356,12 +363,12 @@ class VidangesNotifier extends StateNotifier<VidangesState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _service.scheduleVidange(
-        busId: busId,
-        plannedDate: plannedDate,
-        type: type,
-        notes: notes,
-      );
+      final data = {
+        'last_vidange_date': plannedDate.toIso8601String().split('T')[0],
+        if (notes != null) 'notes': notes,
+      };
+      
+      await _service.scheduleVidange(busId, data);
 
       // Recharger la liste après planification
       await loadVidanges();

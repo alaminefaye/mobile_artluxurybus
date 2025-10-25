@@ -342,14 +342,14 @@ class BusDashboardScreen extends ConsumerWidget {
           margin: const EdgeInsets.only(bottom: 8),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: _getSeverityColor(breakdown.severity).withValues(alpha: 0.1),
+              backgroundColor: _getStatutColor(breakdown.statutReparation).withValues(alpha: 0.1),
               child: Icon(
                 Icons.warning_rounded,
-                color: _getSeverityColor(breakdown.severity),
+                color: _getStatutColor(breakdown.statutReparation),
               ),
             ),
             title: Text(
-              breakdown.description,
+              breakdown.descriptionProbleme,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -360,14 +360,14 @@ class BusDashboardScreen extends ConsumerWidget {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _getStatusColor(breakdown.status).withValues(alpha: 0.1),
+                color: _getStatutColor(breakdown.statutReparation).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                _getStatusLabel(breakdown.status),
+                _getStatutLabel(breakdown.statutReparation),
                 style: TextStyle(
                   fontSize: 11,
-                  color: _getStatusColor(breakdown.status),
+                  color: _getStatutColor(breakdown.statutReparation),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -422,42 +422,29 @@ class BusDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Color _getSeverityColor(String severity) {
-    switch (severity.toLowerCase()) {
-      case 'high':
-        return Colors.red;
-      case 'medium':
-        return Colors.orange;
-      case 'low':
-        return Colors.yellow[700]!;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'resolved':
+  Color _getStatutColor(String statut) {
+    switch (statut.toLowerCase()) {
+      case 'terminee':
         return Colors.green;
-      case 'in_progress':
+      case 'en_cours':
         return Colors.blue;
-      case 'reported':
+      case 'en_attente_pieces':
         return Colors.orange;
       default:
         return Colors.grey;
     }
   }
 
-  String _getStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'resolved':
-        return 'Résolu';
-      case 'in_progress':
+  String _getStatutLabel(String statut) {
+    switch (statut.toLowerCase()) {
+      case 'terminee':
+        return 'Terminée';
+      case 'en_cours':
         return 'En cours';
-      case 'reported':
-        return 'Signalé';
+      case 'en_attente_pieces':
+        return 'En attente pièces';
       default:
-        return status;
+        return statut;
     }
   }
 

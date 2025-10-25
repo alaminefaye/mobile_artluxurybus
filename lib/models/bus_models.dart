@@ -146,7 +146,7 @@ class MaintenanceRecord {
   final int busId;
   
   @JsonKey(name: 'maintenance_type')
-  final String maintenanceType;
+  final String? maintenanceType;
   
   @JsonKey(name: 'maintenance_date')
   final DateTime maintenanceDate;
@@ -169,7 +169,7 @@ class MaintenanceRecord {
   MaintenanceRecord({
     required this.id,
     required this.busId,
-    required this.maintenanceType,
+    this.maintenanceType,
     required this.maintenanceDate,
     this.nextMaintenanceDate,
     this.description,
@@ -300,35 +300,33 @@ class TechnicalVisit {
   @JsonKey(name: 'visit_date')
   final DateTime visitDate;
   
-  @JsonKey(name: 'expiry_date')
-  final DateTime expiryDate;
+  @JsonKey(name: 'expiration_date')
+  final DateTime expirationDate;
   
-  @JsonKey(name: 'visit_center')
-  final String? visitCenter;
+  @JsonKey(name: 'document_photo')
+  final String? documentPhoto;
   
-  @JsonKey(name: 'result')
-  final String result;
-  
-  final double? cost;
   final String? notes;
   
-  @JsonKey(name: 'certificate_number')
-  final String? certificateNumber;
+  @JsonKey(name: 'is_notified')
+  final bool isNotified;
   
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
+  
+  @JsonKey(name: 'updated_at')
+  final DateTime? updatedAt;
 
   TechnicalVisit({
     required this.id,
     required this.busId,
     required this.visitDate,
-    required this.expiryDate,
-    this.visitCenter,
-    required this.result,
-    this.cost,
+    required this.expirationDate,
+    this.documentPhoto,
     this.notes,
-    this.certificateNumber,
+    required this.isNotified,
     this.createdAt,
+    this.updatedAt,
   });
 
   factory TechnicalVisit.fromJson(Map<String, dynamic> json) =>
@@ -345,38 +343,47 @@ class InsuranceRecord {
   @JsonKey(name: 'bus_id')
   final int busId;
   
-  @JsonKey(name: 'insurance_company')
-  final String insuranceCompany;
-  
   @JsonKey(name: 'policy_number')
   final String policyNumber;
+  
+  @JsonKey(name: 'insurance_company')
+  final String insuranceCompany;
   
   @JsonKey(name: 'start_date')
   final DateTime startDate;
   
-  @JsonKey(name: 'expiry_date')
+  @JsonKey(name: 'end_date')
   final DateTime expiryDate;
   
-  @JsonKey(name: 'coverage_type')
-  final String coverageType;
+  final double cost;
   
-  final double premium;
+  @JsonKey(name: 'document_photo')
+  final String? documentPhoto;
+  
   final String? notes;
+  
+  @JsonKey(name: 'is_notified')
+  final bool isNotified;
   
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
+  
+  @JsonKey(name: 'updated_at')
+  final DateTime? updatedAt;
 
   InsuranceRecord({
     required this.id,
     required this.busId,
-    required this.insuranceCompany,
     required this.policyNumber,
+    required this.insuranceCompany,
     required this.startDate,
     required this.expiryDate,
-    required this.coverageType,
-    required this.premium,
+    required this.cost,
+    this.documentPhoto,
     this.notes,
+    required this.isNotified,
     this.createdAt,
+    this.updatedAt,
   });
 
   factory InsuranceRecord.fromJson(Map<String, dynamic> json) =>
@@ -394,7 +401,7 @@ class Patent {
   final int busId;
   
   @JsonKey(name: 'patent_number')
-  final String patentNumber;
+  final String? patentNumber;
   
   @JsonKey(name: 'issue_date')
   final DateTime issueDate;
@@ -414,7 +421,7 @@ class Patent {
   Patent({
     required this.id,
     required this.busId,
-    required this.patentNumber,
+    this.patentNumber,
     required this.issueDate,
     required this.expiryDate,
     this.issuingAuthority,
@@ -437,24 +444,43 @@ class BusBreakdown {
   @JsonKey(name: 'bus_id')
   final int busId;
   
-  final String description;
+  final int? kilometrage;
   
-  @JsonKey(name: 'breakdown_date')
+  @JsonKey(name: 'reparation_effectuee')
+  final String reparationEffectuee;
+  
+  @JsonKey(name: 'date_panne')
   final DateTime breakdownDate;
   
-  final String severity; // low, medium, high
-  final String status; // reported, in_progress, resolved
+  @JsonKey(name: 'description_probleme')
+  final String descriptionProbleme;
   
-  @JsonKey(name: 'repair_cost')
-  final double? repairCost;
+  @JsonKey(name: 'diagnostic_mecanicien')
+  final String diagnosticMecanicien;
   
-  @JsonKey(name: 'resolved_date')
-  final DateTime? resolvedDate;
+  @JsonKey(name: 'piece_remplacee')
+  final String? pieceRemplacee;
   
-  final String? notes;
+  @JsonKey(name: 'prix_piece')
+  final double? prixPiece;
+  
+  @JsonKey(name: 'facture_photo')
+  final String? facturePhoto;
+  
+  @JsonKey(name: 'notes_complementaires')
+  final String? notesComplementaires;
+  
+  @JsonKey(name: 'statut_reparation')
+  final String statutReparation; // en_cours, terminee, en_attente_pieces
+  
+  @JsonKey(name: 'created_by')
+  final int createdBy;
   
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
+  
+  @JsonKey(name: 'updated_at')
+  final DateTime? updatedAt;
   
   // Relation optionnelle
   final Bus? bus;
@@ -462,14 +488,19 @@ class BusBreakdown {
   BusBreakdown({
     required this.id,
     required this.busId,
-    required this.description,
+    this.kilometrage,
+    required this.reparationEffectuee,
     required this.breakdownDate,
-    required this.severity,
-    required this.status,
-    this.repairCost,
-    this.resolvedDate,
-    this.notes,
+    required this.descriptionProbleme,
+    required this.diagnosticMecanicien,
+    this.pieceRemplacee,
+    this.prixPiece,
+    this.facturePhoto,
+    this.notesComplementaires,
+    required this.statutReparation,
+    required this.createdBy,
     this.createdAt,
+    this.updatedAt,
     this.bus,
   });
 
@@ -487,47 +518,32 @@ class BusVidange {
   @JsonKey(name: 'bus_id')
   final int busId;
   
-  @JsonKey(name: 'vidange_date')
-  final DateTime? vidangeDate;
+  @JsonKey(name: 'last_vidange_date')
+  final DateTime lastVidangeDate;
   
   @JsonKey(name: 'next_vidange_date')
-  final DateTime? nextVidangeDate;
+  final DateTime nextVidangeDate;
   
-  @JsonKey(name: 'planned_date')
-  final DateTime? plannedDate;
-  
-  final String type;
-  final double? cost;
-  
-  @JsonKey(name: 'service_provider')
-  final String? serviceProvider;
-  
-  final double? mileage;
   final String? notes;
   
-  @JsonKey(name: 'completed_at')
-  final DateTime? completedAt;
-  
-  @JsonKey(name: 'completion_notes')
-  final String? completionNotes;
+  @JsonKey(name: 'created_by')
+  final int createdBy;
   
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
+  
+  @JsonKey(name: 'updated_at')
+  final DateTime? updatedAt;
 
   BusVidange({
     required this.id,
     required this.busId,
-    this.vidangeDate,
-    this.nextVidangeDate,
-    this.plannedDate,
-    required this.type,
-    this.cost,
-    this.serviceProvider,
-    this.mileage,
+    required this.lastVidangeDate,
+    required this.nextVidangeDate,
     this.notes,
-    this.completedAt,
-    this.completionNotes,
+    required this.createdBy,
     this.createdAt,
+    this.updatedAt,
   });
 
   factory BusVidange.fromJson(Map<String, dynamic> json) =>

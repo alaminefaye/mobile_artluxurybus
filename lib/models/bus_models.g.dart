@@ -109,7 +109,7 @@ MaintenanceRecord _$MaintenanceRecordFromJson(Map<String, dynamic> json) =>
     MaintenanceRecord(
       id: (json['id'] as num).toInt(),
       busId: (json['bus_id'] as num).toInt(),
-      maintenanceType: json['maintenance_type'] as String,
+      maintenanceType: json['maintenance_type'] as String?,
       maintenanceDate: DateTime.parse(json['maintenance_date'] as String),
       nextMaintenanceDate: json['next_maintenance_date'] == null
           ? null
@@ -186,15 +186,16 @@ TechnicalVisit _$TechnicalVisitFromJson(Map<String, dynamic> json) =>
       id: (json['id'] as num).toInt(),
       busId: (json['bus_id'] as num).toInt(),
       visitDate: DateTime.parse(json['visit_date'] as String),
-      expiryDate: DateTime.parse(json['expiry_date'] as String),
-      visitCenter: json['visit_center'] as String?,
-      result: json['result'] as String,
-      cost: (json['cost'] as num?)?.toDouble(),
+      expirationDate: DateTime.parse(json['expiration_date'] as String),
+      documentPhoto: json['document_photo'] as String?,
       notes: json['notes'] as String?,
-      certificateNumber: json['certificate_number'] as String?,
+      isNotified: json['is_notified'] as bool,
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$TechnicalVisitToJson(TechnicalVisit instance) =>
@@ -202,49 +203,54 @@ Map<String, dynamic> _$TechnicalVisitToJson(TechnicalVisit instance) =>
       'id': instance.id,
       'bus_id': instance.busId,
       'visit_date': instance.visitDate.toIso8601String(),
-      'expiry_date': instance.expiryDate.toIso8601String(),
-      'visit_center': instance.visitCenter,
-      'result': instance.result,
-      'cost': instance.cost,
+      'expiration_date': instance.expirationDate.toIso8601String(),
+      'document_photo': instance.documentPhoto,
       'notes': instance.notes,
-      'certificate_number': instance.certificateNumber,
+      'is_notified': instance.isNotified,
       'created_at': instance.createdAt?.toIso8601String(),
+      'updated_at': instance.updatedAt?.toIso8601String(),
     };
 
 InsuranceRecord _$InsuranceRecordFromJson(Map<String, dynamic> json) =>
     InsuranceRecord(
       id: (json['id'] as num).toInt(),
       busId: (json['bus_id'] as num).toInt(),
-      insuranceCompany: json['insurance_company'] as String,
       policyNumber: json['policy_number'] as String,
+      insuranceCompany: json['insurance_company'] as String,
       startDate: DateTime.parse(json['start_date'] as String),
-      expiryDate: DateTime.parse(json['expiry_date'] as String),
-      coverageType: json['coverage_type'] as String,
-      premium: (json['premium'] as num).toDouble(),
+      expiryDate: DateTime.parse(json['end_date'] as String),
+      cost: (json['cost'] as num).toDouble(),
+      documentPhoto: json['document_photo'] as String?,
       notes: json['notes'] as String?,
+      isNotified: json['is_notified'] as bool,
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$InsuranceRecordToJson(InsuranceRecord instance) =>
     <String, dynamic>{
       'id': instance.id,
       'bus_id': instance.busId,
-      'insurance_company': instance.insuranceCompany,
       'policy_number': instance.policyNumber,
+      'insurance_company': instance.insuranceCompany,
       'start_date': instance.startDate.toIso8601String(),
-      'expiry_date': instance.expiryDate.toIso8601String(),
-      'coverage_type': instance.coverageType,
-      'premium': instance.premium,
+      'end_date': instance.expiryDate.toIso8601String(),
+      'cost': instance.cost,
+      'document_photo': instance.documentPhoto,
       'notes': instance.notes,
+      'is_notified': instance.isNotified,
       'created_at': instance.createdAt?.toIso8601String(),
+      'updated_at': instance.updatedAt?.toIso8601String(),
     };
 
 Patent _$PatentFromJson(Map<String, dynamic> json) => Patent(
       id: (json['id'] as num).toInt(),
       busId: (json['bus_id'] as num).toInt(),
-      patentNumber: json['patent_number'] as String,
+      patentNumber: json['patent_number'] as String?,
       issueDate: DateTime.parse(json['issue_date'] as String),
       expiryDate: DateTime.parse(json['expiry_date'] as String),
       issuingAuthority: json['issuing_authority'] as String?,
@@ -270,18 +276,23 @@ Map<String, dynamic> _$PatentToJson(Patent instance) => <String, dynamic>{
 BusBreakdown _$BusBreakdownFromJson(Map<String, dynamic> json) => BusBreakdown(
       id: (json['id'] as num).toInt(),
       busId: (json['bus_id'] as num).toInt(),
-      description: json['description'] as String,
-      breakdownDate: DateTime.parse(json['breakdown_date'] as String),
-      severity: json['severity'] as String,
-      status: json['status'] as String,
-      repairCost: (json['repair_cost'] as num?)?.toDouble(),
-      resolvedDate: json['resolved_date'] == null
-          ? null
-          : DateTime.parse(json['resolved_date'] as String),
-      notes: json['notes'] as String?,
+      kilometrage: (json['kilometrage'] as num?)?.toInt(),
+      reparationEffectuee: json['reparation_effectuee'] as String,
+      breakdownDate: DateTime.parse(json['date_panne'] as String),
+      descriptionProbleme: json['description_probleme'] as String,
+      diagnosticMecanicien: json['diagnostic_mecanicien'] as String,
+      pieceRemplacee: json['piece_remplacee'] as String?,
+      prixPiece: (json['prix_piece'] as num?)?.toDouble(),
+      facturePhoto: json['facture_photo'] as String?,
+      notesComplementaires: json['notes_complementaires'] as String?,
+      statutReparation: json['statut_reparation'] as String,
+      createdBy: (json['created_by'] as num).toInt(),
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
       bus: json['bus'] == null
           ? null
           : Bus.fromJson(json['bus'] as Map<String, dynamic>),
@@ -291,58 +302,47 @@ Map<String, dynamic> _$BusBreakdownToJson(BusBreakdown instance) =>
     <String, dynamic>{
       'id': instance.id,
       'bus_id': instance.busId,
-      'description': instance.description,
-      'breakdown_date': instance.breakdownDate.toIso8601String(),
-      'severity': instance.severity,
-      'status': instance.status,
-      'repair_cost': instance.repairCost,
-      'resolved_date': instance.resolvedDate?.toIso8601String(),
-      'notes': instance.notes,
+      'kilometrage': instance.kilometrage,
+      'reparation_effectuee': instance.reparationEffectuee,
+      'date_panne': instance.breakdownDate.toIso8601String(),
+      'description_probleme': instance.descriptionProbleme,
+      'diagnostic_mecanicien': instance.diagnosticMecanicien,
+      'piece_remplacee': instance.pieceRemplacee,
+      'prix_piece': instance.prixPiece,
+      'facture_photo': instance.facturePhoto,
+      'notes_complementaires': instance.notesComplementaires,
+      'statut_reparation': instance.statutReparation,
+      'created_by': instance.createdBy,
       'created_at': instance.createdAt?.toIso8601String(),
+      'updated_at': instance.updatedAt?.toIso8601String(),
       'bus': instance.bus,
     };
 
 BusVidange _$BusVidangeFromJson(Map<String, dynamic> json) => BusVidange(
       id: (json['id'] as num).toInt(),
       busId: (json['bus_id'] as num).toInt(),
-      vidangeDate: json['vidange_date'] == null
-          ? null
-          : DateTime.parse(json['vidange_date'] as String),
-      nextVidangeDate: json['next_vidange_date'] == null
-          ? null
-          : DateTime.parse(json['next_vidange_date'] as String),
-      plannedDate: json['planned_date'] == null
-          ? null
-          : DateTime.parse(json['planned_date'] as String),
-      type: json['type'] as String,
-      cost: (json['cost'] as num?)?.toDouble(),
-      serviceProvider: json['service_provider'] as String?,
-      mileage: (json['mileage'] as num?)?.toDouble(),
+      lastVidangeDate: DateTime.parse(json['last_vidange_date'] as String),
+      nextVidangeDate: DateTime.parse(json['next_vidange_date'] as String),
       notes: json['notes'] as String?,
-      completedAt: json['completed_at'] == null
-          ? null
-          : DateTime.parse(json['completed_at'] as String),
-      completionNotes: json['completion_notes'] as String?,
+      createdBy: (json['created_by'] as num).toInt(),
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
+          ? null
+          : DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$BusVidangeToJson(BusVidange instance) =>
     <String, dynamic>{
       'id': instance.id,
       'bus_id': instance.busId,
-      'vidange_date': instance.vidangeDate?.toIso8601String(),
-      'next_vidange_date': instance.nextVidangeDate?.toIso8601String(),
-      'planned_date': instance.plannedDate?.toIso8601String(),
-      'type': instance.type,
-      'cost': instance.cost,
-      'service_provider': instance.serviceProvider,
-      'mileage': instance.mileage,
+      'last_vidange_date': instance.lastVidangeDate.toIso8601String(),
+      'next_vidange_date': instance.nextVidangeDate.toIso8601String(),
       'notes': instance.notes,
-      'completed_at': instance.completedAt?.toIso8601String(),
-      'completion_notes': instance.completionNotes,
+      'created_by': instance.createdBy,
       'created_at': instance.createdAt?.toIso8601String(),
+      'updated_at': instance.updatedAt?.toIso8601String(),
     };
 
 PaginatedResponse<T> _$PaginatedResponseFromJson<T>(

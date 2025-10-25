@@ -29,6 +29,49 @@ class BusApiService {
     return headers;
   }
   
+  // Construire les headers pour multipart (sans Content-Type)
+  Future<Map<String, String>> _getMultipartHeaders() async {
+    final token = await _getAuthToken();
+    final headers = <String, String>{};
+    
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    
+    return headers;
+  }
+  
+  // Envoyer une requête multipart avec fichier
+  Future<http.StreamedResponse> _sendMultipartRequest({
+    required String method,
+    required String url,
+    required Map<String, dynamic> data,
+    File? file,
+    String? fileFieldName,
+  }) async {
+    final request = http.MultipartRequest(method, Uri.parse(url));
+    
+    // Ajouter les headers
+    final headers = await _getMultipartHeaders();
+    request.headers.addAll(headers);
+    
+    // Ajouter les champs
+    data.forEach((key, value) {
+      if (value != null) {
+        request.fields[key] = value.toString();
+      }
+    });
+    
+    // Ajouter le fichier si présent
+    if (file != null && fileFieldName != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(fileFieldName, file.path),
+      );
+    }
+    
+    return await request.send().timeout(ApiConfig.requestTimeout);
+  }
+  
   // ===== Dashboard =====
   
   /// Récupère le tableau de bord des bus avec statistiques
@@ -153,6 +196,15 @@ class BusApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _log('Response body: ${response.body}');
+        
+        // Debug: Vérifier les assurances
+        if (data['insurance_records'] != null) {
+          _log('📋 Nombre d\'assurances: ${(data['insurance_records'] as List).length}');
+          for (var insurance in data['insurance_records']) {
+            _log('🔍 Assurance: company=${insurance['insurance_company']}, policy=${insurance['policy_number']}, coverage=${insurance['coverage_type']}, premium=${insurance['premium']}');
+          }
+        }
+        
         _log('✅ Détails du bus récupérés avec succès');
         return Bus.fromJson(data);
       } else {
@@ -205,12 +257,18 @@ class BusApiService {
   Future<PaginatedResponse<FuelRecord>> getFuelHistory(
     int busId, {
     int page = 1,
+    String? period,
+    String? year,
   }) async {
     try {
-      _log('⛽ Récupération de l\'historique carburant du bus #$busId...');
+      _log('⛽ Récupération de l\'historique carburant du bus #$busId (period: $period, year: $year)...');
+      
+      final queryParams = {'page': page.toString()};
+      if (period != null) queryParams['period'] = period;
+      if (year != null) queryParams['year'] = year;
       
       final uri = Uri.parse('${ApiConfig.baseUrl}/buses/$busId/fuel-history')
-          .replace(queryParameters: {'page': page.toString()});
+          .replace(queryParameters: queryParams);
       
       final headers = await _getHeaders();
       final response = await http.get(uri, headers: headers)
@@ -235,13 +293,24 @@ class BusApiService {
   }
   
   /// Récupère les statistiques de consommation de carburant
-  Future<FuelStats> getFuelStats(int busId) async {
+  Future<FuelStats> getFuelStats(
+    int busId, {
+    String? period,
+    String? year,
+  }) async {
     try {
-      _log('📊 Récupération des stats carburant du bus #$busId...');
+      _log('📊 Récupération des stats carburant du bus #$busId (period: $period, year: $year)...');
+      
+      final queryParams = <String, String>{};
+      if (period != null) queryParams['period'] = period;
+      if (year != null) queryParams['year'] = year;
+      
+      final uri = Uri.parse('${ApiConfig.baseUrl}/buses/$busId/fuel-stats')
+          .replace(queryParameters: queryParams.isNotEmpty ? queryParams : null);
       
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/fuel-stats'),
+        uri,
         headers: headers,
       ).timeout(ApiConfig.requestTimeout);
       
@@ -292,6 +361,114 @@ class BusApiService {
     }
   }
   
+  /// Ajouter une visite technique
+  Future<void> addTechnicalVisit(int busId, Map<String, dynamic> data, {File? photo}) async {
+    try {
+      _log('➕ Ajout d\'une visite technique pour le bus #$busId...');
+      
+      if (photo != null) {
+        // Utiliser multipart si photo présente
+        final streamedResponse = await _sendMultipartRequest(
+          method: 'POST',
+          url: '${ApiConfig.baseUrl}/buses/$busId/technical-visits',
+          data: data,
+          file: photo,
+          fileFieldName: 'document_photo',
+        );
+        
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        if (response.statusCode == 201) {
+          _log('✅ Visite technique ajoutée avec succès (avec photo)');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      } else {
+        // Utiliser JSON si pas de photo
+        final headers = await _getHeaders();
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/technical-visits'),
+          headers: headers,
+          body: json.encode(data),
+        ).timeout(ApiConfig.requestTimeout);
+        
+        if (response.statusCode == 201) {
+          _log('✅ Visite technique ajoutée avec succès');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de l\'ajout de la visite: $e');
+      rethrow;
+    }
+  }
+  
+  /// Modifier une visite technique
+  Future<void> updateTechnicalVisit(int busId, int visitId, Map<String, dynamic> data, {File? photo}) async {
+    try {
+      _log('✏️ Modification de la visite technique #$visitId...');
+      
+      if (photo != null) {
+        // Utiliser multipart si photo présente
+        final streamedResponse = await _sendMultipartRequest(
+          method: 'POST', // Laravel n'accepte pas PUT avec multipart, on utilise POST avec _method
+          url: '${ApiConfig.baseUrl}/buses/$busId/technical-visits/$visitId',
+          data: {...data, '_method': 'PUT'},
+          file: photo,
+          fileFieldName: 'document_photo',
+        );
+        
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        if (response.statusCode == 200) {
+          _log('✅ Visite technique modifiée avec succès (avec photo)');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      } else {
+        // Utiliser JSON si pas de photo
+        final headers = await _getHeaders();
+        final response = await http.put(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/technical-visits/$visitId'),
+          headers: headers,
+          body: json.encode(data),
+        ).timeout(ApiConfig.requestTimeout);
+        
+        if (response.statusCode == 200) {
+          _log('✅ Visite technique modifiée avec succès');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la modification de la visite: $e');
+      rethrow;
+    }
+  }
+  
+  /// Supprimer une visite technique
+  Future<void> deleteTechnicalVisit(int busId, int visitId) async {
+    try {
+      _log('🗑️ Suppression de la visite technique #$visitId...');
+      
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/technical-visits/$visitId'),
+        headers: headers,
+      ).timeout(ApiConfig.requestTimeout);
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _log('✅ Visite technique supprimée avec succès');
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la suppression de la visite: $e');
+      rethrow;
+    }
+  }
+  
   // ===== Assurances =====
   
   /// Récupère l'historique des assurances d'un bus
@@ -321,6 +498,104 @@ class BusApiService {
       }
     } catch (e) {
       _log('❌ Erreur lors de la récupération de l\'assurance: $e');
+      rethrow;
+    }
+  }
+  
+  /// Ajouter une assurance
+  Future<void> addInsurance(int busId, Map<String, dynamic> data, {File? photo}) async {
+    try {
+      _log('➕ Ajout d\'une assurance pour le bus #$busId...');
+      
+      if (photo != null) {
+        final streamedResponse = await _sendMultipartRequest(
+          method: 'POST',
+          url: '${ApiConfig.baseUrl}/buses/$busId/insurance-records',
+          data: data,
+          file: photo,
+          fileFieldName: 'document_photo',
+        );
+        final response = await http.Response.fromStream(streamedResponse);
+        if (response.statusCode == 201) {
+          _log('✅ Assurance ajoutée avec succès (avec photo)');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      } else {
+        final headers = await _getHeaders();
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/insurance-records'),
+          headers: headers,
+          body: json.encode(data),
+        ).timeout(ApiConfig.requestTimeout);
+        if (response.statusCode == 201) {
+          _log('✅ Assurance ajoutée avec succès');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de l\'ajout de l\'assurance: $e');
+      rethrow;
+    }
+  }
+  
+  /// Modifier une assurance
+  Future<void> updateInsurance(int busId, int insuranceId, Map<String, dynamic> data, {File? photo}) async{
+    try {
+      _log('✏️ Modification de l\'assurance #$insuranceId...');
+      
+      if (photo != null) {
+        final streamedResponse = await _sendMultipartRequest(
+          method: 'POST',
+          url: '${ApiConfig.baseUrl}/buses/$busId/insurance-records/$insuranceId',
+          data: {...data, '_method': 'PUT'},
+          file: photo,
+          fileFieldName: 'document_photo',
+        );
+        final response = await http.Response.fromStream(streamedResponse);
+        if (response.statusCode == 200) {
+          _log('✅ Assurance modifiée avec succès (avec photo)');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      } else {
+        final headers = await _getHeaders();
+        final response = await http.put(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/insurance-records/$insuranceId'),
+          headers: headers,
+          body: json.encode(data),
+        ).timeout(ApiConfig.requestTimeout);
+        if (response.statusCode == 200) {
+          _log('✅ Assurance modifiée avec succès');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la modification de l\'assurance: $e');
+      rethrow;
+    }
+  }
+  
+  /// Supprimer une assurance
+  Future<void> deleteInsurance(int busId, int insuranceId) async {
+    try {
+      _log('🗑️ Suppression de l\'assurance #$insuranceId...');
+      
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/insurance-records/$insuranceId'),
+        headers: headers,
+      ).timeout(ApiConfig.requestTimeout);
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _log('✅ Assurance supprimée avec succès');
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la suppression de l\'assurance: $e');
       rethrow;
     }
   }
@@ -392,41 +667,99 @@ class BusApiService {
   }
   
   /// Ajoute une nouvelle panne pour un bus
-  Future<BusBreakdown> addBreakdown({
-    required int busId,
-    required String description,
-    required DateTime breakdownDate,
-    required String severity, // low, medium, high
-    required String status, // reported, in_progress, resolved
-    String? notes,
-  }) async {
+  Future<void> addBreakdown(int busId, Map<String, dynamic> data, {File? photo}) async {
     try {
       _log('➕ Ajout d\'une panne pour le bus #$busId...');
       
-      final body = {
-        'description': description,
-        'breakdown_date': breakdownDate.toIso8601String().split('T')[0],
-        'severity': severity,
-        'status': status,
-        if (notes != null) 'notes': notes,
-      };
+      if (photo != null) {
+        final streamedResponse = await _sendMultipartRequest(
+          method: 'POST',
+          url: '${ApiConfig.baseUrl}/buses/$busId/breakdowns',
+          data: data,
+          file: photo,
+          fileFieldName: 'facture_photo',
+        );
+        final response = await http.Response.fromStream(streamedResponse);
+        if (response.statusCode == 201) {
+          _log('✅ Panne ajoutée avec succès (avec photo)');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      } else {
+        final headers = await _getHeaders();
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/breakdowns'),
+          headers: headers,
+          body: json.encode(data),
+        ).timeout(ApiConfig.requestTimeout);
+        if (response.statusCode == 201) {
+          _log('✅ Panne ajoutée avec succès');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de l\'ajout de la panne: $e');
+      rethrow;
+    }
+  }
+  
+  /// Modifier une panne
+  Future<void> updateBreakdown(int busId, int breakdownId, Map<String, dynamic> data, {File? photo}) async {
+    try {
+      _log('✏️ Modification de la panne #$breakdownId...');
+      
+      if (photo != null) {
+        final streamedResponse = await _sendMultipartRequest(
+          method: 'POST',
+          url: '${ApiConfig.baseUrl}/buses/$busId/breakdowns/$breakdownId',
+          data: {...data, '_method': 'PUT'},
+          file: photo,
+          fileFieldName: 'facture_photo',
+        );
+        final response = await http.Response.fromStream(streamedResponse);
+        if (response.statusCode == 200) {
+          _log('✅ Panne modifiée avec succès (avec photo)');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      } else {
+        final headers = await _getHeaders();
+        final response = await http.put(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/breakdowns/$breakdownId'),
+          headers: headers,
+          body: json.encode(data),
+        ).timeout(ApiConfig.requestTimeout);
+        if (response.statusCode == 200) {
+          _log('✅ Panne modifiée avec succès');
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la modification de la panne: $e');
+      rethrow;
+    }
+  }
+  
+  /// Supprimer une panne
+  Future<void> deleteBreakdown(int busId, int breakdownId) async {
+    try {
+      _log('🗑️ Suppression de la panne #$breakdownId...');
       
       final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/breakdowns'),
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/breakdowns/$breakdownId'),
         headers: headers,
-        body: json.encode(body),
       ).timeout(ApiConfig.requestTimeout);
       
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        _log('✅ Panne ajoutée avec succès');
-        return BusBreakdown.fromJson(data);
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _log('✅ Panne supprimée avec succès');
       } else {
         throw Exception('Erreur ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      _log('❌ Erreur lors de l\'ajout de la panne: $e');
+      _log('❌ Erreur lors de la suppression de la panne: $e');
       rethrow;
     }
   }
@@ -465,32 +798,19 @@ class BusApiService {
   }
   
   /// Planifie une nouvelle vidange pour un bus
-  Future<BusVidange> scheduleVidange({
-    required int busId,
-    required DateTime plannedDate,
-    required String type,
-    String? notes,
-  }) async {
+  Future<void> scheduleVidange(int busId, Map<String, dynamic> data) async {
     try {
       _log('📅 Planification d\'une vidange pour le bus #$busId...');
-      
-      final body = {
-        'planned_date': plannedDate.toIso8601String().split('T')[0],
-        'type': type,
-        if (notes != null) 'notes': notes,
-      };
       
       final headers = await _getHeaders();
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/buses/$busId/vidanges'),
         headers: headers,
-        body: json.encode(body),
+        body: json.encode(data),
       ).timeout(ApiConfig.requestTimeout);
       
       if (response.statusCode == 201) {
-        final data = json.decode(response.body);
         _log('✅ Vidange planifiée avec succès');
-        return BusVidange.fromJson(data);
       } else {
         throw Exception('Erreur ${response.statusCode}: ${response.body}');
       }
@@ -531,6 +851,51 @@ class BusApiService {
       }
     } catch (e) {
       _log('❌ Erreur lors du marquage de la vidange: $e');
+      rethrow;
+    }
+  }
+  
+  /// Modifier une vidange
+  Future<void> updateVidange(int busId, int vidangeId, Map<String, dynamic> data) async {
+    try {
+      _log('✏️ Modification de la vidange #$vidangeId...');
+      
+      final headers = await _getHeaders();
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/vidanges/$vidangeId'),
+        headers: headers,
+        body: json.encode(data),
+      ).timeout(ApiConfig.requestTimeout);
+      
+      if (response.statusCode == 200) {
+        _log('✅ Vidange modifiée avec succès');
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la modification de la vidange: $e');
+      rethrow;
+    }
+  }
+  
+  /// Supprimer une vidange
+  Future<void> deleteVidange(int busId, int vidangeId) async {
+    try {
+      _log('🗑️ Suppression de la vidange #$vidangeId...');
+      
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/vidanges/$vidangeId'),
+        headers: headers,
+      ).timeout(ApiConfig.requestTimeout);
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _log('✅ Vidange supprimée avec succès');
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la suppression de la vidange: $e');
       rethrow;
     }
   }
