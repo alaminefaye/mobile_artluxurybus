@@ -66,12 +66,18 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.grey[100],
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
           hintText: 'Rechercher un bus (immatriculation, marque...)',
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+          ),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear),
@@ -82,16 +88,17 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
                 )
               : null,
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Theme.of(context).cardColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
         ),
         onChanged: (value) {
+          setState(() {}); // Rafraîchir l'UI pour le bouton clear
           // Debounce pour éviter trop de requêtes
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (value == _searchController.text) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (value == _searchController.text && mounted) {
               ref.read(busListProvider.notifier).setSearchQuery(
                 value.isEmpty ? null : value,
               );
@@ -105,35 +112,43 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
   Widget _buildActiveFilters() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.grey[100],
+      color: Theme.of(context).cardColor.withValues(alpha: 0.5),
       child: Row(
         children: [
-          const Text(
+          Text(
             'Filtres actifs:',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.black54,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(width: 8),
-          if (_selectedStatus != null)
-            _buildFilterChip(
-              'Statut: ${_getStatusLabel(_selectedStatus!)}',
-              () {
-                setState(() => _selectedStatus = null);
-                ref.read(busListProvider.notifier).setStatusFilter(null);
-              },
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  if (_selectedStatus != null)
+                    _buildFilterChip(
+                      'Statut: ${_getStatusLabel(_selectedStatus!)}',
+                      () {
+                        setState(() => _selectedStatus = null);
+                        ref.read(busListProvider.notifier).setStatusFilter(null);
+                      },
+                    ),
+                  if (_searchController.text.isNotEmpty)
+                    _buildFilterChip(
+                      'Recherche: ${_searchController.text}',
+                      () {
+                        _searchController.clear();
+                        ref.read(busListProvider.notifier).setSearchQuery(null);
+                      },
+                    ),
+                ],
+              ),
             ),
-          if (_searchController.text.isNotEmpty)
-            _buildFilterChip(
-              'Recherche: ${_searchController.text}',
-              () {
-                _searchController.clear();
-                ref.read(busListProvider.notifier).setSearchQuery(null);
-              },
-            ),
-          const Spacer(),
+          ),
           TextButton(
             onPressed: () {
               setState(() {
@@ -142,7 +157,12 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
               });
               ref.read(busListProvider.notifier).clearFilters();
             },
-            child: const Text('Effacer tout'),
+            child: Text(
+              'Effacer',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
           ),
         ],
       ),
@@ -155,11 +175,21 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
       child: Chip(
         label: Text(
           label,
-          style: const TextStyle(fontSize: 12),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+          ),
         ),
         onDeleted: onDeleted,
-        deleteIcon: const Icon(Icons.close, size: 16),
-        backgroundColor: Colors.deepPurple[50],
+        deleteIcon: Icon(
+          Icons.close,
+          size: 16,
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+        ),
       ),
     );
   }
@@ -245,10 +275,10 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
                       children: [
                         Text(
                           bus.registrationNumber ?? 'N/A',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: Theme.of(context).textTheme.titleLarge?.color,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -256,7 +286,7 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
                           '${bus.brand ?? ''} ${bus.model ?? 'Modèle inconnu'}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
@@ -320,19 +350,26 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Theme.of(context).cardColor.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.grey[600]),
+          Icon(
+            icon,
+            size: 14,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+          ),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey[700],
+              color: Theme.of(context).textTheme.bodyMedium?.color,
             ),
           ),
         ],

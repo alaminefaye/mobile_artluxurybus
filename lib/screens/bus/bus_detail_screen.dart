@@ -714,32 +714,34 @@ class BusDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildStatBox(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
+    return Builder(
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -750,27 +752,45 @@ class BusDetailScreen extends ConsumerWidget {
     String value,
     ValueChanged<String?> onChanged,
   ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isExpanded: true,
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(
-                item,
-                style: const TextStyle(fontSize: 14),
+    return Builder(
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: value,
+            isExpanded: true,
+            dropdownColor: Theme.of(context).cardColor,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+            items: items.map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+              );
+            }).toList(),
+            onChanged: onChanged,
+            hint: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               ),
-            );
-          }).toList(),
-          onChanged: onChanged,
-          hint: Text(label),
+            ),
+          ),
         ),
       ),
     );
@@ -974,7 +994,7 @@ class _InfoRow extends StatelessWidget {
           value,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey[700],
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       );
@@ -991,7 +1011,7 @@ class _InfoRow extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -999,9 +1019,9 @@ class _InfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.titleMedium?.color,
                 fontWeight: FontWeight.w600,
               ),
             ),

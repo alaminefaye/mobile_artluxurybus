@@ -12,9 +12,9 @@ class VoiceSettingsScreen extends ConsumerStatefulWidget {
 class _VoiceSettingsScreenState extends ConsumerState<VoiceSettingsScreen> {
   bool _isEnabled = true;
   int _repeatInterval = 5;
-  double _volume = 1.0;
-  double _pitch = 1.0;
-  double _rate = 0.5;
+  double _volume = 0.9; // Volume légèrement réduit
+  double _pitch = 0.95; // Tonalité légèrement plus grave
+  double _rate = 0.48; // Vitesse légèrement ralentie
 
   @override
   void initState() {

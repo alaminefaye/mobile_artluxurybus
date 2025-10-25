@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 // Models d'auth maintenant dans simple_auth_models.dart
 import '../public_screen.dart';
 import '../home_page.dart';
+import '../client_search_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -83,7 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Stack(
           children: [
@@ -118,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   'Connectez-vous à votre compte',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     fontSize: 14,
                   ),
                 ),
@@ -128,7 +129,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // Carte de formulaire moderne
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: AppTheme.cardShadow,
                   ),
@@ -138,15 +139,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Champ email moderne
+                        // Champ email ou téléphone
                         TextFormField(
                           controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(fontSize: 14),
+                          keyboardType: TextInputType.text,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
                           decoration: InputDecoration(
-                            labelText: 'Adresse email',
+                            labelText: 'Email ou Téléphone',
                             labelStyle: const TextStyle(fontSize: 13),
-                            hintText: 'exemple@email.com',
+                            hintText: 'exemple@email.com ou 0771234567',
                             hintStyle: const TextStyle(fontSize: 14),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(6),
@@ -161,16 +165,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: Theme.of(context).scaffoldBackgroundColor,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Veuillez saisir votre adresse email';
+                              return 'Veuillez saisir votre email ou téléphone';
                             }
-                            if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                              return 'Veuillez saisir une adresse email valide';
-                            }
+                            // Accepter email OU téléphone (pas de validation stricte)
                             return null;
                           },
                         ),
@@ -180,7 +182,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: const TextStyle(fontSize: 14),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
                             labelStyle: const TextStyle(fontSize: 13),
@@ -211,7 +216,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               },
                             ),
                             filled: true,
-                            fillColor: Colors.grey[50],
+                            fillColor: Theme.of(context).scaffoldBackgroundColor,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           ),
                           validator: (value) {
@@ -333,7 +338,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: BoxDecoration(
                     border: Border(
                       top: BorderSide(
-                        color: Colors.grey[300]!,
+                        color: Theme.of(context).dividerColor,
                         width: 1,
                       ),
                     ),
@@ -344,13 +349,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Pas encore de compte ? ',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                           fontSize: 15,
                         ),
                       ),
                       TextButton(
                         onPressed: () {
-                          // Navigation vers l'écran d'inscription
+                          // Navigation vers l'écran d'inscription client
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ClientSearchScreen(),
+                            ),
+                          );
                         },
                         style: TextButton.styleFrom(
                           foregroundColor: AppTheme.primaryOrange,
@@ -397,9 +408,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
+                      border: Border.all(color: Theme.of(context).dividerColor),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.1),
@@ -414,7 +425,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Icon(
                           Icons.skip_next_rounded,
                           size: 18,
-                          color: Colors.grey[700],
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -422,7 +433,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                         ),
                       ],

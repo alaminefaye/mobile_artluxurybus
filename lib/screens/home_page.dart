@@ -21,6 +21,8 @@ import 'attendance_history_screen.dart';
 import 'bus/bus_dashboard_screen.dart';
 import 'about_screen.dart';
 import 'voice_settings_screen.dart';
+import 'theme_settings_screen.dart';
+import 'company_info_screen.dart';
 import '../services/announcement_manager.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -86,6 +88,10 @@ class _HomePageState extends ConsumerState<HomePage> {
   Future<void> _initializeVoiceAnnouncements() async {
     try {
       debugPrint('🔊 [HomePage] Initialisation des annonces vocales...');
+      // Définir le contexte pour l'affichage des annonces
+      if (mounted) {
+        AnnouncementManager().setContext(context);
+      }
       await AnnouncementManager().start();
       debugPrint('✅ [HomePage] Gestionnaire d\'annonces vocales démarré');
     } catch (e) {
@@ -144,11 +150,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                 setState(() {
                   _currentIndex = index;
                 });
+                
+                // Rafraîchir les notifications quand on va sur l'onglet Notifications
+                if (index == 1) {
+                  print('🔄 [HomePage] Rafraîchissement des notifications...');
+                  ref.read(notificationProvider.notifier).loadNotifications(refresh: true);
+                }
               },
               type: BottomNavigationBarType.fixed,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
               selectedItemColor: AppTheme.primaryBlue,
-              unselectedItemColor: Colors.grey[600],
+              unselectedItemColor: Theme.of(context).textTheme.bodyMedium?.color,
               elevation: 0,
               selectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
@@ -225,8 +237,34 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  // Vérifier si l'utilisateur est un client
+  bool _isClient(User user) {
+    if (user.role != null) {
+      final roleLower = user.role!.toLowerCase();
+      return roleLower.contains('client');
+    }
+    
+    // Vérifier via permissions
+    if (user.permissions != null) {
+      final hasClientPermissions = user.permissions!.any((p) => 
+        p.toLowerCase().contains('loyalty') || 
+        p.toLowerCase().contains('own_profile')
+      );
+      final hasAdminPermissions = user.permissions!.any((p) => 
+        p.toLowerCase().contains('manage') || 
+        p.toLowerCase().contains('admin')
+      );
+      return hasClientPermissions && !hasAdminPermissions;
+    }
+    
+    return false;
+  }
+
   // Vérifier si l'utilisateur a le rôle de pointage
   bool _hasAttendanceRole(User user) {
+    // Les clients et admins ne sont PAS des utilisateurs pointage
+    if (_isClient(user)) return false;
+
     // Les admins et super admins DOIVENT voir les notifications
     // Seuls les utilisateurs avec rôle UNIQUEMENT "Pointage" ne les voient pas
 
@@ -292,7 +330,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildHomeTab(User user) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
           // Rafraîchir les données de l'utilisateur
@@ -521,7 +559,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         decoration: InputDecoration(
           hintText: 'Rechercher un trajet, une ville...',
           hintStyle: TextStyle(
-            color: Colors.grey[400],
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             fontSize: 14,
           ),
           prefixIcon: const Icon(
@@ -582,10 +620,20 @@ class _HomePageState extends ConsumerState<HomePage> {
               label: 'Mes trajets',
               color: AppTheme.primaryOrange,
             ),
-            _buildQuickActionItem(
-              icon: Icons.card_giftcard_rounded,
-              label: 'Offres',
-              color: Colors.purple,
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CompanyInfoScreen(),
+                  ),
+                );
+              },
+              child: _buildQuickActionItem(
+                icon: Icons.info_rounded,
+                label: 'Info',
+                color: Colors.blue,
+              ),
             ),
           ],
           if (_hasAttendanceRole(user)) ...[
@@ -656,7 +704,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ],
@@ -668,7 +716,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -676,7 +724,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.titleLarge?.color,
                 letterSpacing: 0.5,
               ),
             ),
@@ -728,8 +776,30 @@ class _HomePageState extends ConsumerState<HomePage> {
       crossAxisSpacing: 12,
       mainAxisSpacing: 16,
       children: [
-        // If user has attendance role, only show Fidélité and Feedback in categories
-        if (_hasAttendanceRole(user)) ...[
+        // INTERFACE CLIENT - Services spécifiques aux clients
+        if (_isClient(user)) ...[
+          _buildServiceIcon(
+            icon: Icons.confirmation_number_rounded,
+            label: 'Réserver',
+            color: AppTheme.primaryBlue,
+            onTap: () {
+              // TODO: Navigation vers réservation
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Réservation - En développement')),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.local_offer_rounded,
+            label: 'Mes Offres',
+            color: const Color(0xFFEF4444),
+            onTap: () {
+              // TODO: Navigation vers offres
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Offres - En développement')),
+              );
+            },
+          ),
           _buildServiceIcon(
             icon: Icons.card_giftcard_rounded,
             label: 'Fidélité',
@@ -754,8 +824,80 @@ class _HomePageState extends ConsumerState<HomePage> {
               );
             },
           ),
-        ],
-        if (!_hasAttendanceRole(user)) ...[
+          _buildServiceIcon(
+            icon: Icons.location_on_rounded,
+            label: 'Gares',
+            color: const Color(0xFFEF4444),
+            onTap: () {
+              // TODO: Navigation vers gares
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Gares - En développement')),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.payment_rounded,
+            label: 'Paiement',
+            color: const Color(0xFF6366F1),
+            onTap: () {
+              // TODO: Navigation vers paiement
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Paiement - En développement')),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.schedule_rounded,
+            label: 'Horaires',
+            color: const Color(0xFF10B981),
+            onTap: () {
+              // TODO: Navigation vers horaires
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Horaires - En développement')),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.support_agent_rounded,
+            label: 'Support',
+            color: const Color(0xFF64748B),
+            onTap: () {
+              // TODO: Navigation vers support
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Support - En développement')),
+              );
+            },
+          ),
+        ]
+        // INTERFACE POINTAGE - Fidélité et Feedback uniquement
+        else if (_hasAttendanceRole(user)) ...[
+          _buildServiceIcon(
+            icon: Icons.card_giftcard_rounded,
+            label: 'Fidélité',
+            color: const Color(0xFF9333EA),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const LoyaltyHomeScreen(),
+                ),
+              );
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.feedback_rounded,
+            label: 'Feedback',
+            color: const Color(0xFF14B8A6),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FeedbackScreen(),
+                ),
+              );
+            },
+          ),
+        ]
+        // INTERFACE ADMIN - Tous les services
+        else ...[
           _buildServiceIcon(
             icon: Icons.directions_bus_rounded,
             label: 'Gestion Bus',
@@ -851,7 +993,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -898,7 +1040,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -918,12 +1060,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Offres Spéciales',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.titleLarge?.color,
                 letterSpacing: 0.5,
               ),
             ),
@@ -1082,7 +1224,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Row(
@@ -1093,14 +1235,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black87,
+                        color: Color(0xFF1A237E),
                       ),
                     ),
                     SizedBox(width: 3),
                     Icon(
                       Icons.arrow_forward_rounded,
                       size: 13,
-                      color: Colors.black87,
+                      color: Color(0xFF1A237E),
                     ),
                   ],
                 ),
@@ -1167,8 +1309,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         builder: (context, ref, child) {
           final notificationState = ref.watch(notificationProvider);
 
-          // Filtrer les notifications de feedback pour les utilisateurs pointage
-          final filteredNotifications = _hasAttendanceRole(user)
+          // Filtrer les notifications de feedback pour les clients et utilisateurs pointage
+          final filteredNotifications = (_isClient(user) || _hasAttendanceRole(user))
               ? notificationState.notifications.where((notif) {
                   // Exclure les notifications de type feedback/suggestion
                   return notif.type != 'feedback' &&
@@ -1196,14 +1338,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                   Icon(
                     Icons.error_outline,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     notificationState.error!,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 16,
                     ),
                   ),
@@ -1231,13 +1373,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                   Icon(
                     Icons.notifications_none,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Aucune notification',
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1246,7 +1388,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   Text(
                     'Vous n\'avez pas encore reçu de notifications',
                     style: TextStyle(
-                      color: Colors.grey[500],
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                       fontSize: 14,
                     ),
                   ),
@@ -1370,7 +1512,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   'Voulez-vous vraiment supprimer cette notification ?\n\n"${notification.title}"',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[700],
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
                 actions: [
@@ -1379,7 +1521,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     child: Text(
                       'Annuler',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1411,49 +1553,53 @@ class _HomePageState extends ConsumerState<HomePage> {
             .read(notificationProvider.notifier)
             .deleteNotification(notification.id);
 
-        // Afficher un message de confirmation
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Notification supprimée',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
+        // Attendre un peu avant d'afficher le SnackBar
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      color: Colors.white,
+                      size: 20,
                     ),
-                  ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Notification supprimée',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: notification.isRead
-              ? Colors.white
+              ? Theme.of(context).cardColor.withValues(alpha: 0.5)
               : AppTheme.primaryBlue.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.grey.withValues(alpha: 0.2),
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -1518,7 +1664,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 notification.getTimeAgo(),
                 style: TextStyle(
                   fontSize: 10,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
               if (!notification.isRead)
@@ -1668,12 +1814,12 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Tous nos services',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1681,7 +1827,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     'Découvrez tout ce que nous pouvons faire pour vous',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -1836,7 +1982,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -1884,10 +2030,10 @@ class _HomePageState extends ConsumerState<HomePage> {
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
@@ -1898,7 +2044,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               subtitle,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodyMedium?.color,
                 fontWeight: FontWeight.w400,
               ),
               textAlign: TextAlign.center,
@@ -1913,7 +2059,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Widget _buildProfileTab(User user) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           // Header compact et moderne
@@ -1927,13 +2073,15 @@ class _HomePageState extends ConsumerState<HomePage> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [
                       AppTheme.primaryBlue,
-                      AppTheme.primaryBlue.withValues(alpha: 0.9),
-                      const Color(0xFF1E3A8A),
+                      AppTheme.primaryBlue.withValues(alpha: 0.95),
+                      AppTheme.primaryBlue.withValues(alpha: 0.85),
+                      AppTheme.primaryOrange.withValues(alpha: 0.6),
                     ],
+                    stops: const [0.0, 0.4, 0.7, 1.0],
                   ),
                 ),
                 child: SafeArea(
@@ -2084,6 +2232,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                           },
                         ),
                         _buildModernProfileOption(
+                          icon: Icons.palette_outlined,
+                          title: 'Apparence',
+                          subtitle: 'Thème clair, sombre ou système',
+                          color: Colors.amber,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const ThemeSettingsScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildModernProfileOption(
                           icon: Icons.language_rounded,
                           title: 'Langue',
                           subtitle: 'Français',
@@ -2166,10 +2327,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
                 ),
               ),
             ],
@@ -2192,9 +2353,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.08),
@@ -2222,23 +2383,23 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 14,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
         subtitle: Text(
           subtitle,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
         trailing: Icon(
           Icons.arrow_forward_ios,
           size: 14,
-          color: Colors.grey[400],
+          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
         ),
         onTap: onTap,
       ),
@@ -2285,7 +2446,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     child: Text(
                       'Annuler',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

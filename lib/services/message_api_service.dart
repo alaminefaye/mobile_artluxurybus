@@ -3,9 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/message_model.dart';
 import 'auth_service.dart';
+import 'device_info_service.dart';
 
 class MessageApiService {
-  static const String baseUrl = 'https://artluxurybus.ci/api';
+  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
   final AuthService _authService = AuthService();
 
   /// Récupérer tous les messages actifs pour l'application mobile
@@ -17,9 +18,46 @@ class MessageApiService {
         return [];
       }
 
+      List<MessageModel> allMessages = [];
+
+      // 1. Récupérer les messages génériques pour 'mobile'
+      final mobileMessages = await _fetchMessagesForDevice('mobile', gareId, token);
+      allMessages.addAll(mobileMessages);
+
+      // 2. Récupérer les messages spécifiques à ce device ID
+      try {
+        final deviceInfoService = DeviceInfoService();
+        final deviceId = await deviceInfoService.getDeviceId();
+        if (deviceId.isNotEmpty && deviceId != 'mobile') {
+          final deviceSpecificMessages = await _fetchMessagesForDevice(deviceId, gareId, token);
+          allMessages.addAll(deviceSpecificMessages);
+        }
+      } catch (e) {
+        debugPrint('⚠️ Erreur récupération device ID: $e');
+      }
+
+      // Supprimer les doublons basés sur l'ID
+      final uniqueMessages = <int, MessageModel>{};
+      for (final message in allMessages) {
+        uniqueMessages[message.id] = message;
+      }
+
+      final finalMessages = uniqueMessages.values.toList();
+      debugPrint('✅ ${finalMessages.length} messages uniques récupérés (${mobileMessages.length} génériques + ${allMessages.length - mobileMessages.length} spécifiques)');
+      
+      return finalMessages;
+    } catch (e) {
+      debugPrint('❌ Exception lors de la récupération des messages: $e');
+      return [];
+    }
+  }
+
+  /// Méthode privée pour récupérer les messages d'un appareil spécifique
+  Future<List<MessageModel>> _fetchMessagesForDevice(String appareil, int? gareId, String token) async {
+    try {
       // Construire l'URL avec les filtres
       final queryParams = <String, String>{
-        'appareil': 'mobile', // Filtrer uniquement pour l'app mobile
+        'appareil': appareil,
         'current': 'true', // Uniquement les messages actifs et non expirés
       };
 
@@ -30,7 +68,7 @@ class MessageApiService {
       final uri = Uri.parse('$baseUrl/messages/active')
           .replace(queryParameters: queryParams);
 
-      debugPrint('🔍 Récupération des messages: $uri');
+      debugPrint('🔍 Récupération des messages pour appareil "$appareil": $uri');
 
       final response = await http.get(
         uri,
@@ -41,7 +79,7 @@ class MessageApiService {
         },
       );
 
-      debugPrint('📡 Status Code: ${response.statusCode}');
+      debugPrint('📡 Status Code pour "$appareil": ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
@@ -55,14 +93,14 @@ class MessageApiService {
             .map((json) => MessageModel.fromJson(json))
             .toList();
 
-        debugPrint('✅ ${messages.length} messages récupérés');
+        debugPrint('✅ ${messages.length} messages récupérés pour appareil "$appareil"');
         return messages;
       } else {
-        debugPrint('❌ Erreur API: ${response.statusCode} - ${response.body}');
+        debugPrint('❌ Erreur API pour "$appareil": ${response.statusCode} - ${response.body}');
         return [];
       }
     } catch (e) {
-      debugPrint('❌ Exception lors de la récupération des messages: $e');
+      debugPrint('❌ Exception lors de la récupération des messages pour appareil "$appareil": $e');
       return [];
     }
   }

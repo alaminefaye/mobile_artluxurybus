@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/message_model.dart';
+import '../screens/announcement_display_screen.dart';
 
 /// Service pour gérer les annonces vocales répétées
 class VoiceAnnouncementService {
@@ -13,12 +15,14 @@ class VoiceAnnouncementService {
   final FlutterTts _flutterTts = FlutterTts();
   final Map<int, Timer> _activeTimers = {};
   final Map<int, MessageModel> _activeAnnouncements = {};
+  final Map<int, OverlayEntry> _activeOverlays = {}; // Pour garder les overlays affichés
+  final Map<int, bool> _shouldContinue = {}; // Pour contrôler si l'annonce doit continuer
   
   bool _isInitialized = false;
   bool _isSpeaking = false;
   
   // Configuration par défaut
-  static const int defaultRepeatIntervalMinutes = 5; // Répéter toutes les 5 minutes
+  static const int defaultRepeatIntervalSeconds = 5; // Répéter toutes les 5 SECONDES
   static const String prefKeyVoiceEnabled = 'voice_announcements_enabled';
   static const String prefKeyRepeatInterval = 'voice_repeat_interval';
   static const String prefKeyLanguage = 'voice_language';
@@ -36,11 +40,11 @@ class VoiceAnnouncementService {
       // Charger les préférences
       final prefs = await SharedPreferences.getInstance();
       final language = prefs.getString(prefKeyLanguage) ?? 'fr-FR';
-      final volume = prefs.getDouble(prefKeyVolume) ?? 1.0;
-      final pitch = prefs.getDouble(prefKeyPitch) ?? 1.0;
-      final rate = prefs.getDouble(prefKeyRate) ?? 0.5;
+      final volume = prefs.getDouble(prefKeyVolume) ?? 0.9; // Volume légèrement réduit pour plus de naturel
+      final pitch = prefs.getDouble(prefKeyPitch) ?? 0.95; // Pitch légèrement plus bas pour voix masculine naturelle
+      final rate = prefs.getDouble(prefKeyRate) ?? 0.48; // Vitesse un peu ralentie pour meilleure compréhension
 
-      // Configurer TTS
+      // Configurer TTS pour une voix plus naturelle
       await _flutterTts.setLanguage(language);
       await _flutterTts.setVolume(volume);
       await _flutterTts.setPitch(pitch);
@@ -89,21 +93,21 @@ class VoiceAnnouncementService {
     debugPrint('🔊 [VoiceService] Annonces vocales ${enabled ? "activées" : "désactivées"}');
   }
 
-  /// Obtenir l'intervalle de répétition (en minutes)
+  /// Obtenir l'intervalle de répétition (en secondes)
   Future<int> getRepeatInterval() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(prefKeyRepeatInterval) ?? defaultRepeatIntervalMinutes;
+    return prefs.getInt(prefKeyRepeatInterval) ?? defaultRepeatIntervalSeconds;
   }
 
-  /// Définir l'intervalle de répétition (en minutes)
-  Future<void> setRepeatInterval(int minutes) async {
+  /// Définir l'intervalle de répétition (en secondes)
+  Future<void> setRepeatInterval(int seconds) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(prefKeyRepeatInterval, minutes);
-    debugPrint('🔊 [VoiceService] Intervalle de répétition: $minutes minutes');
+    await prefs.setInt(prefKeyRepeatInterval, seconds);
+    debugPrint('🔊 [VoiceService] Intervalle de répétition: $seconds secondes');
   }
 
   /// Démarrer l'annonce vocale répétée pour un message
-  Future<void> startAnnouncement(MessageModel message) async {
+  Future<void> startAnnouncement(MessageModel message, [BuildContext? context]) async {
     if (!await isEnabled()) {
       debugPrint('⚠️ [VoiceService] Annonces vocales désactivées');
       return;
@@ -126,36 +130,54 @@ class VoiceAnnouncementService {
 
     // Sauvegarder l'annonce
     _activeAnnouncements[message.id] = message;
+    _shouldContinue[message.id] = true;
 
     debugPrint('🔊 [VoiceService] Démarrage annonce #${message.id}: "${message.titre}"');
 
-    // Lire immédiatement
-    await _speakAnnouncement(message);
+    // 🎨 Afficher la belle page d'annonce si un contexte est fourni
+    if (context != null && context.mounted) {
+      _showAnnouncementDisplay(context, message);
+    }
 
-    // Programmer les répétitions
-    final intervalMinutes = await getRepeatInterval();
-    final interval = Duration(minutes: intervalMinutes);
+    // Démarrer la boucle de lecture : lire → attendre fin → pause 5s → recommencer
+    _startAnnouncementLoop(message);
 
-    _activeTimers[message.id] = Timer.periodic(interval, (timer) async {
+    debugPrint('✅ [VoiceService] Annonce programmée avec boucle continue');
+  }
+
+  /// Boucle de lecture d'annonce : lit tout le texte, pause 5s, recommence
+  Future<void> _startAnnouncementLoop(MessageModel message) async {
+    while (_shouldContinue[message.id] == true) {
       // Vérifier si l'annonce est toujours active
       if (!message.isCurrentlyActive) {
         debugPrint('⏹️ [VoiceService] Annonce #${message.id} n\'est plus active, arrêt');
         await stopAnnouncement(message.id);
-        return;
+        break;
       }
 
       // Vérifier si les annonces vocales sont toujours activées
       if (!await isEnabled()) {
         debugPrint('⏹️ [VoiceService] Annonces vocales désactivées, arrêt');
         await stopAnnouncement(message.id);
-        return;
+        break;
       }
 
-      // Lire l'annonce
+      debugPrint('� [VoiceService] Lecture de l\'annonce #${message.id}');
+      
+      // Lire l'annonce complète
       await _speakAnnouncement(message);
-    });
-
-    debugPrint('✅ [VoiceService] Annonce programmée (répétition: $intervalMinutes min)');
+      
+      // Attendre que la lecture soit terminée
+      while (_isSpeaking && _shouldContinue[message.id] == true) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      
+      // Si on doit toujours continuer, pause de 5 secondes avant la prochaine répétition
+      if (_shouldContinue[message.id] == true) {
+        debugPrint('⏸️ [VoiceService] Pause de 5 secondes avant répétition...');
+        await Future.delayed(const Duration(seconds: 5));
+      }
+    }
   }
 
   /// Lire une annonce vocale
@@ -167,22 +189,26 @@ class VoiceAnnouncementService {
     }
 
     try {
-      // Construire le texte à lire
+      // Construire le texte à lire de manière plus naturelle
       String textToSpeak = '';
       
-      // Ajouter un préfixe selon le type
-      textToSpeak += 'Annonce importante. ';
+      // Ajouter un préfixe court et naturel
+      textToSpeak += 'Attention, ';
       
-      // Ajouter le titre
-      textToSpeak += '${message.titre}. ';
+      // Ajouter le titre avec une pause
+      textToSpeak += '${message.titre}... ';
       
-      // Ajouter le contenu
-      textToSpeak += message.contenu;
+      // Nettoyer le contenu pour le rendre plus naturel
+      String contenu = message.contenu;
+      // Remplacer les sauts de ligne par des pauses
+      contenu = contenu.replaceAll('\n', '... ');
+      contenu = contenu.replaceAll('\r', '');
+      // Ajouter des pauses après les points
+      contenu = contenu.replaceAll('.', '... ');
+      // Ajouter des pauses après les virgules
+      contenu = contenu.replaceAll(',', ', ');
       
-      // Ajouter la gare si disponible
-      if (message.gare != null) {
-        textToSpeak += '. Gare de ${message.gare!.nom}';
-      }
+      textToSpeak += contenu;
 
       debugPrint('🔊 [VoiceService] Lecture: "$textToSpeak"');
       
@@ -192,12 +218,61 @@ class VoiceAnnouncementService {
     }
   }
 
+  /// Afficher la belle page d'annonce
+  void _showAnnouncementDisplay(BuildContext context, MessageModel message) {
+    try {
+      debugPrint('🎨 [VoiceService] Affichage de la page d\'annonce');
+      
+      // Créer un overlay qui reste affiché tant que l'annonce est active
+      final overlay = Overlay.of(context);
+      OverlayEntry? overlayEntry;
+      
+      overlayEntry = OverlayEntry(
+        builder: (context) => AnnouncementDisplayScreen(
+          message: message,
+          onClose: () {
+            // L'utilisateur ferme manuellement
+            overlayEntry?.remove();
+            _activeOverlays.remove(message.id);
+            // Arrêter aussi l'annonce vocale
+            stopAnnouncement(message.id);
+          },
+        ),
+      );
+      
+      // Sauvegarder la référence
+      _activeOverlays[message.id] = overlayEntry;
+      
+      // Insérer l'overlay
+      overlay.insert(overlayEntry);
+      
+      debugPrint('✅ [VoiceService] Page d\'annonce affichée pour message #${message.id}');
+    } catch (e) {
+      debugPrint('❌ [VoiceService] Erreur affichage page annonce: $e');
+    }
+  }
+
   /// Arrêter une annonce spécifique
   Future<void> stopAnnouncement(int messageId) async {
+    // Marquer qu'on doit arrêter la boucle
+    _shouldContinue[messageId] = false;
+    
     if (_activeTimers.containsKey(messageId)) {
       _activeTimers[messageId]?.cancel();
       _activeTimers.remove(messageId);
       _activeAnnouncements.remove(messageId);
+      
+      // Fermer aussi l'overlay si il existe
+      if (_activeOverlays.containsKey(messageId)) {
+        try {
+          _activeOverlays[messageId]?.remove();
+          _activeOverlays.remove(messageId);
+          debugPrint('🎨 [VoiceService] Overlay fermé pour message #$messageId');
+        } catch (e) {
+          debugPrint('⚠️ [VoiceService] Erreur fermeture overlay: $e');
+        }
+      }
+      
       debugPrint('⏹️ [VoiceService] Annonce #$messageId arrêtée');
     }
   }
@@ -206,12 +281,28 @@ class VoiceAnnouncementService {
   Future<void> stopAllAnnouncements() async {
     debugPrint('⏹️ [VoiceService] Arrêt de toutes les annonces (${_activeTimers.length})');
     
+    // Arrêter toutes les boucles
+    for (var messageId in _shouldContinue.keys.toList()) {
+      _shouldContinue[messageId] = false;
+    }
+    
     for (var timer in _activeTimers.values) {
       timer.cancel();
     }
     
+    // Fermer tous les overlays
+    for (var overlay in _activeOverlays.values) {
+      try {
+        overlay.remove();
+      } catch (e) {
+        debugPrint('⚠️ [VoiceService] Erreur fermeture overlay: $e');
+      }
+    }
+    
     _activeTimers.clear();
     _activeAnnouncements.clear();
+    _activeOverlays.clear();
+    _shouldContinue.clear();
     
     if (_isSpeaking) {
       await _flutterTts.stop();

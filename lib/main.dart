@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'providers/auth_provider.dart';
+import 'providers/theme_provider.dart' as theme_provider;
 import 'screens/auth/login_screen.dart';
 import 'screens/home_page.dart';
 import 'screens/splash_screen.dart';
@@ -201,11 +203,30 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(theme_provider.themeModeProvider);
+    
     return MaterialApp(
       title: 'Art Luxury Bus',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode == theme_provider.ThemeMode.system
+          ? ThemeMode.system
+          : themeMode == theme_provider.ThemeMode.dark
+              ? ThemeMode.dark
+              : ThemeMode.light,
       navigatorKey: _navigatorKey,
+      // Configuration des localisations pour supporter le français
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('fr', 'FR'), // Français
+        Locale('en', 'US'), // Anglais
+      ],
+      locale: const Locale('fr', 'FR'), // Langue par défaut
       home: const SplashScreen(),
     );
   }

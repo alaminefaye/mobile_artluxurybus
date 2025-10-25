@@ -53,7 +53,7 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'À propos',
@@ -74,7 +74,7 @@ class _AboutScreenState extends State<AboutScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -140,7 +140,7 @@ class _AboutScreenState extends State<AboutScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -309,7 +309,7 @@ class _AboutScreenState extends State<AboutScreen> {
                           'Gérez vos points de fidélité, partagez vos suggestions et restez informé de nos services.',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[700],
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                             height: 1.5,
                           ),
                         ),
@@ -326,7 +326,7 @@ class _AboutScreenState extends State<AboutScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         height: 1.5,
                       ),
                     ),
@@ -360,7 +360,7 @@ class _AboutScreenState extends State<AboutScreen> {
           child: Icon(
             icon,
             size: 18,
-            color: isHighlighted ? AppTheme.primaryOrange : Colors.grey[700],
+            color: isHighlighted ? AppTheme.primaryOrange : Theme.of(context).iconTheme.color,
           ),
         ),
         const SizedBox(width: 12),
@@ -372,7 +372,7 @@ class _AboutScreenState extends State<AboutScreen> {
                 label,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -385,7 +385,7 @@ class _AboutScreenState extends State<AboutScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w600,
-                        color: isHighlighted ? AppTheme.primaryOrange : Colors.black87,
+                        color: isHighlighted ? AppTheme.primaryOrange : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                   ),

@@ -33,7 +33,6 @@ class _LoyaltyCardState extends State<LoyaltyCard>
   bool _isFlipped = false;
   Timer? _autoFlipTimer;
   Timer? _departureTimer;
-  int _currentView = 0; // 0 = front, 1 = back, 2 = departures
   int _flipCount = 0;
   bool _showingDepartures = false;
 
@@ -65,7 +64,7 @@ class _LoyaltyCardState extends State<LoyaltyCard>
   }
 
   void _flip() {
-    if (!_controller.isAnimating) {
+    if (!_controller.isAnimating && !_showingDepartures) {
       if (_isFlipped) {
         _controller.reverse();
       } else {
@@ -75,14 +74,16 @@ class _LoyaltyCardState extends State<LoyaltyCard>
         _isFlipped = !_isFlipped;
         _flipCount++;
         
-        // Après 3 flips, afficher les départs
-        if (_flipCount >= 3 && !_showingDepartures) {
+        // Après 8 flips (4 allers-retours complets), afficher les départs
+        if (_flipCount >= 8) {
           _showingDepartures = true;
-          _currentView = 2;
           _flipCount = 0;
           
+          // Arrêter le timer de flip automatique
+          _autoFlipTimer?.cancel();
+          
           // Notifier le parent que les départs sont affichés
-          debugPrint('🚀 [LoyaltyCard] Affichage du tableau des départs - Notification envoyée');
+          debugPrint('🚀 [LoyaltyCard] Affichage du tableau des départs après 4 flips recto-verso - Notification envoyée');
           widget.showingDeparturesNotifier?.value = true;
           
           // Retour automatique après 1 minute
@@ -91,17 +92,15 @@ class _LoyaltyCardState extends State<LoyaltyCard>
             if (mounted) {
               setState(() {
                 _showingDepartures = false;
-                _currentView = 0;
                 _isFlipped = false;
                 _controller.reset();
               });
               // Notifier le parent que les départs sont masqués
               widget.showingDeparturesNotifier?.value = false;
+              // Redémarrer le cycle de flips
+              _startAutoFlip();
             }
           });
-        } else if (!_showingDepartures) {
-          // Alterner entre front (0) et back (1)
-          _currentView = _isFlipped ? 1 : 0;
         }
       });
     }
@@ -564,190 +563,27 @@ class _LoyaltyCardState extends State<LoyaltyCard>
   // Tableau des départs style aéroport
   Widget _buildDeparturesBoard() {
     // Données fictives de départs (à remplacer par des vraies données de l'API)
-    final departures = [
+    final allDepartures = [
       {'destination': 'Dakar', 'time': '08:30', 'gate': 'A1', 'status': 'À l\'heure'},
       {'destination': 'Thiès', 'time': '09:15', 'gate': 'A2', 'status': 'À l\'heure'},
       {'destination': 'Saint-Louis', 'time': '10:00', 'gate': 'B1', 'status': 'Embarquement'},
       {'destination': 'Kaolack', 'time': '10:45', 'gate': 'B2', 'status': 'À l\'heure'},
       {'destination': 'Ziguinchor', 'time': '11:30', 'gate': 'C1', 'status': 'Retardé'},
       {'destination': 'Tambacounda', 'time': '12:15', 'gate': 'C2', 'status': 'À l\'heure'},
+      {'destination': 'Kolda', 'time': '13:00', 'gate': 'D1', 'status': 'À l\'heure'},
+      {'destination': 'Matam', 'time': '13:45', 'gate': 'D2', 'status': 'À l\'heure'},
+      {'destination': 'Louga', 'time': '14:30', 'gate': 'E1', 'status': 'Embarquement'},
+      {'destination': 'Kédougou', 'time': '15:15', 'gate': 'E2', 'status': 'À l\'heure'},
+      {'destination': 'Sédhiou', 'time': '16:00', 'gate': 'F1', 'status': 'À l\'heure'},
+      {'destination': 'Diourbel', 'time': '16:45', 'gate': 'F2', 'status': 'À l\'heure'},
+      {'destination': 'Fatick', 'time': '17:30', 'gate': 'G1', 'status': 'À l\'heure'},
+      {'destination': 'Kaffrine', 'time': '18:15', 'gate': 'G2', 'status': 'À l\'heure'},
     ];
 
-    return Container(
-      width: double.infinity,
-      height: widget.screenHeight * 0.32,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(widget.screenWidth * 0.04),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1A1A1A),
-            Color(0xFF2D2D2D),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            spreadRadius: 3,
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header style aéroport
-          Container(
-            padding: EdgeInsets.all(widget.screenWidth * 0.03),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(widget.screenWidth * 0.04),
-                topRight: Radius.circular(widget.screenWidth * 0.04),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.flight_takeoff,
-                      color: const Color(0xFFD4AF37),
-                      size: widget.screenWidth * 0.05,
-                    ),
-                    SizedBox(width: widget.screenWidth * 0.02),
-                    Text(
-                      'DÉPARTS',
-                      style: TextStyle(
-                        color: const Color(0xFFD4AF37),
-                        fontSize: widget.screenWidth * 0.035,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  DateTime.now().toString().substring(11, 16),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: widget.screenWidth * 0.03,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Tableau des départs
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: departures.length,
-              itemBuilder: (context, index) {
-                final departure = departures[index];
-                final isDelayed = departure['status'] == 'Retardé';
-                final isBoarding = departure['status'] == 'Embarquement';
-                
-                return Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: widget.screenWidth * 0.03,
-                    vertical: widget.screenWidth * 0.02,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        width: 0.5,
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      // Heure
-                      SizedBox(
-                        width: widget.screenWidth * 0.12,
-                        child: Text(
-                          departure['time']!,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: widget.screenWidth * 0.032,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      
-                      // Destination
-                      Expanded(
-                        child: Text(
-                          departure['destination']!,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: widget.screenWidth * 0.03,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      
-                      // Porte
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: widget.screenWidth * 0.02,
-                          vertical: widget.screenWidth * 0.01,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
-                        ),
-                        child: Text(
-                          departure['gate']!,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: widget.screenWidth * 0.025,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      
-                      SizedBox(width: widget.screenWidth * 0.02),
-                      
-                      // Statut
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: widget.screenWidth * 0.02,
-                          vertical: widget.screenWidth * 0.01,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDelayed 
-                              ? Colors.red.withValues(alpha: 0.2)
-                              : isBoarding
-                                  ? Colors.green.withValues(alpha: 0.2)
-                                  : Colors.blue.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
-                        ),
-                        child: Text(
-                          departure['status']!,
-                          style: TextStyle(
-                            color: isDelayed 
-                                ? Colors.red
-                                : isBoarding
-                                    ? Colors.green
-                                    : Colors.blue,
-                            fontSize: widget.screenWidth * 0.022,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+    return _DeparturesBoardCarousel(
+      allDepartures: allDepartures,
+      screenWidth: widget.screenWidth,
+      screenHeight: widget.screenHeight,
     );
   }
 
@@ -792,4 +628,423 @@ class _LoyaltyCardState extends State<LoyaltyCard>
         return 'service';
     }
   }
+}
+
+// Widget séparé pour gérer le carrousel des départs
+class _DeparturesBoardCarousel extends StatefulWidget {
+  final List<Map<String, String>> allDepartures;
+  final double screenWidth;
+  final double screenHeight;
+
+  const _DeparturesBoardCarousel({
+    required this.allDepartures,
+    required this.screenWidth,
+    required this.screenHeight,
+  });
+
+  @override
+  State<_DeparturesBoardCarousel> createState() => _DeparturesBoardCarouselState();
+}
+
+class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with SingleTickerProviderStateMixin {
+  int _currentPage = 0;
+  Timer? _carouselTimer;
+  late AnimationController _busAnimationController;
+  late Animation<double> _busAnimation;
+  static const int _itemsPerPage = 7;
+  static const Duration _pageDuration = Duration(seconds: 15);
+
+  @override
+  void initState() {
+    super.initState();
+    _startCarousel();
+    
+    // Animation du bus qui roule en continu de gauche à droite
+    _busAnimationController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+    
+    _busAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _busAnimationController,
+      curve: Curves.linear,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    _busAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _startCarousel() {
+    _carouselTimer = Timer.periodic(_pageDuration, (timer) {
+      if (mounted) {
+        setState(() {
+          final totalPages = (widget.allDepartures.length / _itemsPerPage).ceil();
+          _currentPage = (_currentPage + 1) % totalPages;
+        });
+      }
+    });
+  }
+
+  List<Map<String, String>> _getCurrentDepartures() {
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, widget.allDepartures.length);
+    return widget.allDepartures.sublist(startIndex, endIndex);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final departures = _getCurrentDepartures();
+    final totalPages = (widget.allDepartures.length / _itemsPerPage).ceil();
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 800),
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.3, 0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            )),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        key: ValueKey<int>(_currentPage),
+        width: double.infinity,
+        height: widget.screenHeight * 0.32,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.screenWidth * 0.04),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1A1A1A),
+              Color(0xFF2D2D2D),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.3),
+              spreadRadius: 3,
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Header style aéroport
+            Container(
+              padding: EdgeInsets.all(widget.screenWidth * 0.03),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(widget.screenWidth * 0.04),
+                  topRight: Radius.circular(widget.screenWidth * 0.04),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'DÉPARTS',
+                        style: TextStyle(
+                          color: const Color(0xFFD4AF37),
+                          fontSize: widget.screenWidth * 0.035,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      SizedBox(width: widget.screenWidth * 0.02),
+                      // Bus animé qui roule de gauche à droite (dessin personnalisé)
+                      SizedBox(
+                        width: widget.screenWidth * 0.12,
+                        height: widget.screenWidth * 0.06,
+                        child: AnimatedBuilder(
+                          animation: _busAnimation,
+                          builder: (context, child) {
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                // Bus dessiné de profil
+                                Positioned(
+                                  left: (_busAnimation.value * widget.screenWidth * 0.12) - (widget.screenWidth * 0.05),
+                                  child: CustomPaint(
+                                    size: Size(widget.screenWidth * 0.08, widget.screenWidth * 0.04),
+                                    painter: _BusPainter(color: const Color(0xFFD4AF37)),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      // Indicateur de page
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.screenWidth * 0.02,
+                          vertical: widget.screenWidth * 0.01,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(widget.screenWidth * 0.02),
+                        ),
+                        child: Text(
+                          '${_currentPage + 1}/$totalPages',
+                          style: TextStyle(
+                            color: const Color(0xFFD4AF37),
+                            fontSize: widget.screenWidth * 0.025,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: widget.screenWidth * 0.02),
+                      Text(
+                        DateTime.now().toString().substring(11, 16),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: widget.screenWidth * 0.03,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // Tableau des départs avec animation ligne par ligne
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: departures.length,
+                itemBuilder: (context, index) {
+                  final departure = departures[index];
+                  final isDelayed = departure['status'] == 'Retardé';
+                  final isBoarding = departure['status'] == 'Embarquement';
+                  
+                  // Animation avec délai progressif pour chaque ligne (plus lent et visible)
+                  return TweenAnimationBuilder<double>(
+                    duration: Duration(milliseconds: 600 + (index * 200)), // Plus lent: 200ms entre chaque ligne
+                    curve: Curves.easeOutCubic, // Courbe fluide sans rebond pour éviter les valeurs > 1.0
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      // Clamp pour s'assurer que la valeur est toujours entre 0.0 et 1.0
+                      final clampedValue = value.clamp(0.0, 1.0);
+                      
+                      return Transform.translate(
+                        offset: Offset((1 - clampedValue) * 100, 0), // Glisse plus loin: 100px au lieu de 50px
+                        child: Opacity(
+                          opacity: clampedValue,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: widget.screenWidth * 0.03,
+                              vertical: widget.screenWidth * 0.02,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  width: 0.5,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                // Heure
+                                SizedBox(
+                                  width: widget.screenWidth * 0.12,
+                                  child: Text(
+                                    departure['time']!,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: widget.screenWidth * 0.032,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                
+                                // Destination
+                                Expanded(
+                                  child: Text(
+                                    departure['destination']!,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: widget.screenWidth * 0.03,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                
+                                // Porte
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: widget.screenWidth * 0.02,
+                                    vertical: widget.screenWidth * 0.01,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
+                                  ),
+                                  child: Text(
+                                    departure['gate']!,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: widget.screenWidth * 0.025,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                
+                                SizedBox(width: widget.screenWidth * 0.02),
+                                
+                                // Statut
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: widget.screenWidth * 0.02,
+                                    vertical: widget.screenWidth * 0.01,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDelayed 
+                                        ? Colors.red.withValues(alpha: 0.2)
+                                        : isBoarding
+                                            ? Colors.green.withValues(alpha: 0.2)
+                                            : Colors.blue.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
+                                  ),
+                                  child: Text(
+                                    departure['status']!,
+                                    style: TextStyle(
+                                      color: isDelayed 
+                                          ? Colors.red
+                                          : isBoarding
+                                              ? Colors.green
+                                              : Colors.blue,
+                                      fontSize: widget.screenWidth * 0.022,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Painter personnalisé pour dessiner un bus de profil
+class _BusPainter extends CustomPainter {
+  final Color color;
+
+  _BusPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final width = size.width;
+    final height = size.height;
+
+    // Corps principal du bus (rectangle arrondi)
+    final bodyRect = RRect.fromRectAndCorners(
+      Rect.fromLTWH(width * 0.15, height * 0.2, width * 0.7, height * 0.5),
+      topLeft: Radius.circular(height * 0.15),
+      topRight: Radius.circular(height * 0.15),
+      bottomLeft: Radius.circular(height * 0.1),
+      bottomRight: Radius.circular(height * 0.1),
+    );
+    canvas.drawRRect(bodyRect, paint);
+
+    // Avant du bus (partie arrondie)
+    final frontPath = Path()
+      ..moveTo(width * 0.85, height * 0.3)
+      ..lineTo(width * 0.95, height * 0.35)
+      ..lineTo(width * 0.95, height * 0.65)
+      ..lineTo(width * 0.85, height * 0.7)
+      ..close();
+    canvas.drawPath(frontPath, paint);
+
+    // Fenêtres (rectangles plus clairs)
+    final windowPaint = Paint()
+      ..color = color.withValues(alpha: 0.5)
+      ..style = PaintingStyle.fill;
+
+    // Fenêtre avant
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(width * 0.75, height * 0.3, width * 0.15, height * 0.25),
+        Radius.circular(height * 0.05),
+      ),
+      windowPaint,
+    );
+
+    // Fenêtres latérales
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(width * 0.55, height * 0.25, width * 0.15, height * 0.3),
+        Radius.circular(height * 0.05),
+      ),
+      windowPaint,
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(width * 0.35, height * 0.25, width * 0.15, height * 0.3),
+        Radius.circular(height * 0.05),
+      ),
+      windowPaint,
+    );
+
+    // Roues (cercles)
+    final wheelPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = height * 0.08;
+
+    canvas.drawCircle(
+      Offset(width * 0.25, height * 0.85),
+      height * 0.12,
+      wheelPaint,
+    );
+
+    canvas.drawCircle(
+      Offset(width * 0.75, height * 0.85),
+      height * 0.12,
+      wheelPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -101,7 +101,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
                 _getTypeLabel(),
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -133,10 +133,10 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   Widget _buildTitle() {
     return Text(
       widget.notification.title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: Theme.of(context).textTheme.titleLarge?.color,
       ),
     );
   }
@@ -146,16 +146,16 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Text(
         widget.notification.message,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           height: 1.5,
-          color: Colors.black87,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
         ),
       ),
     );
@@ -167,12 +167,12 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Informations détaillées',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.titleLarge?.color,
           ),
         ),
         const SizedBox(height: 12),
@@ -198,7 +198,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
                         '${_formatDataKey(entry.key)}:',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -223,17 +223,18 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Informations temporelles',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
+              color: Theme.of(context).textTheme.titleMedium?.color,
             ),
           ),
           const SizedBox(height: 8),
@@ -257,15 +258,16 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
               '$label:',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
         ],
@@ -284,9 +286,9 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
           ),
@@ -322,9 +324,9 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     // Pour les autres types de données, affichage normal
     return Text(
       value,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
-        color: Colors.black87,
+        color: Theme.of(context).textTheme.bodyLarge?.color,
       ),
     );
   }

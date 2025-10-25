@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/message_model.dart';
 import '../services/message_api_service.dart';
 import '../services/voice_announcement_service.dart';
@@ -17,26 +19,86 @@ class AnnouncementManager {
   final Set<int> _processedMessageIds = {};
   bool _isRunning = false;
   String? _deviceId;
+  BuildContext? _context;
+  Timer? _checkTimer; // Timer pour vérifier régulièrement les annonces
 
-  /// Démarrer le gestionnaire d'annonces
+  /// Définir le contexte pour l'affichage des annonces
+  void setContext(BuildContext context) {
+    _context = context;
+    debugPrint('📱 [AnnouncementManager] Contexte défini');
+  }
+
+  /// Démarre la surveillance des annonces
   Future<void> start() async {
-    if (_isRunning) {
-      debugPrint('⚠️ [AnnouncementManager] Déjà en cours d\'exécution');
-      return;
-    }
-
+    if (_isRunning) return;
+    
     _isRunning = true;
-    debugPrint('🎙️ [AnnouncementManager] Démarrage...');
-
-    // Récupérer l'ID unique de cet appareil
     _deviceId = await _deviceInfoService.getDeviceId();
-    debugPrint('📱 [AnnouncementManager] Device ID: $_deviceId');
-
-    // Initialiser le service vocal
-    await _voiceService.initialize();
-
-    // Charger et traiter les annonces actives
-    await _processActiveAnnouncements();
+    
+    if (kDebugMode) {
+      print('📢 AnnouncementManager démarré pour l\'appareil: $_deviceId');
+    }
+    
+    await refresh();
+    
+    // Vérifier toutes les 10 secondes si les annonces sont toujours actives
+    _checkTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      await _checkActiveAnnouncements();
+    });
+  }
+  
+  /// Vérifie si les annonces en cours sont toujours actives ET détecte les nouvelles
+  Future<void> _checkActiveAnnouncements() async {
+    if (!_isRunning || _deviceId == null) return;
+    
+    try {
+      if (kDebugMode) {
+        print('🔄 [AnnouncementManager] Vérification des annonces...');
+      }
+      
+      // Utiliser getActiveMessages qui récupère les messages pour mobile ET pour ce device
+      final messages = await _messageService.getActiveMessages();
+      
+      final activeMessages = messages
+          .where((m) => 
+              m.type == 'annonce' && 
+              m.active &&
+              !m.isExpired &&
+              _isForThisDevice(m))
+          .toList();
+      
+      if (kDebugMode && activeMessages.isNotEmpty) {
+        print('✅ [AnnouncementManager] ${activeMessages.length} annonce(s) active(s) trouvée(s)');
+      }
+      
+      // Récupérer les IDs des messages actifs
+      final activeIds = activeMessages.map((m) => m.id).toSet();
+      
+      // Arrêter les annonces qui ne sont plus actives
+      final idsToStop = _processedMessageIds.where((id) => !activeIds.contains(id)).toList();
+      for (final id in idsToStop) {
+        if (kDebugMode) {
+          print('🛑 Arrêt de l\'annonce $id (plus active)');
+        }
+        _voiceService.stopAnnouncement(id);
+        _processedMessageIds.remove(id);
+      }
+      
+      // Démarrer les nouvelles annonces
+      for (final message in activeMessages) {
+        if (!_processedMessageIds.contains(message.id)) {
+          if (kDebugMode) {
+            print('🎤 Nouvelle annonce détectée: ${message.titre} (ID: ${message.id})');
+          }
+          _processedMessageIds.add(message.id);
+          _voiceService.startAnnouncement(message, _context);
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Erreur lors de la vérification des annonces: $e');
+      }
+    }
   }
 
   /// Traiter les annonces actives
@@ -46,6 +108,13 @@ class AnnouncementManager {
       
       // Récupérer les messages actifs
       final messages = await _messageService.getActiveMessages();
+      
+      debugPrint('📋 [AnnouncementManager] Messages récupérés: ${messages.length}');
+      
+      // Debug: analyser tous les messages
+      for (var m in messages) {
+        debugPrint('📄 Message #${m.id}: isAnnonce=${m.isAnnonce}, active=${m.isCurrentlyActive}, appareil="${m.appareil}", titre="${m.titre}"');
+      }
       
       // Filtrer uniquement les annonces destinées à cet appareil mobile
       final annonces = messages.where((m) => 
@@ -64,7 +133,7 @@ class AnnouncementManager {
       for (var annonce in annonces) {
         if (!activeVoiceIds.contains(annonce.id) && !_processedMessageIds.contains(annonce.id)) {
           debugPrint('🎙️ [AnnouncementManager] Démarrage annonce #${annonce.id}: "${annonce.titre}"');
-          await _voiceService.startAnnouncement(annonce);
+          await _voiceService.startAnnouncement(annonce, _context);
           _processedMessageIds.add(annonce.id);
         }
       }
@@ -163,13 +232,17 @@ class AnnouncementManager {
     _processedMessageIds.clear();
   }
 
-  /// Arrêter le gestionnaire
+  /// Arrête la surveillance des annonces
   Future<void> stop() async {
-    if (!_isRunning) return;
-
-    debugPrint('⏹️ [AnnouncementManager] Arrêt du gestionnaire');
-    await stopAll();
     _isRunning = false;
+    _checkTimer?.cancel();
+    _checkTimer = null;
+    _voiceService.stopAllAnnouncements();
+    _processedMessageIds.clear();
+    
+    if (kDebugMode) {
+      print('📢 AnnouncementManager arrêté');
+    }
   }
 
   /// Vérifier si le gestionnaire est en cours d'exécution

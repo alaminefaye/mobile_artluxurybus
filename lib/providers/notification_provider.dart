@@ -46,7 +46,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   /// Charger les notifications
   Future<void> loadNotifications({bool refresh = false}) async {
+    print('🔄 [PROVIDER] Chargement notifications (refresh: $refresh)');
+    
     if (refresh) {
+      print('🗑️ [PROVIDER] Vidage du cache...');
       state = state.copyWith(
         isLoading: true,
         error: null,
@@ -65,12 +68,16 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         limit: 20,
       );
 
-      // Notifications loaded successfully
+      print('📡 [PROVIDER] Réponse API: success=${response.success}');
+      print('📋 [PROVIDER] Nombre de notifications: ${response.notifications.length}');
 
       if (response.success) {
         final newNotifications = refresh 
           ? response.notifications
           : [...state.notifications, ...response.notifications];
+
+        print('✅ [PROVIDER] Mise à jour: ${newNotifications.length} notifications');
+        print('🔢 [PROVIDER] ${response.unreadCount} non lues');
 
         state = state.copyWith(
           notifications: newNotifications,
@@ -81,6 +88,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           error: null,
         );
       } else {
+        print('❌ [PROVIDER] Erreur API: ${response.message}');
         // Afficher l'erreur réelle sans fallback
         state = state.copyWith(
           isLoading: false,
@@ -88,6 +96,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         );
       }
     } catch (e) {
+      print('❌ [PROVIDER] Exception: $e');
       state = state.copyWith(
         isLoading: false,
         error: 'Erreur de connexion: $e',
@@ -104,9 +113,16 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Marquer une notification comme lue
   Future<void> markAsRead(int notificationId) async {
     try {
+      print('🔔 [PROVIDER] Tentative de marquer notification $notificationId comme lue');
+      
       final result = await NotificationApiService.markAsRead(notificationId);
       
+      print('📡 [PROVIDER] Résultat: ${result['success']}');
+      print('📄 [PROVIDER] Message: ${result['message']}');
+      
       if (result['success']) {
+        print('✅ [PROVIDER] Succès! Mise à jour locale...');
+        
         // Mettre à jour localement
         final updatedNotifications = state.notifications.map((notif) {
           if (notif.id == notificationId && !notif.isRead) {
@@ -130,8 +146,13 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           notifications: updatedNotifications,
           unreadCount: newUnreadCount,
         );
+        
+        print('✅ [PROVIDER] État mis à jour. Nouveau compteur: $newUnreadCount');
+      } else {
+        print('❌ [PROVIDER] Échec: ${result['message']}');
       }
     } catch (e) {
+      print('❌ [PROVIDER] Exception: $e');
       // Gestion d'erreur silencieuse pour ne pas perturber l'UX
       // Log l'erreur sans interrompre l'expérience utilisateur
     }
@@ -231,8 +252,9 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
   
   final user = authState.user!;
   
-  // Vérifier si l'utilisateur a le rôle Pointage
+  // Vérifier si l'utilisateur a le rôle Pointage ou Client
   bool hasAttendanceRole = false;
+  bool isClient = false;
   
   // 1. Vérifier d'abord le rôle (si présent)
   if (user.role != null) {
@@ -243,6 +265,11 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
         roleLower.contains('super') ||
         roleLower.contains('administrateur')) {
       return notificationState.unreadCount;
+    }
+    
+    // Si c'est un client, filtrer les notifications de feedback
+    if (roleLower.contains('client')) {
+      isClient = true;
     }
     
     // Si c'est un rôle pointage
@@ -291,8 +318,8 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
     }
   }
   
-  // Si c'est un utilisateur Pointage, filtrer les notifications de feedback
-  if (hasAttendanceRole) {
+  // Si c'est un utilisateur Pointage OU Client, filtrer les notifications de feedback
+  if (hasAttendanceRole || isClient) {
     final filteredNotifications = notificationState.notifications.where((notif) {
       return !notif.isRead && 
              notif.type != 'feedback' && 
@@ -304,6 +331,6 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
     return filteredNotifications;
   }
   
-  // Pour les autres utilisateurs, retourner le compteur complet
+  // Pour les autres utilisateurs (admins), retourner le compteur complet
   return notificationState.unreadCount;
 });
