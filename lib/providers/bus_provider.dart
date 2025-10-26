@@ -182,10 +182,10 @@ final insuranceHistoryProvider = FutureProvider.family<PaginatedResponse<Insuran
 );
 
 // ===== Patents Provider =====
-final patentsProvider = FutureProvider.family<PaginatedResponse<Patent>, int>(
-  (ref, busId) async {
+final patentsProvider = FutureProvider.family.autoDispose<PaginatedResponse<Patent>, ({int busId, int page})>(
+  (ref, params) async {
     final service = ref.read(busApiServiceProvider);
-    return await service.getPatents(busId);
+    return await service.getPatents(params.busId, page: params.page);
   },
 );
 
@@ -418,3 +418,4 @@ final vidangesProvider = StateNotifierProvider.family<VidangesNotifier, Vidanges
     return VidangesNotifier(service, busId);
   },
 );
+

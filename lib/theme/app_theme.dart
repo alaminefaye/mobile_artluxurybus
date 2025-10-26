@@ -111,6 +111,13 @@ class AppTheme {
         hintStyle: TextStyle(color: Colors.grey[500]),
       ),
       
+      // Text Selection Theme (curseur et sélection)
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: primaryBlue, // Curseur bleu en mode clair
+        selectionColor: Color(0xFFB3D4FC), // Sélection bleue claire
+        selectionHandleColor: primaryBlue, // Poignées de sélection bleues
+      ),
+      
       // Text Theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(
@@ -156,6 +163,13 @@ class AppTheme {
         color: Colors.grey[300],
         thickness: 1,
         space: 16,
+      ),
+      
+      // Bottom Navigation Bar Theme
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Colors.white,
+        selectedItemColor: primaryBlue,
+        unselectedItemColor: lightGrey,
       ),
     );
   }
@@ -261,6 +275,13 @@ class AppTheme {
         hintStyle: const TextStyle(color: Color(0xFF707070)),
       ),
       
+      // Text Selection Theme (curseur et sélection)
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: primaryOrange, // Curseur orange en mode sombre
+        selectionColor: Color(0xFF3F51B5), // Sélection bleue
+        selectionHandleColor: primaryOrange, // Poignées de sélection orange
+      ),
+      
       // Text Theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(
@@ -312,7 +333,7 @@ class AppTheme {
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Color(0xFF1E1E1E),
         selectedItemColor: primaryOrange,
-        unselectedItemColor: Color(0xFF707070),
+        unselectedItemColor: Colors.white70, // Blanc transparent pour visibilité
       ),
     );
   }

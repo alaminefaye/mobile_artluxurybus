@@ -159,8 +159,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               },
               type: BottomNavigationBarType.fixed,
               backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
-              selectedItemColor: AppTheme.primaryBlue,
-              unselectedItemColor: Theme.of(context).textTheme.bodyMedium?.color,
+              selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+              unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
               elevation: 0,
               selectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
@@ -542,10 +542,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Barre de recherche moderne
   Widget _buildSearchBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.grey.shade800 : Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: isDark ? Border.all(color: Colors.grey.shade700, width: 1) : null,
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryBlue.withValues(alpha: 0.08),
@@ -562,9 +564,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             fontSize: 14,
           ),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
-            color: AppTheme.primaryBlue,
+            color: isDark ? Colors.white : AppTheme.primaryBlue,
             size: 22,
           ),
           suffixIcon: Container(
@@ -681,13 +683,15 @@ class _HomePageState extends ConsumerState<HomePage> {
     required String label,
     required Color color,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? Colors.grey.shade800 : Colors.white,
             borderRadius: BorderRadius.circular(12),
+            border: isDark ? Border.all(color: Colors.grey.shade700, width: 1) : null,
             boxShadow: [
               BoxShadow(
                 color: color.withValues(alpha: 0.2),
@@ -746,19 +750,23 @@ class _HomePageState extends ConsumerState<HomePage> {
               _currentIndex = 2;
             });
           },
-          child: const Row(
+          child: Row(
             children: [
               Text(
                 'Voir tout',
                 style: TextStyle(
-                  color: AppTheme.primaryBlue,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
+                      : AppTheme.primaryBlue,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
-                color: AppTheme.primaryBlue,
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.white 
+                    : AppTheme.primaryBlue,
               ),
             ],
           ),
@@ -1071,10 +1079,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             TextButton(
               onPressed: () {},
-              child: const Text(
+              child: Text(
                 'Voir tout',
                 style: TextStyle(
-                  color: AppTheme.primaryOrange,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
+                      : AppTheme.primaryOrange,
                   fontWeight: FontWeight.w600,
                 ),
               ),

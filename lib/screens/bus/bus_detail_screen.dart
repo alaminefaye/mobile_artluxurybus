@@ -8,6 +8,7 @@ import 'fuel_record_form_screen.dart';
 import 'technical_visit_form_screen.dart';
 import 'technical_visit_detail_screen.dart';
 import 'insurance_form_screen.dart';
+import 'patent_list_screen.dart';
 import 'insurance_detail_screen.dart';
 import 'breakdown_form_screen.dart';
 import 'breakdown_detail_screen.dart';
@@ -59,7 +60,7 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
 
   Widget _buildBusDetails(BuildContext context, Bus bus, WidgetRef ref) {
     return DefaultTabController(
-      length: 7,
+      length: 8,
       child: Column(
         children: [
           // En-tête avec informations principales
@@ -81,6 +82,7 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
                 Tab(icon: Icon(Icons.shield), text: 'Assurance'),
                 Tab(icon: Icon(Icons.warning), text: 'Pannes'),
                 Tab(icon: Icon(Icons.oil_barrel), text: 'Vidanges'),
+                Tab(icon: Icon(Icons.description), text: 'Patentes'),
               ],
             ),
           ),
@@ -96,6 +98,7 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
                 _buildInsuranceTab(ref),
                 _buildBreakdownsTab(ref),
                 _buildVidangesTab(ref),
+                _buildPatentsTab(bus),
               ],
             ),
           ),
@@ -848,10 +851,10 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
                       _InfoRow('Coût', '${insurance.cost.toStringAsFixed(0)} FCFA'),
                       if (insurance.documentPhoto != null && insurance.documentPhoto!.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        Row(
+                        const Row(
                           children: [
                             Icon(Icons.attach_file, size: 16, color: Colors.blue),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4),
                             Text(
                               'Document disponible',
                               style: TextStyle(
@@ -1614,10 +1617,11 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await BusApiService().deleteTechnicalVisit(widget.busId, visit.id);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Visite technique supprimée'),
                       backgroundColor: Colors.green,
@@ -1628,7 +1632,7 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(
                       content: Text('Erreur: $e'),
                       backgroundColor: Colors.red,
@@ -1835,6 +1839,13 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
       
       return true;
     }).toList();
+  }
+
+  Widget _buildPatentsTab(Bus bus) {
+    return PatentListScreen(
+      busId: widget.busId,
+      busNumber: bus.registrationNumber ?? 'N/A',
+    );
   }
 
 }

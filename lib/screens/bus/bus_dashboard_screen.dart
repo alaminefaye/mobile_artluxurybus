@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/bus_provider.dart';
 import '../../models/bus_models.dart';
 import 'bus_list_screen.dart';
+import 'breakdown_detail_screen.dart';
 
 class BusDashboardScreen extends ConsumerWidget {
   const BusDashboardScreen({super.key});
@@ -348,10 +349,10 @@ class BusDashboardScreen extends ConsumerWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: Theme.of(context).textTheme.titleLarge?.color,
           ),
         ),
       ],
@@ -363,6 +364,7 @@ class BusDashboardScreen extends ConsumerWidget {
       children: breakdowns.take(5).map((breakdown) {
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
+          color: Theme.of(context).cardColor,
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: _getStatutColor(breakdown.statutReparation).withValues(alpha: 0.1),
@@ -375,10 +377,18 @@ class BusDashboardScreen extends ConsumerWidget {
               breakdown.descriptionProbleme,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.titleLarge?.color,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             subtitle: Text(
               'Bus #${breakdown.busId} - ${_formatDate(breakdown.breakdownDate)}',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
             ),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -395,6 +405,17 @@ class BusDashboardScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BreakdownDetailScreen(
+                    breakdown: breakdown,
+                    busId: breakdown.busId,
+                  ),
+                ),
+              );
+            },
           ),
         );
       }).toList(),

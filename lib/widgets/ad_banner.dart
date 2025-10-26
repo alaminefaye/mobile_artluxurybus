@@ -291,14 +291,16 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
   }
 
   Widget _skeleton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: widget.borderRadius,
       child: Container(
         height: widget.height,
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
           gradient: LinearGradient(colors: [
-            Colors.grey.shade200, Colors.grey.shade100
+            isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+            isDark ? Colors.grey.shade700 : Colors.grey.shade100,
           ]),
         ),
         child: const Center(child: CircularProgressIndicator()),
@@ -323,15 +325,25 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
   }
 
   Widget _errorWidget(String msg) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: widget.borderRadius,
       child: Container(
         height: widget.height,
-        color: Colors.grey.shade100,
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+          border: Border.all(
+            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+            width: 1,
+          ),
+          borderRadius: widget.borderRadius,
+        ),
         child: Center(
           child: Text(
             msg,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            ),
           ),
         ),
       ),

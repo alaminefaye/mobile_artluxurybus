@@ -93,7 +93,7 @@ class _VidangeFormScreenState extends State<VidangeFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true); // Signaler qu'il faut rafraîchir
       }
     } catch (e) {
       if (mounted) {

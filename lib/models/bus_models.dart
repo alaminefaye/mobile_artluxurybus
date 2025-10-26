@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'bus_models.g.dart';
@@ -401,7 +402,7 @@ class Patent {
   final int busId;
   
   @JsonKey(name: 'patent_number')
-  final String? patentNumber;
+  final String patentNumber;
   
   @JsonKey(name: 'issue_date')
   final DateTime issueDate;
@@ -409,11 +410,11 @@ class Patent {
   @JsonKey(name: 'expiry_date')
   final DateTime expiryDate;
   
-  @JsonKey(name: 'issuing_authority')
-  final String? issuingAuthority;
-  
-  final double? cost;
+  final double cost;
   final String? notes;
+  
+  @JsonKey(name: 'document_path')
+  final String? documentPath;
   
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
@@ -421,12 +422,12 @@ class Patent {
   Patent({
     required this.id,
     required this.busId,
-    this.patentNumber,
+    required this.patentNumber,
     required this.issueDate,
     required this.expiryDate,
-    this.issuingAuthority,
-    this.cost,
+    required this.cost,
     this.notes,
+    this.documentPath,
     this.createdAt,
   });
 
@@ -434,6 +435,37 @@ class Patent {
       _$PatentFromJson(json);
   
   Map<String, dynamic> toJson() => _$PatentToJson(this);
+
+  // Calculer les jours restants avant expiration
+  int get daysUntilExpiration {
+    final now = DateTime.now();
+    final difference = expiryDate.difference(now);
+    return difference.inDays;
+  }
+
+  // Vérifier si expiré
+  bool get isExpired {
+    return DateTime.now().isAfter(expiryDate);
+  }
+
+  // Vérifier si expire bientôt (30 jours)
+  bool get isExpiringSoon {
+    return daysUntilExpiration <= 30 && !isExpired;
+  }
+
+  // Obtenir le statut
+  String get status {
+    if (isExpired) return 'Expiré';
+    if (isExpiringSoon) return 'Expire bientôt';
+    return 'Valide';
+  }
+
+  // Obtenir la couleur du statut
+  Color get statusColor {
+    if (isExpired) return Colors.red;
+    if (isExpiringSoon) return Colors.orange;
+    return Colors.green;
+  }
 }
 
 // ===== Bus Breakdown =====

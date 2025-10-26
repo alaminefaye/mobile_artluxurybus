@@ -1071,4 +1071,80 @@ class BusApiService {
       rethrow;
     }
   }
+
+  // ============================================================================
+  // PATENTES - CRUD
+  // ============================================================================
+
+  /// Ajouter une patente
+  Future<Patent> addPatent(int busId, Patent patent) async {
+    try {
+      _log('➕ Ajout d\'une patente pour le bus #$busId...');
+      
+      final headers = await _getHeaders();
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents'),
+        headers: headers,
+        body: json.encode(patent.toJson()),
+      ).timeout(ApiConfig.requestTimeout);
+      
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        _log('✅ Patente ajoutée avec succès');
+        return Patent.fromJson(data);
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de l\'ajout de la patente: $e');
+      rethrow;
+    }
+  }
+
+  /// Mettre à jour une patente
+  Future<Patent> updatePatent(int busId, int patentId, Patent patent) async {
+    try {
+      _log('✏️ Modification de la patente #$patentId...');
+      
+      final headers = await _getHeaders();
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents/$patentId'),
+        headers: headers,
+        body: json.encode(patent.toJson()),
+      ).timeout(ApiConfig.requestTimeout);
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _log('✅ Patente modifiée avec succès');
+        return Patent.fromJson(data);
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la modification de la patente: $e');
+      rethrow;
+    }
+  }
+
+  /// Supprimer une patente
+  Future<void> deletePatent(int busId, int patentId) async {
+    try {
+      _log('🗑️ Suppression de la patente #$patentId...');
+      
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents/$patentId'),
+        headers: headers,
+      ).timeout(ApiConfig.requestTimeout);
+      
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _log('✅ Patente supprimée avec succès');
+      } else {
+        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      _log('❌ Erreur lors de la suppression de la patente: $e');
+      rethrow;
+    }
+  }
 }

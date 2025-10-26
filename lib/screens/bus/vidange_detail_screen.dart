@@ -53,6 +53,7 @@ class VidangeDetailScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
+              final navigator = Navigator.of(context);
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -62,8 +63,8 @@ class VidangeDetailScreen extends StatelessWidget {
                   ),
                 ),
               ).then((needsRefresh) {
-                if (needsRefresh == true) {
-                  Navigator.pop(context, true);
+                if (needsRefresh == true && context.mounted) {
+                  navigator.pop(true);
                 }
               });
             },
@@ -84,7 +85,7 @@ class VidangeDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [statusColor, statusColor.withOpacity(0.7)],
+                  colors: [statusColor, statusColor.withValues(alpha: 0.7)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -306,21 +307,29 @@ class VidangeDetailScreen extends StatelessWidget {
   Future<void> _markCompleted(BuildContext context) async {
     debugPrint('🔄 [VIDANGE] Début _markCompleted');
     
-    // Sauvegarder une référence au Navigator AVANT le showDialog
-    final navigator = Navigator.of(context);
+    // Variables pour stocker les navigators
+    NavigatorState? dialogNavigator;
+    NavigatorState? screenNavigator;
     
     try {
+      // Sauvegarder le navigator de l'écran AVANT le dialogue
+      screenNavigator = Navigator.of(context);
+      
       // Afficher un indicateur de chargement
       debugPrint('⏳ [VIDANGE] Affichage du loading...');
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => PopScope(
-          canPop: false,
-          child: const Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        builder: (dialogContext) {
+          // Sauvegarder le navigator du dialogue
+          dialogNavigator = Navigator.of(dialogContext);
+          return const PopScope(
+            canPop: false,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        },
       );
 
       final now = DateTime.now();
@@ -336,70 +345,59 @@ class VidangeDetailScreen extends StatelessWidget {
       await BusApiService().updateVidange(busId, vidange.id, data);
       debugPrint('✅ [VIDANGE] API terminée avec succès');
 
-      // Fermer le loading D'ABORD avec la référence sauvegardée
+      // Fermer le loading avec le navigator sauvegardé
       debugPrint('🔚 [VIDANGE] Fermeture du loading...');
-      try {
-        navigator.pop(); // Utiliser la référence sauvegardée
+      if (dialogNavigator != null && dialogNavigator!.canPop()) {
+        dialogNavigator!.pop();
         debugPrint('✅ [VIDANGE] Loading fermé');
-      } catch (e) {
-        debugPrint('⚠️ [VIDANGE] Erreur fermeture loading: $e');
+      } else {
+        debugPrint('⚠️ [VIDANGE] Impossible de fermer le loading');
       }
 
-      // Vérifier si le widget est toujours monté APRÈS avoir fermé le loading
-      if (!context.mounted) {
-        debugPrint('⚠️ [VIDANGE] Widget démonté, abandon de la navigation');
-        return;
-      }
-
-      // Attendre un peu pour que le dialogue se ferme
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      // Vérifier à nouveau si le widget est toujours monté
-      if (!context.mounted) {
-        debugPrint('⚠️ [VIDANGE] Widget démonté après fermeture loading');
-        return;
-      }
+      // Attendre un peu
+      await Future.delayed(const Duration(milliseconds: 500));
 
       // Afficher le message de succès
       debugPrint('📢 [VIDANGE] Affichage du message de succès');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('✅ Vidange effectuée et reconduite pour 10 jours'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Vidange effectuée et reconduite pour 10 jours'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
       
-      // Retourner à la liste AVEC signal de rafraîchissement
+      // Attendre que le message soit visible
+      await Future.delayed(const Duration(milliseconds: 800));
+      
+      // Retourner à la liste
       debugPrint('🔙 [VIDANGE] Retour à la liste avec rafraîchissement');
-      Navigator.of(context).pop(true); // true = besoin de rafraîchir
-      debugPrint('✅ [VIDANGE] Navigation terminée');
+      if (screenNavigator.canPop()) {
+        screenNavigator.pop(true);
+        debugPrint('✅ [VIDANGE] Navigation terminée');
+      }
     } catch (e, stackTrace) {
       debugPrint('❌ [VIDANGE] Erreur: $e');
       debugPrint('📍 [VIDANGE] Stack trace: $stackTrace');
       
-      // Fermer le loading D'ABORD avec la référence sauvegardée
-      try {
-        navigator.pop(); // Utiliser la référence sauvegardée
+      // Fermer le loading
+      if (dialogNavigator != null && dialogNavigator!.canPop()) {
+        dialogNavigator!.pop();
         debugPrint('✅ [VIDANGE] Loading fermé après erreur');
-      } catch (popError) {
-        debugPrint('⚠️ [VIDANGE] Erreur fermeture loading: $popError');
-      }
-      
-      // Vérifier si le widget est toujours monté pour afficher l'erreur
-      if (!context.mounted) {
-        debugPrint('⚠️ [VIDANGE] Widget démonté, impossible d\'afficher l\'erreur');
-        return;
       }
       
       // Afficher l'erreur
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Erreur: $e'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -418,28 +416,8 @@ class VidangeDetailScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await BusApiService().deleteVidange(busId, vidange.id);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Vidange supprimée'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  Navigator.pop(context, true);
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
+              Navigator.pop(context); // Fermer le dialogue de confirmation
+              await _deleteVidange(context);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Supprimer'),
@@ -447,6 +425,92 @@ class VidangeDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _deleteVidange(BuildContext context) async {
+    debugPrint('🗑️ [VIDANGE] Début suppression');
+    
+    // Variables pour stocker les navigators
+    NavigatorState? dialogNavigator;
+    NavigatorState? screenNavigator;
+    
+    try {
+      // Sauvegarder le navigator de l'écran AVANT le dialogue
+      screenNavigator = Navigator.of(context);
+      
+      // Afficher un indicateur de chargement
+      debugPrint('⏳ [VIDANGE] Affichage du loading suppression...');
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          // Sauvegarder le navigator du dialogue
+          dialogNavigator = Navigator.of(dialogContext);
+          return const PopScope(
+            canPop: false,
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        },
+      );
+
+      debugPrint('📡 [VIDANGE] Appel API deleteVidange...');
+      await BusApiService().deleteVidange(busId, vidange.id);
+      debugPrint('✅ [VIDANGE] Suppression réussie');
+
+      // Fermer le loading
+      debugPrint('🔚 [VIDANGE] Fermeture du loading...');
+      if (dialogNavigator != null && dialogNavigator!.canPop()) {
+        dialogNavigator!.pop();
+        debugPrint('✅ [VIDANGE] Loading fermé');
+      }
+
+      // Attendre un peu
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Afficher le message de succès
+      debugPrint('📢 [VIDANGE] Affichage du message de succès');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Vidange supprimée'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Attendre que le message soit visible
+      await Future.delayed(const Duration(milliseconds: 800));
+      
+      // Retourner à la liste
+      debugPrint('🔙 [VIDANGE] Retour à la liste avec rafraîchissement');
+      if (screenNavigator.canPop()) {
+        screenNavigator.pop(true);
+        debugPrint('✅ [VIDANGE] Navigation terminée');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ [VIDANGE] Erreur suppression: $e');
+      debugPrint('📍 [VIDANGE] Stack trace: $stackTrace');
+      
+      // Fermer le loading
+      if (dialogNavigator != null && dialogNavigator!.canPop()) {
+        dialogNavigator!.pop();
+        debugPrint('✅ [VIDANGE] Loading fermé après erreur');
+      }
+      
+      // Afficher l'erreur
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Erreur: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
@@ -321,6 +322,45 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       );
     }
     
+    // Vérifier si c'est la liste des bus (JSON)
+    if (key.toLowerCase() == 'bus' && value.startsWith('[')) {
+      try {
+        final List<dynamic> busList = json.decode(value);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: busList.map((bus) {
+            final statut = bus['statut'] ?? '';
+            final emoji = statut == 'overdue' ? '🔴' : statut == 'urgent' ? '🟠' : '🟡';
+            final joursRestants = bus['jours_restants'] ?? 0;
+            final texteJours = joursRestants < 0 
+                ? '${joursRestants.abs()} jour(s) de retard' 
+                : '$joursRestants jour(s) restant(s)';
+            
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                '$emoji ${bus['immatriculation']} - $texteJours',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      } catch (e) {
+        // Si le parsing échoue, afficher tel quel
+        return Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        );
+      }
+    }
+    
     // Pour les autres types de données, affichage normal
     return Text(
       value,
@@ -517,6 +557,34 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         return 'Début maintenance';
       case 'maintenance_end':
         return 'Fin maintenance';
+      // Vidanges
+      case 'nombre_en_retard':
+      case 'overdue_count':
+        return 'En retard';
+      case 'nombre_urgent':
+      case 'urgent_count':
+        return 'Urgent';
+      case 'nombre_attention':
+      case 'warning_count':
+        return 'À surveiller';
+      case 'nombre_total':
+      case 'total_count':
+        return 'Total';
+      case 'bus':
+        return 'Bus concernés';
+      case 'horodatage':
+        return 'Horodatage';
+      // Vidange effectuée
+      case 'bus_id':
+        return 'ID Bus';
+      case 'bus_immatriculation':
+        return 'Immatriculation';
+      case 'derniere_vidange':
+        return 'Dernière vidange';
+      case 'prochaine_vidange':
+        return 'Prochaine vidange';
+      case 'jours_restants':
+        return 'Jours restants';
       default:
         // Remplacer les underscores par des espaces et mettre en forme
         return key.replaceAll('_', ' ')

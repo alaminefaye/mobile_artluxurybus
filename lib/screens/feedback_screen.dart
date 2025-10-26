@@ -184,7 +184,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                   'Partagez vos idées pour améliorer nos services',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
               ],
@@ -204,7 +204,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
+            color: Theme.of(context).textTheme.titleMedium?.color,
           ),
         ),
         const SizedBox(height: 8),
@@ -224,12 +224,16 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                 decoration: BoxDecoration(
                   color: isSelected 
                       ? AppTheme.primaryBlue 
-                      : Colors.grey[50],
+                      : (Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey.shade800 
+                          : Colors.grey[50]),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: isSelected 
                         ? AppTheme.primaryBlue 
-                        : Colors.grey[300]!,
+                        : (Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.grey.shade700 
+                            : Colors.grey[300]!),
                     width: 1,
                   ),
                 ),
@@ -247,7 +251,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: isSelected ? Colors.white : Colors.grey[700],
+                        color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                   ],
@@ -269,7 +273,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
+            color: Theme.of(context).textTheme.titleMedium?.color,
           ),
         ),
         const SizedBox(height: 8),
@@ -320,7 +324,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
+            color: Theme.of(context).textTheme.titleMedium?.color,
           ),
         ),
         const SizedBox(height: 8),
@@ -368,7 +372,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
+            color: Theme.of(context).textTheme.titleMedium?.color,
           ),
         ),
         const SizedBox(height: 8),
@@ -499,11 +503,14 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.grey.shade800 : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade700 : Colors.grey[300]!,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.1),
@@ -516,23 +523,26 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
-        style: const TextStyle(fontSize: 13),
+        style: TextStyle(
+          fontSize: 13,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
         validator: validator,
         decoration: InputDecoration(
           labelText: isRequired ? '$label *' : label,
           labelStyle: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
           hintText: hint,
           hintStyle: TextStyle(
             fontSize: 11,
-            color: Colors.grey[400],
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
           ),
           prefixIcon: Icon(
             icon,
             size: 18,
-            color: AppTheme.primaryBlue,
+            color: isDark ? Colors.white70 : AppTheme.primaryBlue,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -553,11 +563,14 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     required IconData icon,
     required Function(String?) onChanged,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? Colors.grey.shade800 : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade700 : Colors.grey[300]!,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.1),
@@ -573,22 +586,29 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
             value: item,
             child: Text(
               item,
-              style: const TextStyle(fontSize: 13),
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
             ),
           );
         }).toList(),
         onChanged: onChanged,
-        style: const TextStyle(fontSize: 13, color: Colors.black87),
+        style: TextStyle(
+          fontSize: 13,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+        dropdownColor: isDark ? Colors.grey.shade800 : Colors.white,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
           prefixIcon: Icon(
             icon,
             size: 18,
-            color: AppTheme.primaryBlue,
+            color: isDark ? Colors.white70 : AppTheme.primaryBlue,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -596,7 +616,6 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
             vertical: 12,
           ),
         ),
-        dropdownColor: Colors.white,
         borderRadius: BorderRadius.circular(10),
       ),
     );
