@@ -50,6 +50,8 @@ class PatentDetailScreen extends ConsumerWidget {
           children: [
             _buildStatusBanner(context),
             _buildInfoSection(context),
+            if (patent.documentPath != null || patent.documentUrl != null)
+              _buildDocumentSection(context),
             if (patent.notes != null && patent.notes!.isNotEmpty)
               _buildNotesSection(context),
           ],
@@ -133,10 +135,79 @@ class PatentDetailScreen extends ConsumerWidget {
               _buildInfoRow(Icons.event, 'Date d\'expiration', _formatDate(patent.expiryDate)),
               const SizedBox(height: 12),
               _buildInfoRow(Icons.attach_money, 'Coût', '${patent.cost.toStringAsFixed(0)} FCFA'),
-              if (patent.documentPath != null) ...[
-                const SizedBox(height: 12),
-                _buildInfoRow(Icons.attach_file, 'Document', patent.documentPath!),
-              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.attach_file, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Document',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  // Utiliser document_url si disponible, sinon construire l'URL
+                  patent.documentUrl ?? 
+                  (patent.documentPath!.startsWith('http')
+                      ? patent.documentPath!
+                      : 'https://gestion-compagny.universaltechnologiesafrica.com/storage/${patent.documentPath}'),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 200,
+                      color: Colors.grey[200],
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 200,
+                      color: Colors.grey[200],
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
+                            SizedBox(height: 8),
+                            Text(
+                              'Document non disponible',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
         ),

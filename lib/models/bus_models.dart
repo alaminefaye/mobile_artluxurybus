@@ -393,12 +393,34 @@ class InsuranceRecord {
   Map<String, dynamic> toJson() => _$InsuranceRecordToJson(this);
 }
 
+// Convertisseurs globaux pour Patent
+int _intFromJson(dynamic value) {
+  if (value is int) {
+    return value;
+  } else if (value is String) {
+    return int.parse(value);
+  } else if (value is num) {
+    return value.toInt();
+  }
+  return 0;
+}
+
+double _costFromJsonGlobal(dynamic value) {
+  if (value is num) {
+    return value.toDouble();
+  } else if (value is String) {
+    return double.parse(value);
+  }
+  return 0.0;
+}
+
 // ===== Patent =====
 @JsonSerializable()
 class Patent {
+  @JsonKey(fromJson: _intFromJson)
   final int id;
   
-  @JsonKey(name: 'bus_id')
+  @JsonKey(name: 'bus_id', fromJson: _intFromJson)
   final int busId;
   
   @JsonKey(name: 'patent_number')
@@ -410,11 +432,15 @@ class Patent {
   @JsonKey(name: 'expiry_date')
   final DateTime expiryDate;
   
+  @JsonKey(fromJson: _costFromJsonGlobal)
   final double cost;
   final String? notes;
   
   @JsonKey(name: 'document_path')
   final String? documentPath;
+  
+  @JsonKey(name: 'document_url')
+  final String? documentUrl;
   
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
@@ -428,6 +454,7 @@ class Patent {
     required this.cost,
     this.notes,
     this.documentPath,
+    this.documentUrl,
     this.createdAt,
   });
 
@@ -466,6 +493,7 @@ class Patent {
     if (isExpiringSoon) return Colors.orange;
     return Colors.green;
   }
+
 }
 
 // ===== Bus Breakdown =====

@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../models/bus_models.dart';
 import '../../providers/bus_provider.dart';
 
@@ -25,20 +27,22 @@ class _PatentFormScreenState extends ConsumerState<PatentFormScreen> {
   final _patentNumberController = TextEditingController();
   final _costController = TextEditingController();
   final _notesController = TextEditingController();
-  final _issuingAuthorityController = TextEditingController();
   
   DateTime? _issueDate;
   DateTime? _expiryDate;
   bool _isLoading = false;
+  
+  // Variables pour le document
+  File? _documentFile;
+  String? _documentFileName;
 
   @override
   void initState() {
     super.initState();
     if (widget.patent != null) {
-      _patentNumberController.text = widget.patent!.patentNumber ?? '';
-      _costController.text = widget.patent!.cost?.toString() ?? '';
+      _patentNumberController.text = widget.patent!.patentNumber;
+      _costController.text = widget.patent!.cost.toString();
       _notesController.text = widget.patent!.notes ?? '';
-      _issuingAuthorityController.text = widget.patent!.issuingAuthority ?? '';
       _issueDate = widget.patent!.issueDate;
       _expiryDate = widget.patent!.expiryDate;
     }
@@ -49,7 +53,6 @@ class _PatentFormScreenState extends ConsumerState<PatentFormScreen> {
     _patentNumberController.dispose();
     _costController.dispose();
     _notesController.dispose();
-    _issuingAuthorityController.dispose();
     super.dispose();
   }
 
@@ -104,15 +107,6 @@ class _PatentFormScreenState extends ConsumerState<PatentFormScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _issuingAuthorityController,
-              decoration: const InputDecoration(
-                labelText: 'Autorité émettrice',
-                prefixIcon: Icon(Icons.business),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
               controller: _notesController,
               decoration: const InputDecoration(
                 labelText: 'Notes',
@@ -121,6 +115,43 @@ class _PatentFormScreenState extends ConsumerState<PatentFormScreen> {
               ),
               maxLines: 3,
             ),
+            const SizedBox(height: 16),
+            // Bouton pour téléverser un document
+            OutlinedButton.icon(
+              onPressed: _pickDocument,
+              icon: Icon(
+                _documentFile != null ? Icons.check_circle : Icons.upload_file,
+                color: _documentFile != null ? Colors.green : null,
+              ),
+              label: Text(
+                _documentFile != null
+                    ? 'Document sélectionné: $_documentFileName'
+                    : 'Téléverser un document (PDF, Image)',
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                side: BorderSide(
+                  color: _documentFile != null ? Colors.green : Colors.grey,
+                  width: _documentFile != null ? 2 : 1,
+                ),
+              ),
+            ),
+            if (_documentFile != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton.icon(
+                    onPressed: _removeDocument,
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Retirer le document'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isLoading ? null : _submit,
@@ -186,6 +217,56 @@ class _PatentFormScreenState extends ConsumerState<PatentFormScreen> {
     }
   }
 
+  Future<void> _pickDocument() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() {
+          _documentFile = File(result.files.single.path!);
+          _documentFileName = result.files.single.name;
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Document sélectionné: ${result.files.single.name}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la sélection du fichier: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeDocument() {
+    setState(() {
+      _documentFile = null;
+      _documentFileName = null;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Document retiré'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -214,9 +295,9 @@ class _PatentFormScreenState extends ConsumerState<PatentFormScreen> {
         patentNumber: _patentNumberController.text,
         issueDate: _issueDate!,
         expiryDate: _expiryDate!,
-        cost: _costController.text.isNotEmpty ? double.parse(_costController.text) : null,
-        issuingAuthority: _issuingAuthorityController.text.isNotEmpty ? _issuingAuthorityController.text : null,
+        cost: double.parse(_costController.text),
         notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+        documentPath: widget.patent?.documentPath,
         createdAt: widget.patent?.createdAt,
       );
 

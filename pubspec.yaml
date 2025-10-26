@@ -74,6 +74,9 @@ dependencies:
   # Image Picker
   image_picker: ^1.0.4
   
+  # File Picker
+  file_picker: ^8.0.0+1
+  
   # Cache management
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1

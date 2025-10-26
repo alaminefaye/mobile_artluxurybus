@@ -248,14 +248,15 @@ Map<String, dynamic> _$InsuranceRecordToJson(InsuranceRecord instance) =>
     };
 
 Patent _$PatentFromJson(Map<String, dynamic> json) => Patent(
-      id: (json['id'] as num).toInt(),
-      busId: (json['bus_id'] as num).toInt(),
-      patentNumber: json['patent_number'] as String?,
+      id: _intFromJson(json['id']),
+      busId: _intFromJson(json['bus_id']),
+      patentNumber: json['patent_number'] as String,
       issueDate: DateTime.parse(json['issue_date'] as String),
       expiryDate: DateTime.parse(json['expiry_date'] as String),
-      issuingAuthority: json['issuing_authority'] as String?,
-      cost: (json['cost'] as num?)?.toDouble(),
+      cost: _costFromJsonGlobal(json['cost']),
       notes: json['notes'] as String?,
+      documentPath: json['document_path'] as String?,
+      documentUrl: json['document_url'] as String?,
       createdAt: json['created_at'] == null
           ? null
           : DateTime.parse(json['created_at'] as String),
@@ -267,9 +268,10 @@ Map<String, dynamic> _$PatentToJson(Patent instance) => <String, dynamic>{
       'patent_number': instance.patentNumber,
       'issue_date': instance.issueDate.toIso8601String(),
       'expiry_date': instance.expiryDate.toIso8601String(),
-      'issuing_authority': instance.issuingAuthority,
       'cost': instance.cost,
       'notes': instance.notes,
+      'document_path': instance.documentPath,
+      'document_url': instance.documentUrl,
       'created_at': instance.createdAt?.toIso8601String(),
     };
 

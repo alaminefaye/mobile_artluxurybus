@@ -1089,9 +1089,15 @@ class BusApiService {
       ).timeout(ApiConfig.requestTimeout);
       
       if (response.statusCode == 201) {
-        final data = json.decode(response.body);
+        final responseData = json.decode(response.body);
         _log('✅ Patente ajoutée avec succès');
-        return Patent.fromJson(data);
+        _log('📦 Response data: $responseData');
+        
+        // Le serveur peut retourner soit directement l'objet, soit dans une clé 'data' ou 'patent'
+        final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
+        _log('📋 Patent data: $patentData');
+        
+        return Patent.fromJson(patentData);
       } else {
         throw Exception('Erreur ${response.statusCode}: ${response.body}');
       }
@@ -1114,9 +1120,13 @@ class BusApiService {
       ).timeout(ApiConfig.requestTimeout);
       
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final responseData = json.decode(response.body);
         _log('✅ Patente modifiée avec succès');
-        return Patent.fromJson(data);
+        
+        // Le serveur peut retourner soit directement l'objet, soit dans une clé 'data' ou 'patent'
+        final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
+        
+        return Patent.fromJson(patentData);
       } else {
         throw Exception('Erreur ${response.statusCode}: ${response.body}');
       }
