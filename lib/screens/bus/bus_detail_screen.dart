@@ -12,6 +12,7 @@ import 'insurance_detail_screen.dart';
 import 'breakdown_form_screen.dart';
 import 'breakdown_detail_screen.dart';
 import 'vidange_form_screen.dart';
+import 'vidange_detail_screen.dart';
 
 class BusDetailScreen extends ConsumerStatefulWidget {
   final int busId;
@@ -1171,25 +1172,98 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
             itemCount: vidangesState.vidanges.length,
             itemBuilder: (context, index) {
             final vidange = vidangesState.vidanges[index];
-            final isPast = vidange.nextVidangeDate.isBefore(DateTime.now());
+            final now = DateTime.now();
+            final daysRemaining = vidange.nextVidangeDate.difference(now).inDays;
+            final isPast = daysRemaining < 0;
+            final isUrgent = daysRemaining >= 0 && daysRemaining <= 3;
+            
+            Color statusColor;
+            IconData statusIcon;
+            String statusText;
+            
+            if (isPast) {
+              statusColor = Colors.red;
+              statusIcon = Icons.warning_rounded;
+              statusText = 'EN RETARD';
+            } else if (isUrgent) {
+              statusColor = Colors.orange;
+              statusIcon = Icons.warning;
+              statusText = 'URGENT - $daysRemaining jour${daysRemaining > 1 ? 's' : ''}';
+            } else {
+              statusColor = Colors.green;
+              statusIcon = Icons.check_circle;
+              statusText = 'OK - $daysRemaining jours';
+            }
             
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
+              elevation: (isPast || isUrgent) ? 4 : 1,
+              color: (isPast || isUrgent) 
+                  ? statusColor.withValues(alpha: 0.05)
+                  : null,
               child: ListTile(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => VidangeDetailScreen(
+                        vidange: vidange,
+                        busId: widget.busId,
+                      ),
+                    ),
+                  ).then((needsRefresh) {
+                    if (needsRefresh == true) {
+                      ref.invalidate(vidangesProvider(widget.busId));
+                    }
+                  });
+                },
                 leading: CircleAvatar(
-                  backgroundColor: (isPast ? Colors.red : Colors.green)
-                      .withValues(alpha: 0.1),
+                  backgroundColor: statusColor.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.oil_barrel,
-                    color: isPast ? Colors.red : Colors.green,
+                    color: statusColor,
                   ),
                 ),
-                title: Text('Vidange ${isPast ? "à faire" : "planifiée"}'),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Vidange ${isPast ? "en retard" : isUrgent ? "urgente" : "planifiée"}',
+                        style: TextStyle(
+                          fontWeight: (isPast || isUrgent) ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                    if (isPast || isUrgent)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          statusText,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 4),
                     Text('Dernière: ${_formatDate(vidange.lastVidangeDate)}'),
-                    Text('Prochaine: ${_formatDate(vidange.nextVidangeDate)}'),
+                    Text(
+                      'Prochaine: ${_formatDate(vidange.nextVidangeDate)}',
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: (isPast || isUrgent) ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
                     if (vidange.notes != null && vidange.notes!.isNotEmpty)
                       Text(
                         vidange.notes!,
@@ -1203,8 +1277,9 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
                   ],
                 ),
                 trailing: Icon(
-                  isPast ? Icons.warning : Icons.check_circle,
-                  color: isPast ? Colors.red : Colors.green,
+                  statusIcon,
+                  color: statusColor,
+                  size: (isPast || isUrgent) ? 32 : 24,
                 ),
               ),
             );

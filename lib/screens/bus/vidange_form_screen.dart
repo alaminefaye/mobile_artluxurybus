@@ -37,7 +37,7 @@ class _VidangeFormScreenState extends State<VidangeFormScreen> {
       _notes = widget.vidange!.notes;
     } else {
       _lastVidangeDate = DateTime.now();
-      _nextVidangeDate = DateTime.now().add(const Duration(days: 90)); // 3 mois par défaut
+      _nextVidangeDate = DateTime.now().add(const Duration(days: 10)); // 10 jours par défaut
     }
   }
 

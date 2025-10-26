@@ -213,7 +213,7 @@ class BusDashboardScreen extends ConsumerWidget {
           Colors.red,
           'À renouveler',
         ),
-        _buildStatCard(
+        _buildBlinkingStatCard(
           'Vidanges',
           stats.vidangeNeeded,
           Icons.water_drop,
@@ -315,6 +315,29 @@ class BusDashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // Carte clignotante pour les vidanges urgentes
+  Widget _buildBlinkingStatCard(
+    String title,
+    int value,
+    IconData icon,
+    Color color,
+    String description,
+  ) {
+    // Si pas de vidanges urgentes, afficher carte normale
+    if (value == 0) {
+      return _buildStatCard(title, value, icon, color, description);
+    }
+
+    // Sinon, afficher carte clignotante
+    return _BlinkingCard(
+      title: title,
+      value: value,
+      icon: icon,
+      color: color,
+      description: description,
     );
   }
 
@@ -461,5 +484,145 @@ class BusDashboardScreen extends ConsumerWidget {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
+  }
+}
+
+// Widget de carte clignotante pour les alertes
+class _BlinkingCard extends StatefulWidget {
+  final String title;
+  final int value;
+  final IconData icon;
+  final Color color;
+  final String description;
+
+  const _BlinkingCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.description,
+  });
+
+  @override
+  State<_BlinkingCard> createState() => _BlinkingCardState();
+}
+
+class _BlinkingCardState extends State<_BlinkingCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: widget.color.withValues(alpha: _animation.value),
+              width: 2,
+            ),
+          ),
+          color: Theme.of(context).cardColor,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.color.withValues(alpha: _animation.value * 0.3),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: widget.color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(widget.icon, color: widget.color, size: 24),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: widget.color.withValues(alpha: _animation.value * 0.3),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${widget.value}',
+                          style: TextStyle(
+                            color: widget.color,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.titleLarge?.color,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.description,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
