@@ -27,63 +27,101 @@ class _PatentListScreenState extends ConsumerState<PatentListScreen> {
   Widget build(BuildContext context) {
     final patentsAsync = ref.watch(patentsProvider((busId: widget.busId, page: _currentPage)));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Patentes - Bus ${widget.busNumber}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.invalidate(patentsProvider((busId: widget.busId, page: _currentPage)));
-            },
-          ),
-        ],
-      ),
-      body: patentsAsync.when(
-        data: (response) {
-          if (response.data.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(patentsProvider((busId: widget.busId, page: _currentPage)));
-            },
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: response.data.length,
-                    itemBuilder: (context, index) {
-                      final patent = response.data[index];
-                      return _buildPatentCard(patent);
-                    },
+    return patentsAsync.when(
+      data: (response) {
+        if (response.data.isEmpty) {
+          return Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(patentsProvider((busId: widget.busId, page: _currentPage)));
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: _buildEmptyState(),
                   ),
                 ),
-                if (response.lastPage > 1) _buildPagination(response),
-              ],
-            ),
+              ),
+              // Bouton FAB pour ajouter une patente
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton(
+                  heroTag: 'patent_fab',
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PatentFormScreen(
+                          busId: widget.busId,
+                          busNumber: widget.busNumber,
+                        ),
+                      ),
+                    );
+                    // Rafraîchir la liste
+                    ref.invalidate(patentsProvider((busId: widget.busId, page: _currentPage)));
+                  },
+                  backgroundColor: Colors.deepPurple,
+                  child: const Icon(Icons.add),
+                ),
+              ),
+            ],
           );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => _buildErrorState(error),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PatentFormScreen(
-                busId: widget.busId,
-                busNumber: widget.busNumber,
+        }
+
+        return Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(patentsProvider((busId: widget.busId, page: _currentPage)));
+              },
+              child: Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: response.data.length,
+                      itemBuilder: (context, index) {
+                        final patent = response.data[index];
+                        return _buildPatentCard(patent);
+                      },
+                    ),
+                  ),
+                  if (response.lastPage > 1) _buildPagination(response),
+                ],
               ),
             ),
-          );
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Ajouter'),
-      ),
+            // Bouton FAB pour ajouter une patente
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: FloatingActionButton(
+                heroTag: 'patent_fab',
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PatentFormScreen(
+                        busId: widget.busId,
+                        busNumber: widget.busNumber,
+                      ),
+                    ),
+                  );
+                  // Rafraîchir la liste
+                  ref.invalidate(patentsProvider((busId: widget.busId, page: _currentPage)));
+                },
+                backgroundColor: Colors.deepPurple,
+                child: const Icon(Icons.add),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => _buildErrorState(error),
     );
   }
 
