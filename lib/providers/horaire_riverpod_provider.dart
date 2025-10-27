@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import '../models/horaire_model.dart';
 import '../services/horaire_service.dart';
+import '../services/device_service.dart';
 
 // Service provider
 final horaireServiceProvider = Provider<HoraireService>((ref) {
@@ -91,13 +92,18 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
   }
 
   // Récupérer les horaires d'aujourd'hui groupés par gare
+  // Filtre automatiquement par le device_id de l'appareil
   Future<void> fetchTodayHoraires({bool silent = false}) async {
     if (!silent) {
       state = state.copyWith(isLoading: true, error: null);
     }
 
     try {
-      final grouped = await _service.fetchTodayHoraires();
+      // Récupérer le device_id
+      final deviceId = await DeviceService.getDeviceId();
+      
+      // Appeler l'API avec le device_id pour filtrer
+      final grouped = await _service.fetchTodayHoraires(deviceId: deviceId);
       
       // Aplatir pour avoir aussi une liste simple
       final allHoraires = <Horaire>[];

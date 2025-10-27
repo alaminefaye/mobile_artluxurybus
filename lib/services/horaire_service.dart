@@ -85,10 +85,17 @@ class HoraireService {
   }
 
   /// Récupère les horaires du jour
-  Future<Map<String, List<Horaire>>> fetchTodayHoraires() async {
+  /// Si deviceId est fourni, filtre les horaires par appareil
+  Future<Map<String, List<Horaire>>> fetchTodayHoraires({String? deviceId}) async {
     try {
+      // Construire l'URL avec le paramètre device_id si fourni
+      String url = '$baseUrl/horaires/today';
+      if (deviceId != null && deviceId.isNotEmpty) {
+        url += '?device_id=$deviceId';
+      }
+
       final response = await http.get(
-        Uri.parse('$baseUrl/horaires/today'),
+        Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
