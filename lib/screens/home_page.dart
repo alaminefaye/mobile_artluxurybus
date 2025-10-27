@@ -2086,15 +2086,13 @@ class _HomePageState extends ConsumerState<HomePage> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                     colors: [
                       AppTheme.primaryBlue,
-                      AppTheme.primaryBlue.withValues(alpha: 0.95),
-                      AppTheme.primaryBlue.withValues(alpha: 0.85),
+                      AppTheme.primaryBlue.withValues(alpha: 0.8),
                       AppTheme.primaryOrange.withValues(alpha: 0.6),
                     ],
-                    stops: const [0.0, 0.4, 0.7, 1.0],
                   ),
                 ),
                 child: SafeArea(
