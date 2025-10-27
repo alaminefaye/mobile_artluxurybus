@@ -2128,9 +2128,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Photo de profil compacte
                         Stack(
+                          alignment: Alignment.center,
                           children: [
                             CircleAvatar(
                               radius: 35,
@@ -2175,6 +2177,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
+                          textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2185,6 +2188,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                             fontSize: 13,
                             color: Colors.white.withValues(alpha: 0.85),
                           ),
+                          textAlign: TextAlign.center,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
