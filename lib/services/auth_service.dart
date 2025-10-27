@@ -211,6 +211,12 @@ class AuthService {
     await prefs.remove(userKey);
   }
 
+  // Sauvegarder uniquement l'utilisateur
+  Future<void> _saveUser(User user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(userKey, json.encode(user.toJson()));
+  }
+
   // Récupérer le token
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
