@@ -52,35 +52,41 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       );
 
       if (result['success'] == true) {
-        // Rafraîchir les données de l'utilisateur
-        await ref.read(authProvider.notifier).refreshUser();
+        // L'utilisateur a déjà été mis à jour dans AuthService._saveUser()
+        // Pas besoin d'appeler refreshUser(), juste attendre un peu que le provider se mette à jour
+        await Future.delayed(const Duration(milliseconds: 100));
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      result['message'] ?? 'Profil mis à jour avec succès',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-
           // Retour à l'écran précédent
           Navigator.pop(context);
+          
+          // Afficher le message de succès après le retour
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.white),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          result['message'] ?? 'Profil mis à jour avec succès',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          });
         }
       } else {
         if (mounted) {
