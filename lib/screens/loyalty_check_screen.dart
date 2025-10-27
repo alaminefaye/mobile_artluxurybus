@@ -154,11 +154,11 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
     
     final loyaltyState = ref.watch(loyaltyProvider);
 
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) {
         // Effacer la session si elle existe
         ref.read(loyaltyProvider.notifier).reset();
-        return true;
       },
       child: Scaffold(
         appBar: AppBar(

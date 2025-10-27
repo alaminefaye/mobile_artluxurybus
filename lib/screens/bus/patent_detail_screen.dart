@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../models/bus_models.dart';
 import '../../providers/bus_provider.dart';
 import 'patent_form_screen.dart';
@@ -11,11 +10,11 @@ class PatentDetailScreen extends ConsumerWidget {
   final Patent patent;
 
   const PatentDetailScreen({
-    Key? key,
+    super.key,
     required this.busId,
     required this.busNumber,
     required this.patent,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,6 +39,7 @@ class PatentDetailScreen extends ConsumerWidget {
                 ),
               ).then((needsRefresh) {
                 if (needsRefresh == true) {
+                  if (!context.mounted) return;
                   Navigator.pop(context, true);
                 }
               });
@@ -73,7 +73,7 @@ class PatentDetailScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.description,
                         color: Colors.white,
                         size: 32,
@@ -125,7 +125,7 @@ class PatentDetailScreen extends ConsumerWidget {
                           ),
                           child: Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.timer,
                                 color: Colors.white,
                                 size: 14,

@@ -10,10 +10,10 @@ class BreakdownFormScreen extends StatefulWidget {
   final BusBreakdown? breakdown;
 
   const BreakdownFormScreen({
-    Key? key,
+    super.key,
     required this.busId,
     this.breakdown,
-  }) : super(key: key);
+  });
 
   @override
   State<BreakdownFormScreen> createState() => _BreakdownFormScreenState();
@@ -212,7 +212,7 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
             const SizedBox(height: 16),
             
             DropdownButtonFormField<String>(
-              value: _statut,
+              initialValue: _statut,
               decoration: const InputDecoration(
                 labelText: 'Statut *',
                 border: OutlineInputBorder(),
@@ -280,10 +280,10 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(Icons.receipt, color: Colors.orange),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text(
                           'Photo de facture',
                           style: TextStyle(
@@ -310,26 +310,26 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
                         children: [
                           TextButton.icon(
                             onPressed: _pickImage,
-                            icon: Icon(Icons.edit),
-                            label: Text('Changer'),
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Changer'),
                           ),
                           TextButton.icon(
                             onPressed: () => setState(() => _facturePhoto = null),
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            label: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            label: const Text('Supprimer', style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
                     ] else if (widget.breakdown?.facturePhoto != null) ...[
-                      Text(
+                      const Text(
                         'Facture actuelle disponible',
                         style: TextStyle(color: Colors.green, fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton.icon(
                         onPressed: _pickImage,
-                        icon: Icon(Icons.edit),
-                        label: Text('Remplacer la facture'),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Remplacer la facture'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
                         ),
@@ -337,8 +337,8 @@ class _BreakdownFormScreenState extends State<BreakdownFormScreen> {
                     ] else ...[
                       ElevatedButton.icon(
                         onPressed: _pickImage,
-                        icon: Icon(Icons.camera_alt),
-                        label: Text('Ajouter une photo'),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Ajouter une photo'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
                         ),

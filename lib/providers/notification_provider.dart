@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../services/notification_api_service.dart';
 import 'auth_provider.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger('NotificationNotifier');
 
 /// État des notifications
 class NotificationState {
@@ -46,10 +49,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   /// Charger les notifications
   Future<void> loadNotifications({bool refresh = false}) async {
-    print('🔄 [PROVIDER] Chargement notifications (refresh: $refresh)');
+    _log.info('🔄 [PROVIDER] Chargement notifications (refresh: $refresh)');
     
     if (refresh) {
-      print('🗑️ [PROVIDER] Vidage du cache...');
+      _log.info('🗑️ [PROVIDER] Vidage du cache...');
       state = state.copyWith(
         isLoading: true,
         error: null,
@@ -68,16 +71,16 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         limit: 20,
       );
 
-      print('📡 [PROVIDER] Réponse API: success=${response.success}');
-      print('📋 [PROVIDER] Nombre de notifications: ${response.notifications.length}');
+      _log.info('📡 [PROVIDER] Réponse API: success=${response.success}');
+      _log.info('📋 [PROVIDER] Nombre de notifications: ${response.notifications.length}');
 
       if (response.success) {
         final newNotifications = refresh 
           ? response.notifications
           : [...state.notifications, ...response.notifications];
 
-        print('✅ [PROVIDER] Mise à jour: ${newNotifications.length} notifications');
-        print('🔢 [PROVIDER] ${response.unreadCount} non lues');
+        _log.info('✅ [PROVIDER] Mise à jour: ${newNotifications.length} notifications');
+        _log.info('🔢 [PROVIDER] ${response.unreadCount} non lues');
 
         state = state.copyWith(
           notifications: newNotifications,
@@ -88,7 +91,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           error: null,
         );
       } else {
-        print('❌ [PROVIDER] Erreur API: ${response.message}');
+        _log.warning('❌ [PROVIDER] Erreur API: ${response.message}');
         // Afficher l'erreur réelle sans fallback
         state = state.copyWith(
           isLoading: false,
@@ -96,7 +99,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         );
       }
     } catch (e) {
-      print('❌ [PROVIDER] Exception: $e');
+      _log.severe('❌ [PROVIDER] Exception lors du chargement des notifications', e);
       state = state.copyWith(
         isLoading: false,
         error: 'Erreur de connexion: $e',
@@ -113,15 +116,15 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Marquer une notification comme lue
   Future<void> markAsRead(int notificationId) async {
     try {
-      print('🔔 [PROVIDER] Tentative de marquer notification $notificationId comme lue');
+      _log.info('🔔 [PROVIDER] Tentative de marquer notification $notificationId comme lue');
       
       final result = await NotificationApiService.markAsRead(notificationId);
       
-      print('📡 [PROVIDER] Résultat: ${result['success']}');
-      print('📄 [PROVIDER] Message: ${result['message']}');
+      _log.info('📡 [PROVIDER] Résultat: ${result['success']}');
+      _log.info("📄 [PROVIDER] Message: ${result['message']}");
       
       if (result['success']) {
-        print('✅ [PROVIDER] Succès! Mise à jour locale...');
+        _log.info('✅ [PROVIDER] Succès! Mise à jour locale...');
         
         // Mettre à jour localement
         final updatedNotifications = state.notifications.map((notif) {
@@ -147,12 +150,12 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           unreadCount: newUnreadCount,
         );
         
-        print('✅ [PROVIDER] État mis à jour. Nouveau compteur: $newUnreadCount');
+        _log.info('✅ [PROVIDER] État mis à jour. Nouveau compteur: $newUnreadCount');
       } else {
-        print('❌ [PROVIDER] Échec: ${result['message']}');
+        _log.warning("❌ [PROVIDER] Échec: ${result['message']}");
       }
     } catch (e) {
-      print('❌ [PROVIDER] Exception: $e');
+      _log.severe('❌ [PROVIDER] Exception lors du marquage comme lu', e);
       // Gestion d'erreur silencieuse pour ne pas perturber l'UX
       // Log l'erreur sans interrompre l'expérience utilisateur
     }

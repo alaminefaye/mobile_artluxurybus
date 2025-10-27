@@ -65,6 +65,7 @@ class BreakdownDetailScreen extends StatelessWidget {
                 ),
               ).then((needsRefresh) {
                 if (needsRefresh == true) {
+                  if (!context.mounted) return;
                   Navigator.pop(context, true);
                 }
               });
@@ -86,7 +87,7 @@ class BreakdownDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [statutColor, statutColor.withOpacity(0.7)],
+                  colors: [statutColor, statutColor.withValues(alpha: 0.7)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -96,7 +97,7 @@ class BreakdownDetailScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.warning_rounded,
                         color: Colors.white,
                         size: 32,
@@ -296,7 +297,7 @@ class BreakdownDetailScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Supprimer la panne'),
-        content: Text(
+        content: const Text(
           'Voulez-vous vraiment supprimer cette panne ?',
         ),
         actions: [

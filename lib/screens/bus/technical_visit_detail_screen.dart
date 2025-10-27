@@ -8,10 +8,10 @@ class TechnicalVisitDetailScreen extends StatelessWidget {
   final int busId;
 
   const TechnicalVisitDetailScreen({
-    Key? key,
+    super.key,
     required this.visit,
     required this.busId,
-  }) : super(key: key);
+  });
 
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';

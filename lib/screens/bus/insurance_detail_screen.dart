@@ -39,6 +39,7 @@ class InsuranceDetailScreen extends StatelessWidget {
                 ),
               ).then((needsRefresh) {
                 if (needsRefresh == true) {
+                  if (!context.mounted) return;
                   Navigator.pop(context, true);
                 }
               });
@@ -72,7 +73,7 @@ class InsuranceDetailScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.shield,
                         color: Colors.white,
                         size: 32,

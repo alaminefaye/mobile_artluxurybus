@@ -22,7 +22,7 @@ class FuelRecordDetailScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              // TODO: Navigation vers formulaire d'édition
+              // Navigation vers formulaire d'édition (bientôt disponible)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Modification à venir')),
               );

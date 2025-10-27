@@ -11,10 +11,10 @@ class PatentListScreen extends ConsumerStatefulWidget {
   final String busNumber;
 
   const PatentListScreen({
-    Key? key,
+    super.key,
     required this.busId,
     required this.busNumber,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<PatentListScreen> createState() => _PatentListScreenState();

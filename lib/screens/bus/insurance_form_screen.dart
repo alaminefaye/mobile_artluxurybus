@@ -10,10 +10,10 @@ class InsuranceFormScreen extends StatefulWidget {
   final InsuranceRecord? insurance;
 
   const InsuranceFormScreen({
-    Key? key,
+    super.key,
     required this.busId,
     this.insurance,
-  }) : super(key: key);
+  });
 
   @override
   State<InsuranceFormScreen> createState() => _InsuranceFormScreenState();
@@ -230,10 +230,10 @@ class _InsuranceFormScreenState extends State<InsuranceFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(Icons.attach_file, color: Colors.blue),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text(
                           'Document photo',
                           style: TextStyle(
@@ -260,26 +260,26 @@ class _InsuranceFormScreenState extends State<InsuranceFormScreen> {
                         children: [
                           TextButton.icon(
                             onPressed: _pickImage,
-                            icon: Icon(Icons.edit),
-                            label: Text('Changer'),
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Changer'),
                           ),
                           TextButton.icon(
                             onPressed: () => setState(() => _documentPhoto = null),
-                            icon: Icon(Icons.delete, color: Colors.red),
-                            label: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            label: const Text('Supprimer', style: TextStyle(color: Colors.red)),
                           ),
                         ],
                       ),
                     ] else if (widget.insurance?.documentPhoto != null) ...[
-                      Text(
+                      const Text(
                         'Document actuel disponible',
                         style: TextStyle(color: Colors.green, fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       ElevatedButton.icon(
                         onPressed: _pickImage,
-                        icon: Icon(Icons.edit),
-                        label: Text('Remplacer le document'),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Remplacer le document'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
                         ),
@@ -287,8 +287,8 @@ class _InsuranceFormScreenState extends State<InsuranceFormScreen> {
                     ] else ...[
                       ElevatedButton.icon(
                         onPressed: _pickImage,
-                        icon: Icon(Icons.camera_alt),
-                        label: Text('Ajouter une photo'),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Ajouter une photo'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                         ),

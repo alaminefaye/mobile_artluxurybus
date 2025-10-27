@@ -8,10 +8,10 @@ class VidangeFormScreen extends StatefulWidget {
   final BusVidange? vidange;
 
   const VidangeFormScreen({
-    Key? key,
+    super.key,
     required this.busId,
     this.vidange,
-  }) : super(key: key);
+  });
 
   @override
   State<VidangeFormScreen> createState() => _VidangeFormScreenState();
@@ -55,9 +55,7 @@ class _VidangeFormScreenState extends State<VidangeFormScreen> {
         if (isLastDate) {
           _lastVidangeDate = picked;
           // Auto-calculer +10 jours si next n'est pas défini
-          if (_nextVidangeDate == null) {
-            _nextVidangeDate = picked.add(const Duration(days: 10));
-          }
+          _nextVidangeDate ??= picked.add(const Duration(days: 10));
         } else {
           _nextVidangeDate = picked;
         }

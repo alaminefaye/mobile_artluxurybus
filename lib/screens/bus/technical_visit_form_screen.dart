@@ -10,10 +10,10 @@ class TechnicalVisitFormScreen extends StatefulWidget {
   final TechnicalVisit? visit; // Pour l'édition
 
   const TechnicalVisitFormScreen({
-    Key? key,
+    super.key,
     required this.busId,
     this.visit,
-  }) : super(key: key);
+  });
 
   @override
   State<TechnicalVisitFormScreen> createState() => _TechnicalVisitFormScreenState();

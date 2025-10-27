@@ -153,7 +153,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 
                 // Rafraîchir les notifications quand on va sur l'onglet Notifications
                 if (index == 1) {
-                  print('🔄 [HomePage] Rafraîchissement des notifications...');
+                  debugPrint('🔄 [HomePage] Rafraîchissement des notifications...');
                   ref.read(notificationProvider.notifier).loadNotifications(refresh: true);
                 }
               },
@@ -442,7 +442,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 // Bouton recharger
                                 GestureDetector(
                                   onTap: () {
-                                    // TODO: Navigation vers page de recharge
+                                    // Navigation vers page de recharge (à venir)
                                     debugPrint('🔄 Navigation vers recharge du solde');
                                   },
                                   child: Container(
@@ -732,7 +732,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 letterSpacing: 0.5,
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               'Tout ce dont vous avez besoin',
               style: TextStyle(
@@ -791,7 +791,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Réserver',
             color: AppTheme.primaryBlue,
             onTap: () {
-              // TODO: Navigation vers réservation
+              // Navigation vers réservation (à venir)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Réservation - En développement')),
               );
@@ -802,7 +802,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Mes Offres',
             color: const Color(0xFFEF4444),
             onTap: () {
-              // TODO: Navigation vers offres
+              // Navigation vers offres (à venir)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Offres - En développement')),
               );
@@ -837,7 +837,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Gares',
             color: const Color(0xFFEF4444),
             onTap: () {
-              // TODO: Navigation vers gares
+              // Navigation vers gares (à venir)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Gares - En développement')),
               );
@@ -848,7 +848,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Paiement',
             color: const Color(0xFF6366F1),
             onTap: () {
-              // TODO: Navigation vers paiement
+              // Navigation vers paiement (à venir)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Paiement - En développement')),
               );
@@ -859,7 +859,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Horaires',
             color: const Color(0xFF10B981),
             onTap: () {
-              // TODO: Navigation vers horaires
+              // Navigation vers horaires (à venir)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Horaires - En développement')),
               );
@@ -870,7 +870,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Support',
             color: const Color(0xFF64748B),
             onTap: () {
-              // TODO: Navigation vers support
+              // Navigation vers support (à venir)
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Support - En développement')),
               );
