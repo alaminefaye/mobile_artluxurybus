@@ -168,8 +168,8 @@ class _PatentListScreenState extends ConsumerState<PatentListScreen> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          final needsRefresh = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => PatentDetailScreen(
@@ -179,6 +179,11 @@ class _PatentListScreenState extends ConsumerState<PatentListScreen> {
               ),
             ),
           );
+          
+          // Rafraîchir la liste si nécessaire
+          if (needsRefresh == true) {
+            ref.invalidate(patentsProvider((busId: widget.busId, page: _currentPage)));
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),

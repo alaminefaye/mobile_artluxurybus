@@ -27,8 +27,8 @@ class PatentDetailScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final needsRefresh = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => PatentFormScreen(
@@ -37,12 +37,12 @@ class PatentDetailScreen extends ConsumerWidget {
                     patent: patent,
                   ),
                 ),
-              ).then((needsRefresh) {
-                if (needsRefresh == true) {
-                  if (!context.mounted) return;
-                  Navigator.pop(context, true);
-                }
-              });
+              );
+              
+              // Si modifié, retourner à la liste avec true
+              if (needsRefresh == true && context.mounted) {
+                Navigator.pop(context, true);
+              }
             },
           ),
           IconButton(
