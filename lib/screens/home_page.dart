@@ -2095,7 +2095,35 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ],
                   ),
                 ),
-                child: SafeArea(
+                child: Stack(
+                  children: [
+                    // Cercles décoratifs
+                    Positioned(
+                      top: -50,
+                      right: -50,
+                      child: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: -30,
+                      left: -30,
+                      child: Container(
+                        width: 150,
+                        height: 150,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    ),
+                    // Contenu du profil
+                    SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
@@ -2181,6 +2209,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ],
                     ),
                   ),
+                ),
+                  ],
                 ),
               ),
             ),
