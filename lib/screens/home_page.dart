@@ -24,6 +24,7 @@ import 'voice_settings_screen.dart';
 import 'theme_settings_screen.dart';
 import 'company_info_screen.dart';
 import 'edit_profile_screen.dart';
+import 'security_screen.dart';
 import '../services/announcement_manager.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -2149,16 +2150,21 @@ class _HomePageState extends ConsumerState<HomePage> {
                               radius: 35,
                               backgroundColor:
                                   Colors.white.withValues(alpha: 0.2),
-                              child: Text(
-                                user.name.isNotEmpty
-                                    ? user.name[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              backgroundImage: user.profilePhotoUrl != null
+                                  ? NetworkImage(user.profilePhotoUrl!)
+                                  : null,
+                              child: user.profilePhotoUrl == null
+                                  ? Text(
+                                      user.name.isNotEmpty
+                                          ? user.name[0].toUpperCase()
+                                          : 'U',
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : null,
                             ),
                             Positioned(
                               bottom: -2,
@@ -2249,14 +2255,28 @@ class _HomePageState extends ConsumerState<HomePage> {
                         title: 'Informations personnelles',
                         subtitle: 'Modifier vos données',
                         color: AppTheme.primaryBlue,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EditProfileScreen(),
+                            ),
+                          );
+                        },
                       ),
                       _buildModernProfileOption(
                         icon: Icons.security_rounded,
                         title: 'Sécurité',
                         subtitle: 'Mot de passe et sécurité',
                         color: Colors.green,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SecurityScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

@@ -1,0 +1,144 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/horaire_model.dart';
+
+class HoraireService {
+  // URL de base de votre API
+  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
+  
+  // Timeout pour les requêtes
+  static const Duration timeoutDuration = Duration(seconds: 10);
+
+  /// Récupère tous les horaires actifs
+  Future<List<Horaire>> fetchAllHoraires() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/horaires'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          final List<dynamic> data = jsonData['data'];
+          return data.map((json) => Horaire.fromJson(json)).toList();
+        }
+      }
+      throw Exception('Échec du chargement des horaires');
+    } catch (e) {
+      print('Erreur fetchAllHoraires: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Récupère les horaires d'une gare spécifique
+  Future<List<Horaire>> fetchHorairesByGare(int gareId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/horaires/gare/$gareId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          final List<dynamic> data = jsonData['data'];
+          return data.map((json) => Horaire.fromJson(json)).toList();
+        }
+      }
+      throw Exception('Échec du chargement des horaires');
+    } catch (e) {
+      print('Erreur fetchHorairesByGare: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Récupère les horaires par identifiant d'appareil
+  Future<List<Horaire>> fetchHorairesByAppareil(String appareil) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/horaires/appareil/$appareil'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          final List<dynamic> data = jsonData['data'];
+          return data.map((json) => Horaire.fromJson(json)).toList();
+        }
+      }
+      throw Exception('Échec du chargement des horaires');
+    } catch (e) {
+      print('Erreur fetchHorairesByAppareil: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Récupère les horaires du jour
+  Future<Map<String, List<Horaire>>> fetchTodayHoraires() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/horaires/today'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          final Map<String, dynamic> data = jsonData['data'];
+          Map<String, List<Horaire>> groupedHoraires = {};
+
+          data.forEach((gare, horairesJson) {
+            final List<dynamic> horairesData = horairesJson['horaires'];
+            groupedHoraires[gare] = horairesData
+                .map((json) => Horaire.fromJson(json))
+                .toList();
+          });
+
+          return groupedHoraires;
+        }
+      }
+      throw Exception('Échec du chargement des horaires');
+    } catch (e) {
+      print('Erreur fetchTodayHoraires: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Récupère un horaire spécifique
+  Future<Horaire> fetchHoraireById(int id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/horaires/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          return Horaire.fromJson(jsonData['data']);
+        }
+      }
+      throw Exception('Échec du chargement de l\'horaire');
+    } catch (e) {
+      print('Erreur fetchHoraireById: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+}

@@ -320,10 +320,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
                       backgroundImage: _selectedImage != null
                           ? FileImage(_selectedImage!)
-                          : (user?.profilePhoto != null
-                              ? NetworkImage(user!.profilePhoto!)
+                          : (user?.profilePhotoUrl != null
+                              ? NetworkImage(user!.profilePhotoUrl!)
                               : null) as ImageProvider?,
-                      child: _selectedImage == null && user?.profilePhoto == null
+                      child: _selectedImage == null && user?.profilePhotoUrl == null
                           ? Text(
                         user?.name.isNotEmpty == true
                             ? user!.name[0].toUpperCase()

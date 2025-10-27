@@ -99,6 +99,16 @@ class User {
   String? get displayName => name;
   String? get displayRole => role;
   List<String>? get roles => permissions;
+  String? get phone => phoneNumber;
+  
+  // Getter pour l'URL complète de la photo de profil
+  String? get profilePhotoUrl {
+    if (profilePhoto == null) return null;
+    // Si c'est déjà une URL complète, la retourner telle quelle
+    if (profilePhoto!.startsWith('http')) return profilePhoto;
+    // Sinon, construire l'URL complète
+    return 'https://gestion-compagny.universaltechnologiesafrica.com/storage/$profilePhoto';
+  }
 }
 
 // Note: Fonctions de conversion supprimées car plus utilisées avec les nouvelles méthodes fromJson/toJson manuelles

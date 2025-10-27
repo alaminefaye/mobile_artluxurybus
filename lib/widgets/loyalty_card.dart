@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:async';
 import 'package:vector_math/vector_math_64.dart' hide Colors;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/simple_loyalty_models.dart';
+import '../providers/horaire_riverpod_provider.dart';
 
 enum LoyaltyCardType { tickets, courriers, combined }
 
-class LoyaltyCard extends StatefulWidget {
+class LoyaltyCard extends ConsumerStatefulWidget {
   final LoyaltyClient client;
   final double screenWidth;
   final double screenHeight;
@@ -23,10 +25,10 @@ class LoyaltyCard extends StatefulWidget {
   });
 
   @override
-  State<LoyaltyCard> createState() => _LoyaltyCardState();
+  ConsumerState<LoyaltyCard> createState() => _LoyaltyCardState();
 }
 
-class _LoyaltyCardState extends State<LoyaltyCard>
+class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
@@ -562,26 +564,70 @@ class _LoyaltyCardState extends State<LoyaltyCard>
 
   // Tableau des départs style aéroport
   Widget _buildDeparturesBoard() {
-    // Données fictives de départs (à remplacer par des vraies données de l'API)
-    final allDepartures = [
-      {'destination': 'Dakar', 'time': '08:30', 'gate': 'A1', 'status': 'À l\'heure'},
-      {'destination': 'Thiès', 'time': '09:15', 'gate': 'A2', 'status': 'À l\'heure'},
-      {'destination': 'Saint-Louis', 'time': '10:00', 'gate': 'B1', 'status': 'Embarquement'},
-      {'destination': 'Kaolack', 'time': '10:45', 'gate': 'B2', 'status': 'À l\'heure'},
-      {'destination': 'Ziguinchor', 'time': '11:30', 'gate': 'C1', 'status': 'Retardé'},
-      {'destination': 'Tambacounda', 'time': '12:15', 'gate': 'C2', 'status': 'À l\'heure'},
-      {'destination': 'Kolda', 'time': '13:00', 'gate': 'D1', 'status': 'À l\'heure'},
-      {'destination': 'Matam', 'time': '13:45', 'gate': 'D2', 'status': 'À l\'heure'},
-      {'destination': 'Louga', 'time': '14:30', 'gate': 'E1', 'status': 'Embarquement'},
-      {'destination': 'Kédougou', 'time': '15:15', 'gate': 'E2', 'status': 'À l\'heure'},
-      {'destination': 'Sédhiou', 'time': '16:00', 'gate': 'F1', 'status': 'À l\'heure'},
-      {'destination': 'Diourbel', 'time': '16:45', 'gate': 'F2', 'status': 'À l\'heure'},
-      {'destination': 'Fatick', 'time': '17:30', 'gate': 'G1', 'status': 'À l\'heure'},
-      {'destination': 'Kaffrine', 'time': '18:15', 'gate': 'G2', 'status': 'À l\'heure'},
-    ];
+    // Récupérer les horaires depuis le provider
+    final horaires = ref.watch(prochainsDepartsProvider);
+    
+    // Convertir les horaires en format compatible avec le carrousel
+    final departures = horaires.take(14).map((h) {
+      // Déterminer le statut en français
+      String statutText;
+      switch (h.statut) {
+        case 'a_l_heure':
+          statutText = 'À l\'heure';
+          break;
+        case 'embarquement':
+          statutText = 'Embarquement';
+          break;
+        case 'termine':
+          statutText = 'Terminé';
+          break;
+        default:
+          statutText = 'À l\'heure';
+      }
+
+      return {
+        'destination': h.trajet.destination,
+        'time': h.heure,
+        'gate': h.bus?.registrationNumber ?? 'N/A',
+        'status': statutText,
+      };
+    }).toList();
+
+    // Si pas de données, afficher un message
+    if (departures.isEmpty) {
+      return Container(
+        width: widget.screenWidth * 0.95,
+        height: widget.screenHeight * 0.8,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.grey.shade800, Colors.grey.shade900],
+          ),
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.schedule, size: 64, color: Colors.white54),
+              SizedBox(height: 16),
+              Text(
+                'Aucun départ disponible',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return _DeparturesBoardCarousel(
-      allDepartures: allDepartures,
+      allDepartures: departures,
       screenWidth: widget.screenWidth,
       screenHeight: widget.screenHeight,
     );
@@ -839,8 +885,8 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                 itemCount: departures.length,
                 itemBuilder: (context, index) {
                   final departure = departures[index];
-                  final isDelayed = departure['status'] == 'Retardé';
                   final isBoarding = departure['status'] == 'Embarquement';
+                  final isTermine = departure['status'] == 'Terminé';
                   
                   // Animation avec délai progressif pour chaque ligne (plus lent et visible)
                   return TweenAnimationBuilder<double>(
@@ -924,7 +970,7 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                                     vertical: widget.screenWidth * 0.01,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: isDelayed 
+                                    color: isTermine 
                                         ? Colors.red.withValues(alpha: 0.2)
                                         : isBoarding
                                             ? Colors.green.withValues(alpha: 0.2)
@@ -934,7 +980,7 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                                   child: Text(
                                     departure['status']!,
                                     style: TextStyle(
-                                      color: isDelayed 
+                                      color: isTermine 
                                           ? Colors.red
                                           : isBoarding
                                               ? Colors.green
