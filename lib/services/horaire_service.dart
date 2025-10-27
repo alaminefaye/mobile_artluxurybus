@@ -101,11 +101,22 @@ class HoraireService {
           final Map<String, dynamic> data = jsonData['data'];
           Map<String, List<Horaire>> groupedHoraires = {};
 
-          data.forEach((gare, horairesJson) {
-            final List<dynamic> horairesData = horairesJson['horaires'];
-            groupedHoraires[gare] = horairesData
-                .map((json) => Horaire.fromJson(json))
-                .toList();
+          data.forEach((gareName, gareData) {
+            if (gareData is Map && gareData['horaires'] is List) {
+              final List<dynamic> horairesJson = gareData['horaires'];
+              
+              // Convertir chaque horaire en ajoutant les infos de la gare
+              groupedHoraires[gareName] = horairesJson.map((horaireJson) {
+                // Créer une structure complète avec la gare
+                final completeHoraire = Map<String, dynamic>.from(horaireJson);
+                completeHoraire['gare'] = {
+                  'id': gareData['id'] ?? 0,
+                  'nom': gareName,
+                  'appareil': gareData['appareil'],
+                };
+                return Horaire.fromJson(completeHoraire);
+              }).toList();
+            }
           });
 
           return groupedHoraires;

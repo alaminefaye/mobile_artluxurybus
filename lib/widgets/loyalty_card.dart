@@ -588,7 +588,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
       return {
         'destination': h.trajet.destination,
         'time': h.heure,
-        'gate': h.bus?.registrationNumber ?? 'N/A',
+        'gate': h.busNumber ?? 'N/A',
         'status': statutText,
       };
     }).toList();
