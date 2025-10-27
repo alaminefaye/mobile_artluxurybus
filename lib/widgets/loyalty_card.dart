@@ -586,7 +586,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
       }
 
       return {
-        'destination': h.trajet.destination,
+        'destination': '${h.trajet.embarquement} → ${h.trajet.destination}',
         'time': h.heure,
         'gate': h.busNumber ?? 'N/A',
         'status': statutText,
