@@ -76,7 +76,6 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
               indicatorColor: Colors.deepPurple,
               tabs: [
                 Tab(icon: Icon(Icons.info), text: 'Infos'),
-                Tab(icon: Icon(Icons.build), text: 'Maintenance'),
                 Tab(icon: Icon(Icons.local_gas_station), text: 'Carburant'),
                 Tab(icon: Icon(Icons.fact_check), text: 'Visites'),
                 Tab(icon: Icon(Icons.shield), text: 'Assurance'),
@@ -92,7 +91,6 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
             child: TabBarView(
               children: [
                 _buildInfoTab(bus),
-                _buildMaintenanceTab(ref),
                 _buildFuelTab(ref),
                 _buildTechnicalVisitsTab(ref),
                 _buildInsuranceTab(ref),
@@ -212,77 +210,6 @@ class _BusDetailScreenState extends ConsumerState<BusDetailScreen> {
           ]),
         ],
       ],
-    );
-  }
-
-  Widget _buildMaintenanceTab(WidgetRef ref) {
-    final maintenanceAsync = ref.watch(maintenanceListProvider(widget.busId));
-    
-    return maintenanceAsync.when(
-      data: (response) {
-        if (response.data.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(maintenanceListProvider(widget.busId));
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.7,
-                child: _buildEmptyState('Aucune maintenance enregistrée'),
-              ),
-            ),
-          );
-        }
-        
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(maintenanceListProvider(widget.busId));
-          },
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: response.data.length,
-            itemBuilder: (context, index) {
-            final maintenance = response.data[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.orange.withValues(alpha: 0.1),
-                  child: const Icon(Icons.build, color: Colors.orange),
-                ),
-                title: Text(maintenance.maintenanceType ?? 'Type non spécifié'),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_formatDate(maintenance.maintenanceDate)),
-                    if (maintenance.description != null)
-                      Text(
-                        maintenance.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                  ],
-                ),
-                trailing: maintenance.cost != null
-                    ? Text(
-                        '${maintenance.cost!.toStringAsFixed(0)} FCFA',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                      )
-                    : null,
-              ),
-            );
-          },
-        ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => _buildErrorState(error.toString()),
     );
   }
 
