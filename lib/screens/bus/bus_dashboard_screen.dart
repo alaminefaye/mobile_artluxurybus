@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/bus_provider.dart';
 import '../../models/bus_models.dart';
 import 'bus_list_screen.dart';
-import 'breakdown_detail_screen.dart';
 
 class BusDashboardScreen extends ConsumerWidget {
   const BusDashboardScreen({super.key});
@@ -48,15 +47,6 @@ class BusDashboardScreen extends ConsumerWidget {
             
             // Grille de statistiques
             _buildStatsGrid(context, dashboard.stats),
-            
-            const SizedBox(height: 24),
-            
-            // Pannes récentes
-            if (dashboard.recentBreakdowns.isNotEmpty) ...[
-              _buildSectionHeader(context, 'Pannes Récentes', Icons.warning_amber),
-              const SizedBox(height: 12),
-              _buildRecentBreakdowns(context, dashboard.recentBreakdowns),
-            ],
             
             const SizedBox(height: 24),
             
@@ -229,11 +219,11 @@ class BusDashboardScreen extends ConsumerWidget {
           'En cours',
         ),
         _buildBlinkingStatCard(
-          'Patentes',
-          stats.patenteExpiring,
-          Icons.description,
+          'Visites',
+          stats.technicalVisitExpiring,
+          Icons.checklist_rtl,
           Colors.purple,
-          'À renouveler',
+          'Techniques',
         ),
       ],
     );
@@ -342,86 +332,6 @@ class BusDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionHeader(BuildContext context, String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.deepPurple),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.titleLarge?.color,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentBreakdowns(BuildContext context, List<BusBreakdown> breakdowns) {
-    return Column(
-      children: breakdowns.take(5).map((breakdown) {
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          color: Theme.of(context).cardColor,
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: _getStatutColor(breakdown.statutReparation).withValues(alpha: 0.1),
-              child: Icon(
-                Icons.warning_rounded,
-                color: _getStatutColor(breakdown.statutReparation),
-              ),
-            ),
-            title: Text(
-              breakdown.descriptionProbleme,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Theme.of(context).textTheme.titleLarge?.color,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            subtitle: Text(
-              'Bus #${breakdown.busId} - ${_formatDate(breakdown.breakdownDate)}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).textTheme.bodyMedium?.color,
-              ),
-            ),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getStatutColor(breakdown.statutReparation).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _getStatutLabel(breakdown.statutReparation),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _getStatutColor(breakdown.statutReparation),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BreakdownDetailScreen(
-                    breakdown: breakdown,
-                    busId: breakdown.busId,
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      }).toList(),
-    );
-  }
-
   Widget _buildErrorWidget(BuildContext context, Object error, WidgetRef ref) {
     return Center(
       child: Padding(
@@ -464,47 +374,6 @@ class BusDashboardScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Color _getStatutColor(String statut) {
-    switch (statut.toLowerCase()) {
-      case 'terminee':
-        return Colors.green;
-      case 'en_cours':
-        return Colors.blue;
-      case 'en_attente_pieces':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatutLabel(String statut) {
-    switch (statut.toLowerCase()) {
-      case 'terminee':
-        return 'Terminée';
-      case 'en_cours':
-        return 'En cours';
-      case 'en_attente_pieces':
-        return 'En attente pièces';
-      default:
-        return statut;
-    }
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Aujourd\'hui';
-    } else if (difference.inDays == 1) {
-      return 'Hier';
-    } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays} jours';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }
 
