@@ -23,6 +23,12 @@ class BusDashboardStats {
   
   @JsonKey(name: 'vidange_needed')
   final int vidangeNeeded;
+  
+  @JsonKey(name: 'breakdowns_count')
+  final int breakdownsCount;
+  
+  @JsonKey(name: 'patente_expiring')
+  final int patenteExpiring;
 
   BusDashboardStats({
     required this.totalBuses,
@@ -31,6 +37,8 @@ class BusDashboardStats {
     required this.insuranceExpiring,
     required this.technicalVisitExpiring,
     required this.vidangeNeeded,
+    required this.breakdownsCount,
+    required this.patenteExpiring,
   });
 
   factory BusDashboardStats.fromJson(Map<String, dynamic> json) =>

@@ -207,7 +207,7 @@ class BusDashboardScreen extends ConsumerWidget {
       crossAxisSpacing: 16,
       childAspectRatio: 1.1,
       children: [
-        _buildStatCard(
+        _buildBlinkingStatCard(
           'Assurances',
           stats.insuranceExpiring,
           Icons.shield,
@@ -221,19 +221,19 @@ class BusDashboardScreen extends ConsumerWidget {
           Colors.blue,
           'Entretien à faire',
         ),
-        _buildStatCard(
-          'Maintenance',
-          stats.maintenanceNeeded,
-          Icons.build,
+        _buildBlinkingStatCard(
+          'Pannes',
+          stats.breakdownsCount,
+          Icons.warning_amber,
           Colors.orange,
-          'Réparations',
+          'En cours',
         ),
-        _buildStatCard(
-          'Visites',
-          stats.technicalVisitExpiring,
-          Icons.checklist_rtl,
-          Colors.amber[700]!,
-          'Techniques',
+        _buildBlinkingStatCard(
+          'Patentes',
+          stats.patenteExpiring,
+          Icons.description,
+          Colors.purple,
+          'À renouveler',
         ),
       ],
     );

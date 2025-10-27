@@ -14,6 +14,8 @@ BusDashboardStats _$BusDashboardStatsFromJson(Map<String, dynamic> json) =>
       insuranceExpiring: (json['insurance_expiring'] as num).toInt(),
       technicalVisitExpiring: (json['technical_visit_expiring'] as num).toInt(),
       vidangeNeeded: (json['vidange_needed'] as num).toInt(),
+      breakdownsCount: (json['breakdowns_count'] as num).toInt(),
+      patenteExpiring: (json['patente_expiring'] as num).toInt(),
     );
 
 Map<String, dynamic> _$BusDashboardStatsToJson(BusDashboardStats instance) =>
@@ -24,6 +26,8 @@ Map<String, dynamic> _$BusDashboardStatsToJson(BusDashboardStats instance) =>
       'insurance_expiring': instance.insuranceExpiring,
       'technical_visit_expiring': instance.technicalVisitExpiring,
       'vidange_needed': instance.vidangeNeeded,
+      'breakdowns_count': instance.breakdownsCount,
+      'patente_expiring': instance.patenteExpiring,
     };
 
 BusDashboard _$BusDashboardFromJson(Map<String, dynamic> json) => BusDashboard(
