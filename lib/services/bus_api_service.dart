@@ -1077,29 +1077,67 @@ class BusApiService {
   // ============================================================================
 
   /// Ajouter une patente
-  Future<Patent> addPatent(int busId, Patent patent) async {
+  Future<Patent> addPatent(int busId, Patent patent, {File? documentFile}) async {
     try {
       _log('➕ Ajout d\'une patente pour le bus #$busId...');
       
-      final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents'),
-        headers: headers,
-        body: json.encode(patent.toJson()),
-      ).timeout(ApiConfig.requestTimeout);
+      final token = await _getAuthToken();
       
-      if (response.statusCode == 201) {
-        final responseData = json.decode(response.body);
-        _log('✅ Patente ajoutée avec succès');
-        _log('📦 Response data: $responseData');
+      // Si document, utiliser multipart
+      if (documentFile != null) {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents'),
+        );
         
-        // Le serveur peut retourner soit directement l'objet, soit dans une clé 'data' ou 'patent'
-        final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
-        _log('📋 Patent data: $patentData');
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+        request.headers['Accept'] = 'application/json';
         
-        return Patent.fromJson(patentData);
+        request.fields['patent_number'] = patent.patentNumber;
+        request.fields['issue_date'] = patent.issueDate.toIso8601String().split('T')[0];
+        request.fields['expiry_date'] = patent.expiryDate.toIso8601String().split('T')[0];
+        request.fields['cost'] = patent.cost.toString();
+        if (patent.notes != null) request.fields['notes'] = patent.notes!;
+        
+        request.files.add(await http.MultipartFile.fromPath(
+          'document',
+          documentFile.path,
+        ));
+        
+        final streamedResponse = await request.send().timeout(ApiConfig.requestTimeout);
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        if (response.statusCode == 201) {
+          final responseData = json.decode(response.body);
+          _log('✅ Patente ajoutée avec succès');
+          final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
+          return Patent.fromJson(patentData);
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
       } else {
-        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        // Sans document, utiliser JSON normal
+        final headers = await _getHeaders();
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents'),
+          headers: headers,
+          body: json.encode(patent.toJson()),
+        ).timeout(ApiConfig.requestTimeout);
+        
+        if (response.statusCode == 201) {
+          final responseData = json.decode(response.body);
+          _log('✅ Patente ajoutée avec succès');
+          _log('📦 Response data: $responseData');
+          
+          final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
+          _log('📋 Patent data: $patentData');
+          
+          return Patent.fromJson(patentData);
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
       }
     } catch (e) {
       _log('❌ Erreur lors de l\'ajout de la patente: $e');
@@ -1108,27 +1146,66 @@ class BusApiService {
   }
 
   /// Mettre à jour une patente
-  Future<Patent> updatePatent(int busId, int patentId, Patent patent) async {
+  Future<Patent> updatePatent(int busId, int patentId, Patent patent, {File? documentFile}) async {
     try {
       _log('✏️ Modification de la patente #$patentId...');
       
-      final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents/$patentId'),
-        headers: headers,
-        body: json.encode(patent.toJson()),
-      ).timeout(ApiConfig.requestTimeout);
+      final token = await _getAuthToken();
       
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        _log('✅ Patente modifiée avec succès');
+      // Si document, utiliser multipart avec _method=PUT
+      if (documentFile != null) {
+        var request = http.MultipartRequest(
+          'POST', // Laravel utilise POST avec _method=PUT pour multipart
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents/$patentId'),
+        );
         
-        // Le serveur peut retourner soit directement l'objet, soit dans une clé 'data' ou 'patent'
-        final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+        request.headers['Accept'] = 'application/json';
         
-        return Patent.fromJson(patentData);
+        request.fields['_method'] = 'PUT';
+        request.fields['patent_number'] = patent.patentNumber;
+        request.fields['issue_date'] = patent.issueDate.toIso8601String().split('T')[0];
+        request.fields['expiry_date'] = patent.expiryDate.toIso8601String().split('T')[0];
+        request.fields['cost'] = patent.cost.toString();
+        if (patent.notes != null) request.fields['notes'] = patent.notes!;
+        
+        request.files.add(await http.MultipartFile.fromPath(
+          'document',
+          documentFile.path,
+        ));
+        
+        final streamedResponse = await request.send().timeout(ApiConfig.requestTimeout);
+        final response = await http.Response.fromStream(streamedResponse);
+        
+        if (response.statusCode == 200) {
+          final responseData = json.decode(response.body);
+          _log('✅ Patente modifiée avec succès');
+          final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
+          return Patent.fromJson(patentData);
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
       } else {
-        throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        // Sans document, utiliser PUT normal
+        final headers = await _getHeaders();
+        final response = await http.put(
+          Uri.parse('${ApiConfig.baseUrl}/buses/$busId/patents/$patentId'),
+          headers: headers,
+          body: json.encode(patent.toJson()),
+        ).timeout(ApiConfig.requestTimeout);
+        
+        if (response.statusCode == 200) {
+          final responseData = json.decode(response.body);
+          _log('✅ Patente modifiée avec succès');
+          
+          final patentData = responseData['data'] ?? responseData['patent'] ?? responseData;
+          
+          return Patent.fromJson(patentData);
+        } else {
+          throw Exception('Erreur ${response.statusCode}: ${response.body}');
+        }
       }
     } catch (e) {
       _log('❌ Erreur lors de la modification de la patente: $e');

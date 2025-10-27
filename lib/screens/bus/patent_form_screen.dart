@@ -295,28 +295,46 @@ class _PatentFormScreenState extends ConsumerState<PatentFormScreen> {
         patentNumber: _patentNumberController.text,
         issueDate: _issueDate!,
         expiryDate: _expiryDate!,
-        cost: double.parse(_costController.text),
+        cost: double.tryParse(_costController.text) ?? 0,
         notes: _notesController.text.isNotEmpty ? _notesController.text : null,
         documentPath: widget.patent?.documentPath,
+        documentUrl: widget.patent?.documentUrl,
         createdAt: widget.patent?.createdAt,
       );
 
       if (widget.patent != null) {
-        await busService.updatePatent(widget.busId, widget.patent!.id, patentData);
+        // Modification avec fichier optionnel
+        await busService.updatePatent(
+          widget.busId, 
+          widget.patent!.id, 
+          patentData,
+          documentFile: _documentFile,
+        );
       } else {
-        await busService.addPatent(widget.busId, patentData);
+        // Ajout avec fichier optionnel
+        await busService.addPatent(
+          widget.busId, 
+          patentData,
+          documentFile: _documentFile,
+        );
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.patent != null ? 'Patente modifiée avec succès' : 'Patente ajoutée avec succès')),
+          SnackBar(
+            content: Text(widget.patent != null ? 'Patente modifiée avec succès' : 'Patente ajoutée avec succès'),
+            backgroundColor: Colors.green,
+          ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true); // Retourner true pour indiquer qu'il faut rafraîchir
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
