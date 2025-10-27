@@ -689,9 +689,12 @@ class _HomePageState extends ConsumerState<HomePage> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? Colors.grey.shade800 : Colors.white,
+            color: isDark ? color.withValues(alpha: 0.15) : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: isDark ? Border.all(color: Colors.grey.shade700, width: 1) : null,
+            border: Border.all(
+              color: isDark ? color.withValues(alpha: 0.4) : Colors.transparent,
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: color.withValues(alpha: 0.2),
@@ -700,7 +703,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ],
           ),
-          child: Icon(icon, color: color, size: 24),
+          child: Icon(icon, color: isDark ? color.withValues(alpha: 0.9) : color, size: 24),
         ),
         const SizedBox(height: 8),
         Text(
@@ -708,7 +711,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Theme.of(context).textTheme.bodyMedium?.color,
+            color: isDark ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ],
