@@ -2124,7 +2124,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     // Contenu du profil
                     SafeArea(
-                  child: Padding(
+                  child: Center(
+                    child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -2212,6 +2213,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         const SizedBox(height: 20),
                       ],
                     ),
+                  ),
                   ),
                 ),
                   ],
