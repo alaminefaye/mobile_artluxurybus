@@ -23,6 +23,7 @@ import 'about_screen.dart';
 import 'voice_settings_screen.dart';
 import 'theme_settings_screen.dart';
 import 'company_info_screen.dart';
+import 'edit_profile_screen.dart';
 import '../services/announcement_manager.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -2132,7 +2133,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Photo de profil compacte
-                        Stack(
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditProfileScreen(),
+                              ),
+                            );
+                          },
+                          child: Stack(
                           alignment: Alignment.center,
                           children: [
                             CircleAvatar(
@@ -2169,6 +2179,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                               ),
                             ),
                           ],
+                        ),
                         ),
                         const SizedBox(height: 12),
                         Text(

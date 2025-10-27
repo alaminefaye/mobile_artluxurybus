@@ -181,6 +181,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // Alias pour refreshUserProfile
+  Future<void> refreshUser() async {
+    await refreshUserProfile();
+  }
+
   // Effacer l'erreur
   void clearError() {
     state = state.copyWith(error: null);

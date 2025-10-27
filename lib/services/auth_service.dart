@@ -294,4 +294,96 @@ class AuthService {
       DebugLogger.error('❌ Erreur vérification FCM', e);
     }
   }
+
+  // Mise à jour du profil utilisateur
+  Future<Map<String, dynamic>> updateProfile({
+    required String name,
+    required String email,
+  }) async {
+    try {
+      final headers = await _authHeaders;
+      
+      final response = await http.put(
+        Uri.parse('${ApiConfig.baseUrl}/user/profile'),
+        headers: headers,
+        body: json.encode({
+          'name': name,
+          'email': email,
+        }),
+      );
+
+      DebugLogger.response(response.statusCode, response.body);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Mettre à jour l'utilisateur sauvegardé localement
+        if (data['data'] != null && data['data']['user'] != null) {
+          final updatedUser = User.fromJson(data['data']['user']);
+          await _saveUser(updatedUser);
+        }
+
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Profil mis à jour avec succès',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Erreur lors de la mise à jour',
+          'errors': data['errors'],
+        };
+      }
+    } catch (e) {
+      DebugLogger.error('Erreur updateProfile', e);
+      return {
+        'success': false,
+        'message': 'Erreur de connexion: ${e.toString()}',
+      };
+    }
+  }
+
+  // Changement de mot de passe
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  }) async {
+    try {
+      final headers = await _authHeaders;
+      
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/user/change-password'),
+        headers: headers,
+        body: json.encode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+          'new_password_confirmation': newPasswordConfirmation,
+        }),
+      );
+
+      DebugLogger.response(response.statusCode, response.body);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Mot de passe changé avec succès',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Erreur lors du changement de mot de passe',
+          'errors': data['errors'],
+        };
+      }
+    } catch (e) {
+      DebugLogger.error('Erreur changePassword', e);
+      return {
+        'success': false,
+        'message': 'Erreur de connexion: ${e.toString()}',
+      };
+    }
+  }
 }
