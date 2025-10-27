@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -15,7 +17,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  bool _isUploadingPhoto = false;
+  File? _selectedImage;
 
   @override
   void initState() {
@@ -35,6 +40,162 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
+  // Sélectionner une photo depuis la galerie ou l'appareil photo
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+
+        // Upload immédiatement la photo
+        await _uploadPhoto();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la sélection: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Afficher le choix entre galerie et appareil photo
+  Future<void> _showImageSourceDialog() async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Choisir une photo',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.photo_library, color: AppTheme.primaryBlue),
+              ),
+              title: const Text('Galerie'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.camera_alt, color: AppTheme.primaryOrange),
+              ),
+              title: const Text('Appareil photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Upload la photo vers le serveur
+  Future<void> _uploadPhoto() async {
+    if (_selectedImage == null) return;
+
+    setState(() {
+      _isUploadingPhoto = true;
+    });
+
+    try {
+      final authService = AuthService();
+      final result = await authService.uploadAvatar(_selectedImage!);
+
+      if (result['success'] == true) {
+        // Recharger l'utilisateur depuis le storage
+        await ref.read(authProvider.notifier).reloadUserFromStorage();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Photo de profil mise à jour',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Erreur lors de l\'upload'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingPhoto = false;
+          _selectedImage = null;
+        });
+      }
+    }
+  }
+
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -52,9 +213,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       );
 
       if (result['success'] == true) {
-        // L'utilisateur a déjà été mis à jour dans AuthService._saveUser()
-        // Pas besoin d'appeler refreshUser(), juste attendre un peu que le provider se mette à jour
-        await Future.delayed(const Duration(milliseconds: 100));
+        // Recharger l'utilisateur depuis SharedPreferences
+        await ref.read(authProvider.notifier).reloadUserFromStorage();
+        
+        // Petit délai pour laisser le temps au provider de se mettre à jour
+        await Future.delayed(const Duration(milliseconds: 200));
 
         if (mounted) {
           // Retour à l'écran précédent
@@ -140,10 +303,28 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               Center(
                 child: Stack(
                   children: [
-                    CircleAvatar(
+                    _isUploadingPhoto
+                        ? Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey.shade300,
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : CircleAvatar(
                       radius: 50,
                       backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
-                      child: Text(
+                      backgroundImage: _selectedImage != null
+                          ? FileImage(_selectedImage!)
+                          : (user?.profilePhoto != null
+                              ? NetworkImage(user!.profilePhoto!)
+                              : null) as ImageProvider?,
+                      child: _selectedImage == null && user?.profilePhoto == null
+                          ? Text(
                         user?.name.isNotEmpty == true
                             ? user!.name[0].toUpperCase()
                             : 'U',
@@ -152,23 +333,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryBlue,
                         ),
-                      ),
+                      ) : null,
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryOrange,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 18,
-                        ),
+                      child: GestureDetector(
+                        onTap: _isUploadingPhoto ? null : _showImageSourceDialog,
+                        child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryOrange,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
                       ),
                     ),
                   ],
@@ -176,17 +360,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: 8),
               Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    // TODO: Implémenter l'upload de photo
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Fonctionnalité à venir'),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.upload),
-                  label: const Text('Changer la photo'),
+                child: Text(
+                  _isUploadingPhoto 
+                      ? 'Upload en cours...'
+                      : 'Toucher l\'icône pour changer',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
               ),
               const SizedBox(height: 32),

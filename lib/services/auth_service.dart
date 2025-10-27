@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/simple_auth_models.dart';
@@ -386,6 +387,68 @@ class AuthService {
       }
     } catch (e) {
       DebugLogger.error('Erreur changePassword', e);
+      return {
+        'success': false,
+        'message': 'Erreur de connexion: ${e.toString()}',
+      };
+    }
+  }
+
+  // Upload de photo de profil
+  Future<Map<String, dynamic>> uploadAvatar(File avatarFile) async {
+    try {
+      final headers = await _authHeaders;
+      
+      // Créer une requête multipart
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConfig.baseUrl}/user/upload-avatar'),
+      );
+
+      // Ajouter les headers
+      request.headers.addAll(headers);
+
+      // Ajouter le fichier
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'avatar',
+          avatarFile.path,
+        ),
+      );
+
+      // Envoyer la requête
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      DebugLogger.response(response.statusCode, response.body);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Mettre à jour l'utilisateur sauvegardé localement
+        final user = await getSavedUser();
+        if (user != null && data['data'] != null) {
+          // Créer un nouvel utilisateur avec la photo mise à jour
+          final updatedUser = user.copyWith(
+            profilePhoto: data['data']['profile_photo'],
+          );
+          await _saveUser(updatedUser);
+        }
+
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Photo de profil mise à jour avec succès',
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Erreur lors de l\'upload',
+          'errors': data['errors'],
+        };
+      }
+    } catch (e) {
+      DebugLogger.error('Erreur uploadAvatar', e);
       return {
         'success': false,
         'message': 'Erreur de connexion: ${e.toString()}',

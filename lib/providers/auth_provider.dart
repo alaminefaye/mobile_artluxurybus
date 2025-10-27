@@ -186,6 +186,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await refreshUserProfile();
   }
 
+  // Recharger l'utilisateur depuis SharedPreferences
+  Future<void> reloadUserFromStorage() async {
+    try {
+      final user = await _authService.getSavedUser();
+      if (user != null) {
+        state = state.copyWith(user: user);
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Erreur lors du rechargement: $e');
+    }
+  }
+
   // Effacer l'erreur
   void clearError() {
     state = state.copyWith(error: null);
