@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../theme/app_theme.dart';
 
 class CompanyInfoScreen extends StatefulWidget {
@@ -189,7 +190,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
             icon: Icons.phone,
             label: 'Appeler',
             color: const Color(0xFF10B981),
-            onTap: () => _launchPhone('+225XXXXXXXXXX'),
+            onTap: () => _launchPhone('+2250718888807'),
           ),
         ),
         const SizedBox(width: 12),
@@ -199,7 +200,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
             icon: Icons.email,
             label: 'Email',
             color: const Color(0xFF3B82F6),
-            onTap: () => _launchEmail('contact@artluxurybus.com'),
+            onTap: () => _launchEmail('info@artluxurybus.com'),
           ),
         ),
         const SizedBox(width: 12),
@@ -746,21 +747,21 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
                 icon: Icons.facebook,
                 label: 'Facebook',
                 color: const Color(0xFF1877F2),
-                onTap: () => _launchUrl('https://facebook.com/artluxurybus'),
+                onTap: () => _launchUrl('https://www.facebook.com/share/1DCsGYN9YF/?mibextid=wwXIfr'),
+              ),
+              _buildSocialButton(
+                context,
+                icon: FontAwesomeIcons.tiktok,
+                label: 'TikTok',
+                color: Colors.black,
+                onTap: () => _launchUrl('https://www.tiktok.com/@art.luxury.bus?_t=ZM-90t4nAAHtU0&_r=1'),
               ),
               _buildSocialButton(
                 context,
                 icon: Icons.camera_alt,
                 label: 'Instagram',
                 color: const Color(0xFFE4405F),
-                onTap: () => _launchUrl('https://instagram.com/artluxurybus'),
-              ),
-              _buildSocialButton(
-                context,
-                icon: Icons.chat,
-                label: 'WhatsApp',
-                color: const Color(0xFF25D366),
-                onTap: () => _launchWhatsApp('+225XXXXXXXXXX'),
+                onTap: () => _launchUrl('https://www.instagram.com/artluxurybus?igsh=Z293ZzJ5cWZsc3Zkv'),
               ),
             ],
           ),
@@ -816,13 +817,6 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
 
   Future<void> _launchUrl(String urlString) async {
     final Uri url = Uri.parse(urlString);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
-
-  Future<void> _launchWhatsApp(String phone) async {
-    final Uri url = Uri.parse('https://wa.me/$phone');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
