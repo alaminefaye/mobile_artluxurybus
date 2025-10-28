@@ -118,15 +118,19 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Erreur de chargement', 
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(e.toString()),
-              ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Erreur de chargement', 
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(e.toString(), 
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 3),
+                ],
+              ),
             ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 8),
