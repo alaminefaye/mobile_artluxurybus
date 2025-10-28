@@ -159,4 +159,180 @@ class HoraireService {
       throw Exception('Erreur de connexion: $e');
     }
   }
+
+  /// Créer un nouvel horaire
+  Future<Horaire> createHoraire({
+    required int gareId,
+    required int trajetId,
+    int? busId,
+    required String heure,
+    String? date,
+    bool actif = true,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/horaires'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode({
+          'gare_id': gareId,
+          'trajet_id': trajetId,
+          'bus_id': busId,
+          'heure': heure,
+          'date': date,
+          'actif': actif ? 1 : 0,
+        }),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          return Horaire.fromJson(jsonData['data']);
+        }
+      }
+      throw Exception('Échec de la création de l\'horaire');
+    } catch (e) {
+      print('Erreur createHoraire: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Modifier un horaire existant
+  Future<Horaire> updateHoraire({
+    required int id,
+    int? gareId,
+    int? trajetId,
+    int? busId,
+    String? heure,
+    String? date,
+    bool? actif,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (gareId != null) body['gare_id'] = gareId;
+      if (trajetId != null) body['trajet_id'] = trajetId;
+      if (busId != null) body['bus_id'] = busId;
+      if (heure != null) body['heure'] = heure;
+      if (date != null) body['date'] = date;
+      if (actif != null) body['actif'] = actif ? 1 : 0;
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/horaires/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: json.encode(body),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          return Horaire.fromJson(jsonData['data']);
+        }
+      }
+      throw Exception('Échec de la modification de l\'horaire');
+    } catch (e) {
+      print('Erreur updateHoraire: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Supprimer un horaire
+  Future<bool> deleteHoraire(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/horaires/$id'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      }
+      throw Exception('Échec de la suppression de l\'horaire');
+    } catch (e) {
+      print('Erreur deleteHoraire: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Récupérer toutes les gares
+  Future<List<Gare>> fetchGares() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/gares'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          final List<dynamic> data = jsonData['data'];
+          return data.map((json) => Gare.fromJson(json)).toList();
+        }
+      }
+      throw Exception('Échec du chargement des gares');
+    } catch (e) {
+      print('Erreur fetchGares: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Récupérer tous les trajets
+  Future<List<Trajet>> fetchTrajets() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/trajets'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          final List<dynamic> data = jsonData['data'];
+          return data.map((json) => Trajet.fromJson(json)).toList();
+        }
+      }
+      throw Exception('Échec du chargement des trajets');
+    } catch (e) {
+      print('Erreur fetchTrajets: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
+
+  /// Récupérer tous les bus
+  Future<List<Bus>> fetchBuses() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/buses'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        if (jsonData['success'] == true) {
+          final List<dynamic> data = jsonData['data'];
+          return data.map((json) => Bus.fromJson(json)).toList();
+        }
+      }
+      throw Exception('Échec du chargement des bus');
+    } catch (e) {
+      print('Erreur fetchBuses: $e');
+      throw Exception('Erreur de connexion: $e');
+    }
+  }
 }
