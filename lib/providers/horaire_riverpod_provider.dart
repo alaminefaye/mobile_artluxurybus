@@ -210,8 +210,9 @@ final horairesTerminesProvider = Provider<List<Horaire>>((ref) {
 
 final prochainsDepartsProvider = Provider<List<Horaire>>((ref) {
   final horaires = ref.watch(horairesListProvider);
+  // Afficher TOUS les départs actifs de la journée (même terminés)
   return horaires
-      .where((h) => h.actif && h.statut != 'termine')
+      .where((h) => h.actif)
       .toList()
     ..sort((a, b) => a.heure.compareTo(b.heure));
 });
