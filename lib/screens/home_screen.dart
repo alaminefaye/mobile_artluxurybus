@@ -169,12 +169,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     title: 'Horaires',
                     subtitle: 'Gérer',
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HorairesListScreen(),
-                        ),
-                      );
+                      debugPrint('🔍 Clic sur Horaires détecté');
+                      try {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) {
+                              debugPrint('🔍 Construction de HorairesListScreen');
+                              return const HorairesListScreen();
+                            },
+                          ),
+                        );
+                      } catch (e) {
+                        debugPrint('❌ Erreur navigation: $e');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erreur: $e')),
+                        );
+                      }
                     },
                   ),
                   _buildFeatureCard(
