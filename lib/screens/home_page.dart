@@ -9,6 +9,7 @@ import '../services/feedback_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_api_service.dart';
 import '../services/ads_api_service.dart';
+import '../services/horaire_service.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
 import '../widgets/location_display_widget.dart';
@@ -55,6 +56,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           FeedbackApiService.setToken(token);
           NotificationApiService.setToken(token);
           AdsApiService.setToken(token);
+          HoraireService.setToken(token);
 
           // Charger les notifications pour tous les utilisateurs
           // Le filtrage des notifications de feedback se fera côté affichage

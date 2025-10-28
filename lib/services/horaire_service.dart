@@ -8,6 +8,28 @@ class HoraireService {
   
   // Timeout pour les requêtes
   static const Duration timeoutDuration = Duration(seconds: 10);
+  
+  // Token d'authentification
+  static String? _token;
+  
+  // Méthode pour définir le token
+  static void setToken(String? token) {
+    _token = token;
+    print('🔑 HoraireService - Token défini: ${token != null ? "✅" : "❌"}');
+  }
+  
+  // Headers pour les requêtes authentifiées
+  Map<String, String> get _authHeaders => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    if (_token != null) 'Authorization': 'Bearer $_token',
+  };
+  
+  // Headers pour les requêtes publiques
+  Map<String, String> get _publicHeaders => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
 
   /// Récupère tous les horaires actifs
   Future<List<Horaire>> fetchAllHoraires() async {
@@ -96,10 +118,7 @@ class HoraireService {
 
       final response = await http.get(
         Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _publicHeaders, // Endpoint public
       ).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -172,10 +191,7 @@ class HoraireService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/horaires'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders, // Nécessite authentification
         body: json.encode({
           'gare_id': gareId,
           'trajet_id': trajetId,
@@ -220,10 +236,7 @@ class HoraireService {
 
       final response = await http.put(
         Uri.parse('$baseUrl/horaires/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders, // Nécessite authentification
         body: json.encode(body),
       ).timeout(timeoutDuration);
 
@@ -245,10 +258,7 @@ class HoraireService {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl/horaires/$id'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders, // Nécessite authentification
       ).timeout(timeoutDuration);
 
       if (response.statusCode == 200 || response.statusCode == 204) {
@@ -266,10 +276,7 @@ class HoraireService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/gares'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders, // Nécessite authentification
       ).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -291,10 +298,7 @@ class HoraireService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/trajets'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders, // Nécessite authentification
       ).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -316,10 +320,7 @@ class HoraireService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/buses'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: _authHeaders, // Nécessite authentification
       ).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
