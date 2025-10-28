@@ -582,7 +582,14 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withOpacity(0.1),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF1a1a2e),
+                  const Color(0xFF16213e),
+                ],
+              ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -591,7 +598,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
             child: Row(
               children: [
                 Icon(Icons.location_on, 
-                  color: AppTheme.primaryBlue,
+                  color: Colors.white,
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -601,7 +608,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryBlue,
+                      color: Colors.white,
                     ),
                   ),
                 ),
