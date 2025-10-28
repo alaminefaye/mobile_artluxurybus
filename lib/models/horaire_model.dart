@@ -138,6 +138,14 @@ class Gare {
       appareil: json['appareil'],
     );
   }
+  
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Gare && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 class Trajet {
@@ -161,6 +169,14 @@ class Trajet {
       prix: double.parse(json['prix'].toString()),
     );
   }
+  
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Trajet && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 class Bus {
@@ -181,4 +197,12 @@ class Bus {
       seatCount: json['seat_count'],
     );
   }
+  
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Bus && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

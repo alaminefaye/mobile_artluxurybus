@@ -35,43 +35,106 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
     if (_isEditing) {
       _heureController.text = widget.horaire!.heure;
-      _selectedGare = Gare(
-        id: widget.horaire!.gare.id,
-        nom: widget.horaire!.gare.nom,
-        appareil: widget.horaire!.gare.appareil,
-      );
-      _selectedTrajet = widget.horaire!.trajet;
-      if (widget.horaire!.busNumber != null) {
-        // Le bus sera sélectionné une fois la liste chargée
-      }
     }
+    _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoadingData = true);
     try {
-      final results = await Future.wait([
-        _horaireService.fetchGares(),
-        _horaireService.fetchTrajets(),
-        _horaireService.fetchBuses(),
-      ]);
+      debugPrint('📥 Chargement des données...');
+      
+      // Charger les gares
+      debugPrint('📍 Chargement des gares...');
+      final gares = await _horaireService.fetchGares();
+      debugPrint('✅ ${gares.length} gares chargées');
+      
+      // Charger les trajets
+      debugPrint('🛣️ Chargement des trajets...');
+      final trajets = await _horaireService.fetchTrajets();
+      debugPrint('✅ ${trajets.length} trajets chargés');
+      
+      // Charger les bus
+      debugPrint('🚌 Chargement des bus...');
+      final buses = await _horaireService.fetchBuses();
+      debugPrint('✅ ${buses.length} bus chargés');
 
       setState(() {
-        _gares = results[0] as List<Gare>;
-        _trajets = results[1] as List<Trajet>;
-        _buses = results[2] as List<Bus>;
+        _gares = gares;
+        _trajets = trajets;
+        _buses = buses;
+        
+        // En mode édition, sélectionner les valeurs existantes
+        if (_isEditing) {
+          debugPrint('📝 Mode édition - Sélection des valeurs existantes');
+          debugPrint('   Gare recherchée: ${widget.horaire!.gare.id} - ${widget.horaire!.gare.nom}');
+          debugPrint('   Trajet recherché: ${widget.horaire!.trajet.id} - ${widget.horaire!.trajet.embarquement} → ${widget.horaire!.trajet.destination}');
+          
+          // Trouver la gare correspondante
+          try {
+            _selectedGare = _gares.firstWhere(
+              (g) => g.id == widget.horaire!.gare.id,
+            );
+            debugPrint('   ✅ Gare trouvée: ${_selectedGare!.nom}');
+          } catch (e) {
+            debugPrint('   ⚠️ Gare non trouvée, utilisation de la première');
+            _selectedGare = _gares.isNotEmpty ? _gares.first : null;
+          }
+          
+          // Trouver le trajet correspondant
+          try {
+            _selectedTrajet = _trajets.firstWhere(
+              (t) => t.id == widget.horaire!.trajet.id,
+            );
+            debugPrint('   ✅ Trajet trouvé: ${_selectedTrajet!.embarquement} → ${_selectedTrajet!.destination}');
+          } catch (e) {
+            debugPrint('   ⚠️ Trajet non trouvé, utilisation du premier');
+            _selectedTrajet = _trajets.isNotEmpty ? _trajets.first : null;
+          }
+          
+          // Trouver le bus correspondant si présent
+          if (widget.horaire!.busNumber != null) {
+            debugPrint('   Bus recherché: ${widget.horaire!.busNumber}');
+            try {
+              _selectedBus = _buses.firstWhere(
+                (b) => b.registrationNumber == widget.horaire!.busNumber,
+              );
+              debugPrint('   ✅ Bus trouvé: ${_selectedBus!.registrationNumber}');
+            } catch (e) {
+              debugPrint('   ⚠️ Bus non trouvé');
+            }
+          }
+        }
+        
         _isLoadingData = false;
+        debugPrint('✅ Chargement terminé avec succès');
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erreur _loadData: $e');
+      debugPrint('Stack trace: $stackTrace');
       setState(() => _isLoadingData = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur de chargement: $e'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Erreur de chargement', 
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(e.toString()),
+              ],
+            ),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 8),
+            action: SnackBarAction(
+              label: 'Réessayer',
+              textColor: Colors.white,
+              onPressed: _loadData,
+            ),
           ),
         );
       }
