@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/loyalty_provider.dart';
+import '../providers/horaire_riverpod_provider.dart';
 import '../models/simple_loyalty_models.dart';
 import '../widgets/loyalty_card.dart';
 import '../widgets/ad_banner.dart';
@@ -235,10 +236,15 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
   Widget _buildClientDashboard(LoyaltyClient client, double screenWidth, double screenHeight) {
     return RefreshIndicator(
       onRefresh: () async {
-        final notifier = ref.read(loyaltyProvider.notifier);
-        await notifier.refreshClient();
-        setState(() { _profileFuture = notifier.getClientProfile(); });
+        // Rafraîchir le profil client
+        final loyaltyNotifier = ref.read(loyaltyProvider.notifier);
+        await loyaltyNotifier.refreshClient();
+        setState(() { _profileFuture = loyaltyNotifier.getClientProfile(); });
         await _profileFuture;
+        
+        // Rafraîchir les horaires
+        final horaireNotifier = ref.read(horaireProvider.notifier);
+        await horaireNotifier.refresh();
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
