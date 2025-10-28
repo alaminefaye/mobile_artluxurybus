@@ -1,28 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/horaire_model.dart';
+import '../../services/horaire_service.dart';
 import '../../theme/app_theme.dart';
 
-class HoraireFormScreen extends StatefulWidget {
+class HoraireFormScreen extends ConsumerStatefulWidget {
   final Horaire? horaire; // null = création, non-null = modification
 
   const HoraireFormScreen({super.key, this.horaire});
 
   @override
-  State<HoraireFormScreen> createState() => _HoraireFormScreenState();
+  ConsumerState<HoraireFormScreen> createState() => _HoraireFormScreenState();
 }
 
-class _HoraireFormScreenState extends State<HoraireFormScreen> {
+class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _heureController = TextEditingController();
+  final _horaireService = HoraireService();
   
   bool _isLoading = false;
+  bool _isLoadingData = true;
   bool get _isEditing => widget.horaire != null;
+
+  // Listes déroulantes
+  List<Gare> _gares = [];
+  List<Trajet> _trajets = [];
+  List<Bus> _buses = [];
+
+  // Sélections
+  Gare? _selectedGare;
+  Trajet? _selectedTrajet;
+  Bus? _selectedBus;
 
   @override
   void initState() {
     super.initState();
+    _loadData();
     if (_isEditing) {
       _heureController.text = widget.horaire!.heure;
+      _selectedGare = Gare(
+        id: widget.horaire!.gare.id,
+        nom: widget.horaire!.gare.nom,
+        appareil: widget.horaire!.gare.appareil,
+      );
+      _selectedTrajet = widget.horaire!.trajet;
+      if (widget.horaire!.busNumber != null) {
+        // Le bus sera sélectionné une fois la liste chargée
+      }
+    }
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoadingData = true);
+    try {
+      final results = await Future.wait([
+        _horaireService.fetchGares(),
+        _horaireService.fetchTrajets(),
+        _horaireService.fetchBuses(),
+      ]);
+
+      setState(() {
+        _gares = results[0] as List<Gare>;
+        _trajets = results[1] as List<Trajet>;
+        _buses = results[2] as List<Bus>;
+        _isLoadingData = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingData = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur de chargement: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -34,6 +86,17 @@ class _HoraireFormScreenState extends State<HoraireFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingData) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing ? 'Modifier l\'horaire' : 'Nouvel horaire'),
+          backgroundColor: AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Modifier l\'horaire' : 'Nouvel horaire'),
@@ -108,57 +171,89 @@ class _HoraireFormScreenState extends State<HoraireFormScreen> {
 
               const SizedBox(height: 16),
 
-              // Sélection Gare (TODO)
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.location_on),
-                  title: const Text('Gare'),
-                  subtitle: Text(_isEditing ? widget.horaire!.gare.nom : 'À sélectionner'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sélection de gare - À implémenter')),
-                    );
-                  },
+              // Sélection Gare
+              DropdownButtonFormField<Gare>(
+                value: _selectedGare,
+                decoration: InputDecoration(
+                  labelText: 'Gare *',
+                  prefixIcon: const Icon(Icons.location_on),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                items: _gares.map((gare) {
+                  return DropdownMenuItem(
+                    value: gare,
+                    child: Text(gare.nom),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedGare = value);
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Veuillez sélectionner une gare';
+                  }
+                  return null;
+                },
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
 
-              // Sélection Trajet (TODO)
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.route),
-                  title: const Text('Trajet'),
-                  subtitle: Text(_isEditing 
-                      ? '${widget.horaire!.trajet.embarquement} → ${widget.horaire!.trajet.destination}'
-                      : 'À sélectionner'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sélection de trajet - À implémenter')),
-                    );
-                  },
+              // Sélection Trajet
+              DropdownButtonFormField<Trajet>(
+                value: _selectedTrajet,
+                decoration: InputDecoration(
+                  labelText: 'Trajet *',
+                  prefixIcon: const Icon(Icons.route),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                items: _trajets.map((trajet) {
+                  return DropdownMenuItem(
+                    value: trajet,
+                    child: Text('${trajet.embarquement} → ${trajet.destination}'),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() => _selectedTrajet = value);
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Veuillez sélectionner un trajet';
+                  }
+                  return null;
+                },
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
 
-              // Sélection Bus (TODO)
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.directions_bus),
-                  title: const Text('Bus'),
-                  subtitle: Text(_isEditing && widget.horaire!.busNumber != null
-                      ? widget.horaire!.busNumber!
-                      : 'Optionnel'),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Sélection de bus - À implémenter')),
-                    );
-                  },
+              // Sélection Bus (optionnel)
+              DropdownButtonFormField<Bus>(
+                value: _selectedBus,
+                decoration: InputDecoration(
+                  labelText: 'Bus (optionnel)',
+                  prefixIcon: const Icon(Icons.directions_bus),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+                items: [
+                  const DropdownMenuItem<Bus>(
+                    value: null,
+                    child: Text('Aucun'),
+                  ),
+                  ..._buses.map((bus) {
+                    return DropdownMenuItem(
+                      value: bus,
+                      child: Text('${bus.registrationNumber} (${bus.seatCount} places)'),
+                    );
+                  }).toList(),
+                ],
+                onChanged: (value) {
+                  setState(() => _selectedBus = value);
+                },
               ),
 
               const SizedBox(height: 32),
@@ -214,11 +309,37 @@ class _HoraireFormScreenState extends State<HoraireFormScreen> {
   Future<void> _saveHoraire() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedGare == null || _selectedTrajet == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez remplir tous les champs obligatoires'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implémenter l'appel API
-      await Future.delayed(const Duration(seconds: 1));
+      if (_isEditing) {
+        // Modification
+        await _horaireService.updateHoraire(
+          id: widget.horaire!.id,
+          gareId: _selectedGare!.id,
+          trajetId: _selectedTrajet!.id ?? 0,
+          busId: _selectedBus?.id,
+          heure: _heureController.text,
+        );
+      } else {
+        // Création
+        await _horaireService.createHoraire(
+          gareId: _selectedGare!.id,
+          trajetId: _selectedTrajet!.id ?? 0,
+          busId: _selectedBus?.id,
+          heure: _heureController.text,
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/horaire_riverpod_provider.dart';
+import '../../services/horaire_service.dart';
 import '../../theme/app_theme.dart';
 import 'horaire_form_screen.dart';
 
@@ -11,6 +12,7 @@ class HorairesListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final horairesState = ref.watch(horaireProvider);
     final horaires = horairesState.horaires;
+    final horaireService = HoraireService();
 
     return Scaffold(
       appBar: AppBar(
@@ -129,14 +131,9 @@ class HorairesListScreen extends ConsumerWidget {
                                 ],
                                 onSelected: (value) {
                                   if (value == 'edit') {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => HoraireFormScreen(horaire: horaire),
-                                      ),
-                                    );
+                                    _editHoraire(context, ref, horaire);
                                   } else if (value == 'delete') {
-                                    _confirmDelete(context, ref, horaire.id);
+                                    _confirmDelete(context, ref, horaireService, horaire.id);
                                   }
                                 },
                               ),
@@ -148,18 +145,41 @@ class HorairesListScreen extends ConsumerWidget {
                     ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const HoraireFormScreen(),
-            ),
-          );
+          _createHoraire(context, ref);
         },
         icon: const Icon(Icons.add),
         label: const Text('Nouvel horaire'),
         backgroundColor: AppTheme.primaryBlue,
       ),
     );
+  }
+
+  Future<void> _createHoraire(BuildContext context, WidgetRef ref) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const HoraireFormScreen(),
+      ),
+    );
+
+    if (result == true) {
+      // Rafraîchir la liste
+      ref.read(horaireProvider.notifier).refresh();
+    }
+  }
+
+  Future<void> _editHoraire(BuildContext context, WidgetRef ref, horaire) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HoraireFormScreen(horaire: horaire),
+      ),
+    );
+
+    if (result == true) {
+      // Rafraîchir la liste
+      ref.read(horaireProvider.notifier).refresh();
+    }
   }
 
   Color _getStatusColor(String statut) {
@@ -175,7 +195,7 @@ class HorairesListScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, int horaireId) async {
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref, HoraireService horaireService, int horaireId) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -196,13 +216,29 @@ class HorairesListScreen extends ConsumerWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      // TODO: Implémenter la suppression via l'API
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Suppression non implémentée - À faire'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      try {
+        await horaireService.deleteHoraire(horaireId);
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Horaire supprimé avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Rafraîchir la liste
+          ref.read(horaireProvider.notifier).refresh();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 }
