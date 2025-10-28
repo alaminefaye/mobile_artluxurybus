@@ -31,12 +31,14 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
   Gare? _selectedGare;
   Trajet? _selectedTrajet;
   Bus? _selectedBus;
+  String _selectedStatut = 'a_l_heure'; // Statut par défaut
 
   @override
   void initState() {
     super.initState();
     if (_isEditing) {
       _heureController.text = widget.horaire!.heure;
+      _selectedStatut = widget.horaire!.statut; // Initialiser le statut
     }
     _loadData();
   }
@@ -299,6 +301,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
               // Sélection Bus (optionnel)
               DropdownButtonFormField<Bus>(
                 value: _selectedBus,
+                isExpanded: true, // Important pour éviter l'overflow
                 decoration: InputDecoration(
                   labelText: 'Bus (optionnel)',
                   prefixIcon: const Icon(Icons.directions_bus),
@@ -314,12 +317,66 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                   ..._buses.map((bus) {
                     return DropdownMenuItem(
                       value: bus,
-                      child: Text('${bus.registrationNumber} (${bus.seatCount} places)'),
+                      child: Text(
+                        '${bus.registrationNumber} (${bus.seatCount} places)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     );
                   }).toList(),
                 ],
                 onChanged: (value) {
                   setState(() => _selectedBus = value);
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              // Sélection Statut
+              DropdownButtonFormField<String>(
+                value: _selectedStatut,
+                decoration: InputDecoration(
+                  labelText: 'Statut',
+                  prefixIcon: const Icon(Icons.info_outline),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'a_l_heure',
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.blue, size: 20),
+                        SizedBox(width: 8),
+                        Text('À l\'heure'),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'embarquement',
+                    child: Row(
+                      children: [
+                        Icon(Icons.flight_takeoff, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Text('Embarquement'),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'termine',
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle_outline, color: Colors.red, size: 20),
+                        SizedBox(width: 8),
+                        Text('Terminé'),
+                      ],
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _selectedStatut = value);
+                  }
                 },
               ),
 
@@ -397,6 +454,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
           trajetId: _selectedTrajet!.id ?? 0,
           busId: _selectedBus?.id,
           heure: _heureController.text,
+          statut: _selectedStatut,
         );
       } else {
         // Création
@@ -405,6 +463,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
           trajetId: _selectedTrajet!.id ?? 0,
           busId: _selectedBus?.id,
           heure: _heureController.text,
+          statut: _selectedStatut,
         );
       }
 

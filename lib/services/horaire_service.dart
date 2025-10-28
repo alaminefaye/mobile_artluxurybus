@@ -187,6 +187,7 @@ class HoraireService {
     int? busId,
     required String heure,
     String? date,
+    String? statut,
     bool actif = true,
   }) async {
     try {
@@ -199,6 +200,7 @@ class HoraireService {
           'bus_id': busId,
           'heure': heure,
           'date': date,
+          'statut': statut,
           'actif': actif ? 1 : 0,
         }),
       ).timeout(timeoutDuration);
@@ -224,6 +226,7 @@ class HoraireService {
     int? busId,
     String? heure,
     String? date,
+    String? statut,
     bool? actif,
   }) async {
     try {
@@ -233,6 +236,7 @@ class HoraireService {
       if (busId != null) body['bus_id'] = busId;
       if (heure != null) body['heure'] = heure;
       if (date != null) body['date'] = date;
+      if (statut != null) body['statut'] = statut;
       if (actif != null) body['actif'] = actif ? 1 : 0;
 
       final response = await http.put(
