@@ -205,19 +205,31 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
           // Barre de recherche et filtres
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.grey.shade100,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF1a1a2e),
+                  const Color(0xFF16213e),
+                ],
+              ),
+            ),
             child: Column(
               children: [
                 // Recherche par heure ou trajet
                 TextField(
                   controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Rechercher (heure, ville...)',
+                    labelStyle: TextStyle(color: Colors.grey.shade400),
                     hintText: 'Ex: 06:00, Dakar, Thiès',
-                    prefixIcon: const Icon(Icons.search),
+                    hintStyle: TextStyle(color: Colors.grey.shade600),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear),
+                            icon: Icon(Icons.clear, color: Colors.grey.shade400),
                             onPressed: () {
                               _searchController.clear();
                               _applyFilters();
@@ -226,9 +238,18 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                         : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade700),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade700),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: const Color(0xFF0f3460),
                   ),
                   onChanged: (value) => _applyFilters(),
                 ),
@@ -242,14 +263,26 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedGareFilter,
+                        dropdownColor: const Color(0xFF0f3460),
+                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Gare',
-                          prefixIcon: const Icon(Icons.location_on, size: 20),
+                          labelStyle: TextStyle(color: Colors.grey.shade400),
+                          prefixIcon: Icon(Icons.location_on, size: 20, color: Colors.grey.shade400),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: const Color(0xFF0f3460),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8,
                           ),
@@ -281,14 +314,26 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedStatutFilter,
+                        dropdownColor: const Color(0xFF0f3460),
+                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Statut',
-                          prefixIcon: const Icon(Icons.info_outline, size: 20),
+                          labelStyle: TextStyle(color: Colors.grey.shade400),
+                          prefixIcon: Icon(Icons.info_outline, size: 20, color: Colors.grey.shade400),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: const Color(0xFF0f3460),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8,
                           ),
@@ -330,14 +375,26 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedTrajetFilter,
+                        dropdownColor: const Color(0xFF0f3460),
+                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Destination',
-                          prefixIcon: const Icon(Icons.place, size: 20),
+                          labelStyle: TextStyle(color: Colors.grey.shade400),
+                          prefixIcon: Icon(Icons.place, size: 20, color: Colors.grey.shade400),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: const Color(0xFF0f3460),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8,
                           ),
@@ -369,14 +426,26 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedSortOption,
+                        dropdownColor: const Color(0xFF0f3460),
+                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Trier par',
-                          prefixIcon: const Icon(Icons.sort, size: 20),
+                          labelStyle: TextStyle(color: Colors.grey.shade400),
+                          prefixIcon: Icon(Icons.sort, size: 20, color: Colors.grey.shade400),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade700),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
                           ),
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: const Color(0xFF0f3460),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8,
                           ),
@@ -417,10 +486,12 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                       children: [
                         TextButton.icon(
                           onPressed: _resetFilters,
-                          icon: const Icon(Icons.clear_all),
-                          label: const Text('Réinitialiser'),
+                          icon: const Icon(Icons.clear_all, color: Colors.white70),
+                          label: const Text('Réinitialiser', 
+                            style: TextStyle(color: Colors.white70),
+                          ),
                           style: TextButton.styleFrom(
-                            foregroundColor: AppTheme.primaryBlue,
+                            backgroundColor: Colors.white.withOpacity(0.1),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -430,13 +501,13 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryBlue.withOpacity(0.1),
+                            color: AppTheme.primaryBlue,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             '${_filteredHoraires.length} résultat${_filteredHoraires.length > 1 ? 's' : ''}',
                             style: const TextStyle(
-                              color: AppTheme.primaryBlue,
+                              color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
