@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'admin/horaires_list_screen.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../models/user.dart';
@@ -864,9 +865,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Horaires',
             color: const Color(0xFF10B981),
             onTap: () {
-              // Navigation vers horaires (à venir)
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Horaires - En développement')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HorairesListScreen(),
+                ),
               );
             },
           ),
@@ -948,7 +951,12 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Horaires',
             color: const Color(0xFF10B981),
             onTap: () {
-              // TODO: Navigation vers horaires
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HorairesListScreen(),
+                ),
+              );
             },
           ),
           _buildServiceIcon(
@@ -1945,7 +1953,14 @@ class _HomePageState extends ConsumerState<HomePage> {
           'title': 'Horaires',
           'subtitle': 'Consulter les horaires',
           'color': const Color(0xFF10B981),
-          'onTap': () {}, // TODO: Navigation
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const HorairesListScreen(),
+              ),
+            );
+          },
         },
         {
           'icon': Icons.local_shipping_rounded,
