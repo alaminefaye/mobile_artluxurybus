@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/horaire_model.dart';
 import '../../services/horaire_service.dart';
 import '../../theme/app_theme.dart';
 import 'horaire_form_screen.dart';
 
-class HorairesDetailScreen extends ConsumerStatefulWidget {
+class HorairesDetailScreen extends StatefulWidget {
   const HorairesDetailScreen({super.key});
 
   @override
-  ConsumerState<HorairesDetailScreen> createState() => _HorairesDetailScreenState();
+  State<HorairesDetailScreen> createState() => _HorairesDetailScreenState();
 }
 
-class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
+class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
   final _horaireService = HoraireService();
   final _searchController = TextEditingController();
   
@@ -23,9 +22,12 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
   bool _isLoading = true;
   String? _selectedGareFilter;
   String? _selectedStatutFilter;
+  String? _selectedTrajetFilter;
+  String _selectedSortOption = 'heure'; // heure, gare, statut
   
-  // Liste des gares pour le filtre
+  // Listes pour les filtres
   List<String> _garesNames = [];
+  List<String> _trajetsDestinations = [];
 
   @override
   void initState() {
@@ -71,6 +73,10 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
   void _groupHorairesByGare() {
     _horairesByGare.clear();
     _garesNames.clear();
+    _trajetsDestinations.clear();
+    
+    // Collecter les destinations uniques pour le filtre
+    final destinationsSet = <String>{};
     
     for (var horaire in _filteredHoraires) {
       final gareName = horaire.gare.nom;
@@ -79,24 +85,48 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
         _garesNames.add(gareName);
       }
       _horairesByGare[gareName]!.add(horaire);
+      
+      // Ajouter la destination
+      destinationsSet.add(horaire.trajet.destination);
     }
     
-    // Trier les horaires dans chaque gare par heure
+    _trajetsDestinations = destinationsSet.toList()..sort();
+    
+    // Trier les horaires dans chaque gare selon l'option de tri
     _horairesByGare.forEach((key, value) {
-      value.sort((a, b) => a.heure.compareTo(b.heure));
+      _sortHoraires(value);
     });
     
     // Trier les noms de gares
     _garesNames.sort();
   }
+  
+  void _sortHoraires(List<Horaire> horaires) {
+    switch (_selectedSortOption) {
+      case 'heure':
+        horaires.sort((a, b) => a.heure.compareTo(b.heure));
+        break;
+      case 'statut':
+        horaires.sort((a, b) {
+          final order = {'a_l_heure': 0, 'embarquement': 1, 'termine': 2};
+          return (order[a.statut] ?? 3).compareTo(order[b.statut] ?? 3);
+        });
+        break;
+      case 'destination':
+        horaires.sort((a, b) => a.trajet.destination.compareTo(b.trajet.destination));
+        break;
+    }
+  }
 
   void _applyFilters() {
     setState(() {
       _filteredHoraires = _allHoraires.where((horaire) {
-        // Filtre par recherche (heure)
+        // Filtre par recherche (heure ou trajet)
         final searchQuery = _searchController.text.toLowerCase();
         final matchesSearch = searchQuery.isEmpty || 
-            horaire.heure.contains(searchQuery);
+            horaire.heure.contains(searchQuery) ||
+            horaire.trajet.embarquement.toLowerCase().contains(searchQuery) ||
+            horaire.trajet.destination.toLowerCase().contains(searchQuery);
         
         // Filtre par gare
         final matchesGare = _selectedGareFilter == null || 
@@ -106,7 +136,11 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
         final matchesStatut = _selectedStatutFilter == null || 
             horaire.statut == _selectedStatutFilter;
         
-        return matchesSearch && matchesGare && matchesStatut;
+        // Filtre par destination
+        final matchesTrajet = _selectedTrajetFilter == null ||
+            horaire.trajet.destination == _selectedTrajetFilter;
+        
+        return matchesSearch && matchesGare && matchesStatut && matchesTrajet;
       }).toList();
       
       _groupHorairesByGare();
@@ -118,6 +152,8 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
       _searchController.clear();
       _selectedGareFilter = null;
       _selectedStatutFilter = null;
+      _selectedTrajetFilter = null;
+      _selectedSortOption = 'heure';
       _filteredHoraires = _allHoraires;
       _groupHorairesByGare();
     });
@@ -172,11 +208,12 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
             color: Colors.grey.shade100,
             child: Column(
               children: [
-                // Recherche par heure
+                // Recherche par heure ou trajet
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    labelText: 'Rechercher par heure (ex: 06:00)',
+                    labelText: 'Rechercher (heure, ville...)',
+                    hintText: 'Ex: 06:00, Dakar, Thiès',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -198,7 +235,7 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
                 
                 const SizedBox(height: 12),
                 
-                // Filtres
+                // Ligne 1: Gare et Statut
                 Row(
                   children: [
                     // Filtre par gare
@@ -284,19 +321,128 @@ class _HorairesDetailScreenState extends ConsumerState<HorairesDetailScreen> {
                   ],
                 ),
                 
+                const SizedBox(height: 12),
+                
+                // Ligne 2: Destination et Tri
+                Row(
+                  children: [
+                    // Filtre par destination
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedTrajetFilter,
+                        decoration: InputDecoration(
+                          labelText: 'Destination',
+                          prefixIcon: const Icon(Icons.place, size: 20),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8,
+                          ),
+                        ),
+                        isExpanded: true,
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text('Toutes', style: TextStyle(fontSize: 14)),
+                          ),
+                          ..._trajetsDestinations.map((dest) => DropdownMenuItem(
+                            value: dest,
+                            child: Text(dest, 
+                              style: const TextStyle(fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedTrajetFilter = value);
+                          _applyFilters();
+                        },
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 8),
+                    
+                    // Tri
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedSortOption,
+                        decoration: InputDecoration(
+                          labelText: 'Trier par',
+                          prefixIcon: const Icon(Icons.sort, size: 20),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8,
+                          ),
+                        ),
+                        isExpanded: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'heure',
+                            child: Text('Heure', style: TextStyle(fontSize: 14)),
+                          ),
+                          DropdownMenuItem(
+                            value: 'statut',
+                            child: Text('Statut', style: TextStyle(fontSize: 14)),
+                          ),
+                          DropdownMenuItem(
+                            value: 'destination',
+                            child: Text('Destination', style: TextStyle(fontSize: 14)),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedSortOption = value!);
+                          _groupHorairesByGare();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                
                 // Bouton réinitialiser si des filtres sont actifs
                 if (_selectedGareFilter != null || 
-                    _selectedStatutFilter != null || 
+                    _selectedStatutFilter != null ||
+                    _selectedTrajetFilter != null ||
                     _searchController.text.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: TextButton.icon(
-                      onPressed: _resetFilters,
-                      icon: const Icon(Icons.clear_all),
-                      label: const Text('Réinitialiser les filtres'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.primaryBlue,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _resetFilters,
+                          icon: const Icon(Icons.clear_all),
+                          label: const Text('Réinitialiser'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.primaryBlue,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${_filteredHoraires.length} résultat${_filteredHoraires.length > 1 ? 's' : ''}',
+                            style: const TextStyle(
+                              color: AppTheme.primaryBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
