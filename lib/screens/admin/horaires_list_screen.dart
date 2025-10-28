@@ -4,6 +4,7 @@ import '../../providers/horaire_riverpod_provider.dart';
 import '../../services/horaire_service.dart';
 import '../../theme/app_theme.dart';
 import 'horaire_form_screen.dart';
+import 'horaires_detail_screen.dart';
 
 class HorairesListScreen extends ConsumerWidget {
   const HorairesListScreen({super.key});
@@ -20,6 +21,18 @@ class HorairesListScreen extends ConsumerWidget {
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HorairesDetailScreen(),
+                ),
+              );
+            },
+            tooltip: 'Recherche avancée',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
