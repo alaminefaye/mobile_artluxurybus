@@ -328,21 +328,29 @@ class HoraireService {
   /// Récupérer tous les bus
   Future<List<Bus>> fetchBuses() async {
     try {
+      debugPrint('🚌 Requête vers: $baseUrl/buses?simple=true');
+      
       final response = await http.get(
-        Uri.parse('$baseUrl/buses'),
+        Uri.parse('$baseUrl/buses?simple=true'),
         headers: _authHeaders, // Nécessite authentification
       ).timeout(timeoutDuration);
+
+      debugPrint('📡 Bus Response status: ${response.statusCode}');
+      debugPrint('📡 Bus Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         if (jsonData['success'] == true) {
           final List<dynamic> data = jsonData['data'];
+          debugPrint('✅ ${data.length} bus récupérés');
           return data.map((json) => Bus.fromJson(json)).toList();
         }
+      } else if (response.statusCode == 401) {
+        throw Exception('Non authentifié - Token manquant ou invalide');
       }
-      throw Exception('Échec du chargement des bus');
+      throw Exception('Échec du chargement des bus (Status: ${response.statusCode})');
     } catch (e) {
-      print('Erreur fetchBuses: $e');
+      debugPrint('❌ Erreur fetchBuses: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
