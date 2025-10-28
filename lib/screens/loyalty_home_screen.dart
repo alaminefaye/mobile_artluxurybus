@@ -19,6 +19,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
   LoyaltyCardType _selectedCardType = LoyaltyCardType.tickets;
   Future<LoyaltyProfileResponse?>? _profileFuture;
   final ValueNotifier<bool> _showingDepartures = ValueNotifier<bool>(false);
+  int _adBannerKey = 0; // Pour forcer le rafraîchissement de la bannière pub
 
   @override
   void initState() {
@@ -102,8 +103,11 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
   Widget _buildWelcomeSection(double screenWidth, double screenHeight) {
     return RefreshIndicator(
       onRefresh: () async {
-        // Rafraîchir les données
-        debugPrint('🔄 [LoyaltyHomeScreen] Actualisation de la section aperçu');
+        // Rafraîchir les publicités en recréant le widget
+        debugPrint('🔄 [LoyaltyHomeScreen] Actualisation des publicités');
+        setState(() {
+          _adBannerKey++; // Change la clé pour recréer le widget
+        });
         await Future.delayed(const Duration(milliseconds: 500));
       },
       color: AppTheme.primaryBlue,
@@ -116,7 +120,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
           // Publicité en haut
           ClipRRect(
             borderRadius: BorderRadius.circular(screenWidth * 0.04),
-            child: const AdBanner(),
+            child: AdBanner(key: ValueKey(_adBannerKey)),
           ),
 
           SizedBox(height: screenHeight * 0.03),
@@ -239,7 +243,10 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
         // Rafraîchir le profil client
         final loyaltyNotifier = ref.read(loyaltyProvider.notifier);
         await loyaltyNotifier.refreshClient();
-        setState(() { _profileFuture = loyaltyNotifier.getClientProfile(); });
+        setState(() { 
+          _profileFuture = loyaltyNotifier.getClientProfile();
+          _adBannerKey++; // Rafraîchir aussi les publicités
+        });
         await _profileFuture;
         
         // Rafraîchir les horaires
