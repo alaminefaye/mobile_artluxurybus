@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
+import 'admin/horaires_list_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<void> _refreshData() async {
+    // Recharger les données si nécessaire
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final authNotifier = ref.read(authProvider.notifier);
 
@@ -25,11 +36,17 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: RefreshIndicator(
+        onRefresh: _refreshData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height - kToolbarHeight - MediaQuery.of(context).padding.top,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Carte de bienvenue
             Card(
               elevation: 4,
@@ -150,8 +167,15 @@ class HomeScreen extends ConsumerWidget {
                   _buildFeatureCard(
                     icon: Icons.schedule,
                     title: 'Horaires',
-                    subtitle: 'À venir',
-                    onTap: () => _showComingSoon(context),
+                    subtitle: 'Gérer',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HorairesListScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _buildFeatureCard(
                     icon: Icons.confirmation_number,
@@ -174,7 +198,10 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
             ),
-          ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
