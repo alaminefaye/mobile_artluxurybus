@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/horaire_model.dart';
 
@@ -274,21 +275,30 @@ class HoraireService {
   /// Récupérer toutes les gares
   Future<List<Gare>> fetchGares() async {
     try {
+      debugPrint('🔑 Token présent: ${_token != null}');
+      debugPrint('📍 Requête vers: $baseUrl/gares');
+      
       final response = await http.get(
         Uri.parse('$baseUrl/gares'),
         headers: _authHeaders, // Nécessite authentification
       ).timeout(timeoutDuration);
 
+      debugPrint('📡 Response status: ${response.statusCode}');
+      debugPrint('📡 Response body: ${response.body}');
+
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         if (jsonData['success'] == true) {
           final List<dynamic> data = jsonData['data'];
+          debugPrint('✅ ${data.length} gares récupérées');
           return data.map((json) => Gare.fromJson(json)).toList();
         }
+      } else if (response.statusCode == 401) {
+        throw Exception('Non authentifié - Token manquant ou invalide');
       }
-      throw Exception('Échec du chargement des gares');
+      throw Exception('Échec du chargement des gares (Status: ${response.statusCode})');
     } catch (e) {
-      print('Erreur fetchGares: $e');
+      debugPrint('❌ Erreur fetchGares: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
