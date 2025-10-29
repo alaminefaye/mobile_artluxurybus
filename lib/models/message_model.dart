@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class MessageModel {
   final int id;
   final String titre;
@@ -38,12 +40,11 @@ class MessageModel {
       gareId: json['gare_id'] as int?,
       gare: json['gare'] != null ? GareInfo.fromJson(json['gare']) : null,
       appareil: json['appareil'] as String?,
-      dateDebut: json['date_debut'] != null 
-          ? DateTime.parse(json['date_debut']) 
+      dateDebut: json['date_debut'] != null
+          ? DateTime.parse(json['date_debut'])
           : null,
-      dateFin: json['date_fin'] != null 
-          ? DateTime.parse(json['date_fin']) 
-          : null,
+      dateFin:
+          json['date_fin'] != null ? DateTime.parse(json['date_fin']) : null,
       active: json['active'] as bool? ?? true,
       isExpired: json['is_expired'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at']),
@@ -71,24 +72,40 @@ class MessageModel {
 
   bool get isNotification => type == 'notification';
   bool get isAnnonce => type == 'annonce';
-  
+
   bool get isCurrentlyActive {
-    if (!active) return false;
-    if (isExpired) return false;
-    
+    if (!active) {
+      debugPrint('📅 [MessageModel] Message non actif (active=false)');
+      return false;
+    }
+    if (isExpired) {
+      debugPrint('📅 [MessageModel] Message expiré (isExpired=true)');
+      return false;
+    }
+
     final now = DateTime.now();
-    if (dateDebut != null && now.isBefore(dateDebut!)) return false;
-    if (dateFin != null && now.isAfter(dateFin!)) return false;
-    
+    if (dateDebut != null && now.isBefore(dateDebut!)) {
+      debugPrint(
+          '📅 [MessageModel] Message pas encore commencé (dateDebut: $dateDebut, now: $now)');
+      return false;
+    }
+    if (dateFin != null && now.isAfter(dateFin!)) {
+      debugPrint(
+          '📅 [MessageModel] Message terminé (dateFin: $dateFin, now: $now)');
+      return false;
+    }
+
+    debugPrint(
+        '✅ [MessageModel] Message actif (active: $active, isExpired: $isExpired, dateDebut: $dateDebut, dateFin: $dateFin)');
     return true;
   }
 
   String get formattedPeriod {
     if (dateDebut == null || dateFin == null) return '';
-    
+
     final debut = '${dateDebut!.day}/${dateDebut!.month}/${dateDebut!.year}';
     final fin = '${dateFin!.day}/${dateFin!.month}/${dateFin!.year}';
-    
+
     return 'Du $debut au $fin';
   }
 }

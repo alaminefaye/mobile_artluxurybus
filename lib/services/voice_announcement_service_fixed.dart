@@ -73,19 +73,6 @@ class VoiceAnnouncementService {
         debugPrint('❌ [VoiceService] Erreur TTS: $msg');
       });
 
-      _flutterTts.setPauseHandler(() {
-        debugPrint('⏸️ [VoiceService] Annonce mise en pause');
-      });
-
-      _flutterTts.setContinueHandler(() {
-        debugPrint('▶️ [VoiceService] Annonce reprise');
-      });
-
-      _flutterTts.setCancelHandler(() {
-        _isSpeaking = false;
-        debugPrint('⏹️ [VoiceService] Annonce annulée');
-      });
-
       _isInitialized = true;
       debugPrint('✅ [VoiceService] Initialisé avec succès');
       debugPrint(
@@ -177,6 +164,14 @@ class VoiceAnnouncementService {
   /// Boucle de lecture d'annonce : lit tout le texte, pause 5s, recommence
   Future<void> _startAnnouncementLoop(MessageModel message) async {
     while (_shouldContinue[message.id] == true) {
+      // Vérifier si l'annonce est toujours active (vérification périodique)
+      if (!message.isCurrentlyActive) {
+        debugPrint(
+            '⏹️ [VoiceService] Annonce #${message.id} n\'est plus active, arrêt automatique');
+        await stopAnnouncement(message.id);
+        break;
+      }
+
       // Vérifier si les annonces vocales sont toujours activées
       if (!await isEnabled()) {
         debugPrint('⏹️ [VoiceService] Annonces vocales désactivées, arrêt');
@@ -189,18 +184,9 @@ class VoiceAnnouncementService {
       // Lire l'annonce complète
       await _speakAnnouncement(message);
 
-      // Attendre que la lecture soit terminée (avec timeout de sécurité)
-      int timeoutCounter = 0;
-      while (_isSpeaking && _shouldContinue[message.id] == true && timeoutCounter < 300) {
+      // Attendre que la lecture soit terminée
+      while (_isSpeaking && _shouldContinue[message.id] == true) {
         await Future.delayed(const Duration(milliseconds: 100));
-        timeoutCounter++;
-      }
-
-      // Si on a atteint le timeout, forcer l'arrêt
-      if (timeoutCounter >= 300) {
-        debugPrint('⚠️ [VoiceService] Timeout de lecture, arrêt forcé');
-        await _flutterTts.stop();
-        _isSpeaking = false;
       }
 
       // Si on doit toujours continuer, pause de 5 secondes avant la prochaine répétition
@@ -213,11 +199,10 @@ class VoiceAnnouncementService {
 
   /// Lire une annonce vocale
   Future<void> _speakAnnouncement(MessageModel message) async {
-    // Arrêter toute lecture en cours
     if (_isSpeaking) {
-      debugPrint('⏳ [VoiceService] Arrêt de l\'annonce en cours...');
+      debugPrint('⏳ [VoiceService] Annonce en cours, attente...');
       await _flutterTts.stop();
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 500));
     }
 
     try {
@@ -244,17 +229,8 @@ class VoiceAnnouncementService {
 
       debugPrint('🔊 [VoiceService] Lecture: "$textToSpeak"');
 
-      // S'assurer que l'état est correct avant de commencer
-      _isSpeaking = false;
-      await Future.delayed(const Duration(milliseconds: 100));
-
       await _flutterTts.speak(textToSpeak);
-      
-      // Attendre un peu pour s'assurer que la lecture a commencé
-      await Future.delayed(const Duration(milliseconds: 200));
-      
     } catch (e) {
-      _isSpeaking = false;
       debugPrint('❌ [VoiceService] Erreur lors de la lecture: $e');
     }
   }
@@ -435,3 +411,4 @@ class VoiceAnnouncementService {
     _isInitialized = false;
   }
 }
+

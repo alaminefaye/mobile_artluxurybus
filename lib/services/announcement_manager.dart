@@ -141,10 +141,18 @@ class AnnouncementManager {
       // Arrêter les annonces qui ne sont plus actives
       final currentAnnonceIds = annonces.map((m) => m.id).toSet();
       for (var voiceAnnouncement in activeVoiceAnnouncements) {
+        // Vérifier si l'annonce n'est plus dans la liste des annonces actives
         if (!currentAnnonceIds.contains(voiceAnnouncement.id)) {
           debugPrint('⏹️ [AnnouncementManager] Arrêt annonce #${voiceAnnouncement.id} (plus active)');
           await _voiceService.stopAnnouncement(voiceAnnouncement.id);
           _processedMessageIds.remove(voiceAnnouncement.id);
+        } else {
+          // Vérifier si l'annonce est toujours active en temps réel
+          if (!voiceAnnouncement.isCurrentlyActive) {
+            debugPrint('⏹️ [AnnouncementManager] Arrêt annonce #${voiceAnnouncement.id} (expirée en temps réel)');
+            await _voiceService.stopAnnouncement(voiceAnnouncement.id);
+            _processedMessageIds.remove(voiceAnnouncement.id);
+          }
         }
       }
 

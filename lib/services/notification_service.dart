@@ -13,7 +13,7 @@ import '../firebase_options.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Notification en arrière-plan reçue - traitement silencieux
-  
+
   // Traiter la notification en arrière-plan
   await NotificationService._handleBackgroundMessage(message);
 }
@@ -24,16 +24,16 @@ class NotificationService {
   static StreamController<Map<String, dynamic>>? _notificationStreamController;
   static bool _bgHandlerRegistered = false;
   static String? _deviceId;
-  
+
   // Stream pour écouter les notifications
-  static Stream<Map<String, dynamic>>? get notificationStream => 
+  static Stream<Map<String, dynamic>>? get notificationStream =>
       _notificationStreamController?.stream;
 
   /// Initialiser Firebase et les notifications
   static Future<void> initialize() async {
     try {
       debugPrint('🔔 [NotificationService] Début initialisation...');
-      
+
       // Vérifier si Firebase est déjà initialisé
       try {
         await Firebase.initializeApp(
@@ -42,9 +42,13 @@ class NotificationService {
         debugPrint('✅ [NotificationService] Firebase initialisé');
       } catch (e) {
         if (e.toString().contains('duplicate-app')) {
-          debugPrint('ℹ️ [NotificationService] Firebase déjà initialisé, on continue...');
+          debugPrint(
+            'ℹ️ [NotificationService] Firebase déjà initialisé, on continue...',
+          );
         } else {
-          debugPrint('⚠️ [NotificationService] Erreur Firebase (non bloquante): $e');
+          debugPrint(
+            '⚠️ [NotificationService] Erreur Firebase (non bloquante): $e',
+          );
           // Ne pas bloquer l'app si Firebase échoue
         }
       }
@@ -54,7 +58,9 @@ class NotificationService {
         _deviceId = await DeviceInfoService().getDeviceId();
         debugPrint('📱 [NotificationService] Device ID: $_deviceId');
       } catch (e) {
-        debugPrint('⚠️ [NotificationService] Erreur récupération Device ID: $e');
+        debugPrint(
+          '⚠️ [NotificationService] Erreur récupération Device ID: $e',
+        );
       }
 
       // Initialiser Firebase Messaging avec gestion d'erreur
@@ -62,29 +68,39 @@ class NotificationService {
         _messaging = FirebaseMessaging.instance;
         debugPrint('✅ [NotificationService] Firebase Messaging initialisé');
       } catch (e) {
-        debugPrint('⚠️ [NotificationService] Firebase Messaging non disponible: $e');
+        debugPrint(
+          '⚠️ [NotificationService] Firebase Messaging non disponible: $e',
+        );
         // Continuer sans notifications push
       }
-      
+
       // Initialiser les notifications locales
       try {
         await _initializeLocalNotifications();
-        debugPrint('✅ [NotificationService] Notifications locales initialisées');
+        debugPrint(
+          '✅ [NotificationService] Notifications locales initialisées',
+        );
       } catch (e) {
-        debugPrint('⚠️ [NotificationService] Notifications locales non disponibles: $e');
+        debugPrint(
+          '⚠️ [NotificationService] Notifications locales non disponibles: $e',
+        );
       }
-      
+
       // Configurer le handler pour les notifications en arrière-plan (une seule fois)
       if (!_bgHandlerRegistered && _messaging != null) {
         try {
-          FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+          FirebaseMessaging.onBackgroundMessage(
+            _firebaseMessagingBackgroundHandler,
+          );
           _bgHandlerRegistered = true;
           debugPrint('✅ [NotificationService] Handler arrière-plan configuré');
         } catch (e) {
-          debugPrint('⚠️ [NotificationService] Handler arrière-plan non configuré: $e');
+          debugPrint(
+            '⚠️ [NotificationService] Handler arrière-plan non configuré: $e',
+          );
         }
       }
-      
+
       // Demander les permissions
       if (_messaging != null) {
         try {
@@ -94,7 +110,7 @@ class NotificationService {
           debugPrint('⚠️ [NotificationService] Permissions non obtenues: $e');
         }
       }
-      
+
       // Obtenir et enregistrer le token FCM
       if (_messaging != null) {
         try {
@@ -104,7 +120,7 @@ class NotificationService {
           debugPrint('⚠️ [NotificationService] Token FCM non obtenu: $e');
         }
       }
-      
+
       // Configurer les listeners
       if (_messaging != null) {
         try {
@@ -114,24 +130,29 @@ class NotificationService {
           debugPrint('⚠️ [NotificationService] Listeners non configurés: $e');
         }
       }
-      
+
       // Initialiser le stream controller
-      _notificationStreamController = StreamController<Map<String, dynamic>>.broadcast();
-      
-      debugPrint('🎉 [NotificationService] Initialisation complète avec succès !');
-      
+      _notificationStreamController =
+          StreamController<Map<String, dynamic>>.broadcast();
+
+      debugPrint(
+        '🎉 [NotificationService] Initialisation complète avec succès !',
+      );
     } catch (e, stackTrace) {
-      debugPrint('❌ [NotificationService] ERREUR lors de l\'initialisation: $e');
+      debugPrint(
+        '❌ [NotificationService] ERREUR lors de l\'initialisation: $e',
+      );
       debugPrint('Stack trace: $stackTrace');
       // NE PAS faire crasher l'app - initialiser quand même le stream
-      _notificationStreamController = StreamController<Map<String, dynamic>>.broadcast();
+      _notificationStreamController =
+          StreamController<Map<String, dynamic>>.broadcast();
     }
   }
 
   /// Initialiser les notifications locales
   static Future<void> _initializeLocalNotifications() async {
     _localNotifications = FlutterLocalNotificationsPlugin();
-    
+
     // Créer le canal de notification Android (requis pour Android 8.0+)
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'art_luxury_bus_channel', // ID du canal
@@ -142,34 +163,38 @@ class NotificationService {
       enableVibration: true,
       showBadge: true,
     );
-    
+
     // Créer le canal sur l'appareil Android
     final androidPlugin = _localNotifications!
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
       debugPrint('✅ [NotificationService] Canal Android créé: ${channel.id}');
     } else {
-      debugPrint('❌ [NotificationService] Impossible de créer le canal Android');
+      debugPrint(
+        '❌ [NotificationService] Impossible de créer le canal Android',
+      );
     }
-    
+
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+
     const InitializationSettings initializationSettings =
         InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
+
     await _localNotifications!.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
@@ -179,7 +204,7 @@ class NotificationService {
   /// Demander les permissions de notification
   static Future<void> _requestPermissions() async {
     if (_messaging == null) return;
-    
+
     NotificationSettings settings = await _messaging!.requestPermission(
       alert: true,
       badge: true,
@@ -192,7 +217,8 @@ class NotificationService {
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       // Permissions accordées pour les notifications
-    } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
       // Permissions provisoires accordées
     } else {
       // Permissions refusées par l'utilisateur
@@ -202,25 +228,25 @@ class NotificationService {
   /// Obtenir et enregistrer le token FCM
   static Future<String?> _getAndRegisterToken() async {
     if (_messaging == null) return null;
-    
+
     try {
       String? token = await _messaging!.getToken();
       if (token != null) {
         // Token FCM obtenu avec succès
-        
+
         // Sauvegarder localement
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', token);
-        
+
         // Enregistrer sur le serveur
         await _registerTokenWithServer(token);
-        
+
         // Écouter les changements de token
         _messaging!.onTokenRefresh.listen((newToken) {
           // Nouveau token FCM reçu - mise à jour automatique
           _registerTokenWithServer(newToken);
         });
-        
+
         return token;
       }
     } catch (e) {
@@ -233,34 +259,38 @@ class NotificationService {
   static Future<void> _registerTokenWithServer(String token) async {
     try {
       final deviceInfoService = DeviceInfoService();
-      
+
       // Obtenir les informations réelles de l'appareil
       final deviceType = await deviceInfoService.getDeviceType();
       final deviceId = await deviceInfoService.getDeviceId();
-      
+
       debugPrint('📱 Enregistrement FCM Token avec device_id: $deviceId');
       debugPrint('📱 Type d\'appareil: $deviceType');
-      
+
       final result = await FeedbackApiService.registerFcmToken(
         token,
         deviceType: deviceType,
         deviceId: deviceId,
       );
-      
+
       if (result['success'] == true) {
         debugPrint('✅ Token FCM enregistré avec succès sur le serveur');
       } else {
-        debugPrint('❌ Erreur lors de l\'enregistrement du token: ${result['message']}');
+        debugPrint(
+          '❌ Erreur lors de l\'enregistrement du token: ${result['message']}',
+        );
       }
     } catch (e) {
-      debugPrint('❌ Exception lors de l\'enregistrement du token sur le serveur: $e');
+      debugPrint(
+        '❌ Exception lors de l\'enregistrement du token sur le serveur: $e',
+      );
     }
   }
 
   /// Configurer les handlers de messages
   static Future<void> _setupMessageHandlers() async {
     if (_messaging == null) return;
-    
+
     // Messages reçus quand l'app est en premier plan
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       // Notification reçue en premier plan
@@ -284,17 +314,18 @@ class NotificationService {
   /// Gérer les messages en premier plan
   static void _handleForegroundMessage(RemoteMessage message) {
     // 🔊 Vérifier si c'est une annonce vocale
-    if (message.data['msg_type'] == 'annonce' || message.data['type'] == 'message_notification') {
+    if (message.data['msg_type'] == 'annonce' ||
+        message.data['type'] == 'message_notification') {
       _handleAnnouncementMessage(message);
     }
-    
+
     // Afficher une notification locale
     _showLocalNotification(
       title: message.notification?.title ?? 'Art Luxury Bus',
       body: message.notification?.body ?? 'Nouvelle notification',
       data: message.data,
     );
-    
+
     // Envoyer via le stream
     _notificationStreamController?.add({
       'type': 'foreground',
@@ -308,12 +339,14 @@ class NotificationService {
   static Future<void> _handleAnnouncementMessage(RemoteMessage message) async {
     try {
       debugPrint('🔊 [NotificationService] Annonce vocale reçue');
-      
+
       // Vérifier si l'annonce est destinée à cet appareil
       final appareil = message.data['appareil']?.toString().trim();
-      
+
       // Si pas d'appareil spécifié ou 'tous', traiter l'annonce
-      if (appareil == null || appareil.isEmpty || appareil.toLowerCase() == 'tous') {
+      if (appareil == null ||
+          appareil.isEmpty ||
+          appareil.toLowerCase() == 'tous') {
         debugPrint('✅ [NotificationService] Annonce pour tous les appareils');
       }
       // Si c'est la catégorie 'mobile', traiter l'annonce
@@ -322,29 +355,39 @@ class NotificationService {
       }
       // Vérifier si c'est l'identifiant unique de CET appareil
       else if (_deviceId != null && appareil == _deviceId) {
-        debugPrint('✅ [NotificationService] Annonce pour cet appareil spécifique');
+        debugPrint(
+          '✅ [NotificationService] Annonce pour cet appareil spécifique',
+        );
       }
       // Vérifier si l'identifiant est dans une liste séparée par des virgules
       else if (appareil.contains(',')) {
         final deviceIds = appareil.split(',').map((e) => e.trim()).toList();
         if (_deviceId != null && deviceIds.contains(_deviceId)) {
-          debugPrint('✅ [NotificationService] Annonce pour cet appareil (liste multiple)');
+          debugPrint(
+            '✅ [NotificationService] Annonce pour cet appareil (liste multiple)',
+          );
         } else {
-          debugPrint('⚠️ [NotificationService] Annonce non destinée à cet appareil (liste: $appareil, device_id: $_deviceId)');
+          debugPrint(
+            '⚠️ [NotificationService] Annonce non destinée à cet appareil (liste: $appareil, device_id: $_deviceId)',
+          );
           return;
         }
       }
       // Sinon, ne pas traiter (autre catégorie ou autre device_id)
       else {
-        debugPrint('⚠️ [NotificationService] Annonce non destinée à cet appareil (appareil: $appareil, device_id: $_deviceId)');
+        debugPrint(
+          '⚠️ [NotificationService] Annonce non destinée à cet appareil (appareil: $appareil, device_id: $_deviceId)',
+        );
         return;
       }
-      
+
       // Importer dynamiquement pour éviter les dépendances circulaires
       final messageId = message.data['message_id'];
       if (messageId != null) {
         // Lancer le gestionnaire d'annonces pour traiter cette annonce
-        debugPrint('📢 [NotificationService] Déclenchement annonce #$messageId');
+        debugPrint(
+          '📢 [NotificationService] Déclenchement annonce #$messageId',
+        );
         // Le AnnouncementManager va détecter et traiter automatiquement
       }
     } catch (e) {
@@ -355,7 +398,7 @@ class NotificationService {
   /// Gérer les notifications en arrière-plan
   static Future<void> _handleBackgroundMessage(RemoteMessage message) async {
     // Message en arrière-plan reçu et traité
-    
+
     // Traitement spécifique en arrière-plan si nécessaire
     // Par exemple, sauvegarder en local, mettre à jour un compteur, etc.
   }
@@ -363,10 +406,10 @@ class NotificationService {
   /// Gérer le tap sur une notification
   static void _handleNotificationTap(RemoteMessage message) {
     // Notification cliquée par l'utilisateur
-    
+
     // Navigation selon le type de notification
     String type = message.data['type'] ?? '';
-    
+
     // Envoyer via le stream pour navigation
     _notificationStreamController?.add({
       'type': 'tap',
@@ -380,7 +423,7 @@ class NotificationService {
   /// Callback pour les notifications locales
   static void _onNotificationTap(NotificationResponse details) {
     // Notification locale cliquée par l'utilisateur
-    
+
     // Envoyer via le stream
     _notificationStreamController?.add({
       'type': 'local_tap',
@@ -395,34 +438,34 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     if (_localNotifications == null) return;
-    
+
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'art_luxury_bus_channel',
-      'Art Luxury Bus Notifications',
-      channelDescription: 'Notifications de l\'application Art Luxury Bus',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      icon: '@mipmap/ic_launcher',
-      playSound: true,
-      enableVibration: true,
-      enableLights: true,
-      // color: Color(0xFF1976D2), // Bleu Art Luxury Bus
-    );
-    
+          'art_luxury_bus_channel',
+          'Art Luxury Bus Notifications',
+          channelDescription: 'Notifications de l\'application Art Luxury Bus',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+          icon: '@mipmap/ic_launcher',
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          // color: Color(0xFF1976D2), // Bleu Art Luxury Bus
+        );
+
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
         DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-    
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
       iOS: iOSPlatformChannelSpecifics,
     );
-    
+
     await _localNotifications!.show(
       DateTime.now().millisecondsSinceEpoch.remainder(100000),
       title,
@@ -462,22 +505,30 @@ class NotificationService {
 
   /// Tester les notifications
   static Future<void> testNotification() async {
-    debugPrint('🔔 [NotificationService] TEST - Début du test de notification...');
-    
+    debugPrint(
+      '🔔 [NotificationService] TEST - Début du test de notification...',
+    );
+
     if (_localNotifications == null) {
-      debugPrint('❌ [NotificationService] TEST - Plugin de notifications locales non initialisé !');
+      debugPrint(
+        '❌ [NotificationService] TEST - Plugin de notifications locales non initialisé !',
+      );
       return;
     }
-    
-    debugPrint('✅ [NotificationService] TEST - Plugin OK, envoi de la notification...');
-    
+
+    debugPrint(
+      '✅ [NotificationService] TEST - Plugin OK, envoi de la notification...',
+    );
+
     try {
       await _showLocalNotification(
         title: 'Test Notification',
         body: 'Ceci est un test des notifications push Art Luxury Bus 🔔',
         data: {'type': 'test'},
       );
-      debugPrint('✅ [NotificationService] TEST - Notification envoyée avec succès !');
+      debugPrint(
+        '✅ [NotificationService] TEST - Notification envoyée avec succès !',
+      );
     } catch (e, stackTrace) {
       debugPrint('❌ [NotificationService] TEST - Erreur lors de l\'envoi: $e');
       debugPrint('Stack trace: $stackTrace');
