@@ -1,0 +1,177 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║          ✨ AJOUT - OPTION "APPARENCE" PAGE PUBLIQUE ✨                      ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+📅 Date : 29 Octobre 2025
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✨ NOUVELLE FONCTIONNALITÉ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ÉCRAN : Page d'accueil publique (public_screen.dart)
+AJOUT : Nouvelle carte "Apparence"
+
+DESCRIPTION :
+  • 🎨 Nouvelle option pour personnaliser le thème de l'application
+  • 🌓 Permet de changer entre mode clair, sombre et système
+  • 👤 Accessible sans connexion (sur la page publique)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 DÉTAILS DE LA CARTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ICÔNE : Icons.palette_rounded
+TITRE : "Apparence"
+DESCRIPTION : "Personnalisez le thème de l'application"
+COULEUR : Purple (violet)
+
+POSITION :
+  • Après "Votes"
+  • Avant "Plus de fonctionnalités"
+
+NAVIGATION :
+  • Ouvre ThemeSettingsScreen (écran de paramètres de thème)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 LISTE DES FONCTIONNALITÉS (ORDRE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 🎁 Points de fidélité (Bleu)
+   Consultez et gérez vos points
+   
+2. �� Suggestions et préoccupations (Orange)
+   Partagez votre avis sur nos services
+   
+3. 🗳️ Votes (Vert)
+   Participez aux sondages et votes
+   
+4. 🎨 Apparence (Violet) ← NOUVEAU !
+   Personnalisez le thème de l'application
+   
+5. 🔒 Plus de fonctionnalités (Gris)
+   Connectez-vous pour tout débloquer
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🧪 COMMENT TESTER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Lancer l'application :
+   cd /Users/mouhamadoulaminefaye/Desktop/PROJETS\ DEV/mobile_dev/artluxurybus
+   flutter run
+
+2. Navigation :
+   • Sur la page de login, cliquer sur "Ignorer"
+   • Vous arrivez sur la page d'accueil publique
+
+3. Vérifications :
+   ✅ Une nouvelle carte "Apparence" est visible
+   ✅ Elle a une icône palette (🎨) violette
+   ✅ Le titre "Apparence" est en blanc
+   ✅ La description est lisible
+   ✅ La carte est bien placée entre "Votes" et "Plus de fonctionnalités"
+
+4. Test de navigation :
+   • Cliquer sur la carte "Apparence"
+   • Vous êtes redirigé vers l'écran de paramètres de thème
+   • Vous pouvez changer le thème (Clair / Sombre / Système)
+   • Le changement s'applique immédiatement
+   • Retour en arrière fonctionne correctement
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 MODIFICATIONS TECHNIQUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FICHIER : public_screen.dart
+
+1. IMPORTS AJOUTÉS :
+   import 'theme_settings_screen.dart';
+
+2. NOUVELLE CARTE (après ligne 189) :
+   _buildFeatureCard(
+     context: context,
+     icon: Icons.palette_rounded,
+     title: 'Apparence',
+     description: 'Personnalisez le thème de l\'application',
+     color: Colors.purple,
+     onTap: () {
+       Navigator.of(context).push(
+         MaterialPageRoute(
+           builder: (context) => const ThemeSettingsScreen(),
+         ),
+       );
+     },
+     screenWidth: screenWidth,
+   ),
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 AVANTAGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Accessible sans connexion :
+   Les utilisateurs peuvent personnaliser l'apparence même sans compte
+
+✅ Meilleure expérience utilisateur :
+   Chaque utilisateur peut choisir le thème qui lui convient
+
+✅ Cohérence avec le reste de l'app :
+   Même style de carte que les autres fonctionnalités
+
+✅ Facile à trouver :
+   Bien visible sur la page d'accueil publique
+
+✅ Icône intuitive :
+   Palette = apparence/thème (compréhension immédiate)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 OPTIONS DE THÈME DISPONIBLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Dans ThemeSettingsScreen, les utilisateurs peuvent choisir :
+
+1. ☀️ Mode Clair
+   Interface avec fond blanc et textes sombres
+
+2. 🌙 Mode Sombre
+   Interface avec fond sombre et textes clairs (mode actuel)
+
+3. 📱 Système
+   Suit automatiquement le paramètre système de l'appareil
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VISUEL :
+  [x] Carte "Apparence" visible sur la page publique
+  [x] Icône palette violette visible
+  [x] Titre "Apparence" en blanc lisible
+  [x] Description lisible
+  [x] Carte bien positionnée dans la liste
+
+FONCTIONNEL :
+  [x] Navigation vers ThemeSettingsScreen fonctionne
+  [x] Changement de thème s'applique immédiatement
+  [x] Retour en arrière fonctionne
+  [x] Accessible sans connexion
+
+DESIGN :
+  [x] Cohérent avec les autres cartes
+  [x] Couleur violette distinctive
+  [x] Icône intuitive
+  [x] Textes clairs et informatifs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║               ✅ OPTION "APPARENCE" AJOUTÉE AVEC SUCCÈS ! ✅                 ║
+║                                                                               ║
+║         Les utilisateurs peuvent maintenant personnaliser le thème           ║
+║                  directement depuis la page d'accueil ! 🎉                   ║
+║                                                                               ║
+║                    Développé avec ❤️ par AL AMINE FAYE                       ║
+║                           29 Octobre 2025                                    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝

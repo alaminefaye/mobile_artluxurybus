@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/app_logo.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart' as theme_provider;
 // Models d'auth maintenant dans simple_auth_models.dart
 import '../public_screen.dart';
 import '../home_page.dart';
@@ -77,6 +78,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       );
     }
+  }
+
+  void _showThemeDialog() {
+    final themeNotifier = ref.read(theme_provider.themeModeProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.palette_outlined,
+                color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+              ),
+              const SizedBox(width: 8),
+              const Text('Apparence'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: theme_provider.ThemeMode.values.map((mode) {
+              return ListTile(
+                leading: Icon(
+                  themeNotifier.getIcon(mode),
+                  color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                ),
+                title: Text(themeNotifier.getDisplayName(mode)),
+                trailing: ref.watch(theme_provider.themeModeProvider) == mode
+                    ? Icon(
+                        Icons.check, 
+                        color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                      )
+                    : null,
+                onTap: () {
+                  themeNotifier.setThemeMode(mode);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -381,6 +427,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            
+            // Bouton Thème en haut à gauche
+            Positioned(
+              top: 12,
+              left: 12,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _showThemeDialog,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.palette_outlined,
+                      size: 20,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                ),
               ),
             ),
             

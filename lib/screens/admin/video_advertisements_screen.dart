@@ -560,7 +560,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestion des Vidéos'),
+        title: const Text('Publicités Vidéo'),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,

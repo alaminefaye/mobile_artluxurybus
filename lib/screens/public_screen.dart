@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../providers/theme_provider.dart' as theme_provider;
 import '../widgets/ad_banner.dart';
 import '../services/device_info_service.dart';
 import 'auth/login_screen.dart';
 import 'loyalty_home_screen.dart';
 import 'feedback_screen.dart';
 
-class PublicScreen extends StatefulWidget {
+class PublicScreen extends ConsumerStatefulWidget {
   const PublicScreen({super.key});
 
   @override
-  State<PublicScreen> createState() => _PublicScreenState();
+  ConsumerState<PublicScreen> createState() => _PublicScreenState();
 }
 
-class _PublicScreenState extends State<PublicScreen> {
+class _PublicScreenState extends ConsumerState<PublicScreen> {
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
   String? _deviceId;
 
@@ -46,25 +48,81 @@ class _PublicScreenState extends State<PublicScreen> {
     }
   }
 
+  void _showThemeDialog() {
+    final themeNotifier = ref.read(theme_provider.themeModeProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.palette_outlined,
+                color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+              ),
+              const SizedBox(width: 8),
+              const Text('Apparence'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: theme_provider.ThemeMode.values.map((mode) {
+              return ListTile(
+                leading: Icon(
+                  themeNotifier.getIcon(mode),
+                  color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                ),
+                title: Text(themeNotifier.getDisplayName(mode)),
+                trailing: ref.watch(theme_provider.themeModeProvider) == mode
+                    ? Icon(
+                        Icons.check, 
+                        color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                      )
+                    : null,
+                onTap: () {
+                  themeNotifier.setThemeMode(mode);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : AppTheme.primaryBlue,
         elevation: 0,
         centerTitle: true,
         title: const Text(
           'Art Luxury Bus',
           style: TextStyle(
-            color: AppTheme.primaryBlue,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.palette_outlined,
+              color: Colors.white,
+            ),
+            onPressed: _showThemeDialog,
+            tooltip: 'Changer le thème',
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -103,9 +161,9 @@ class _PublicScreenState extends State<PublicScreen> {
                         color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.info_outline_rounded,
-                        color: AppTheme.primaryBlue,
+                        color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                         size: 18,
                       ),
                     ),
@@ -114,12 +172,12 @@ class _PublicScreenState extends State<PublicScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Bienvenue !',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryBlue,
+                              color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -127,7 +185,7 @@ class _PublicScreenState extends State<PublicScreen> {
                             'Explorez nos fonctionnalités sans connexion',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[600],
+                              color: isDark ? Colors.grey[400] : Colors.grey[600],
                             ),
                           ),
                         ],
@@ -201,7 +259,7 @@ class _PublicScreenState extends State<PublicScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? Theme.of(context).cardColor : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppTheme.primaryBlue.withValues(alpha: 0.15),
@@ -209,7 +267,7 @@ class _PublicScreenState extends State<PublicScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -230,9 +288,9 @@ class _PublicScreenState extends State<PublicScreen> {
                             ),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.lock_open_rounded,
-                            color: AppTheme.primaryBlue,
+                            color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                             size: 20,
                           ),
                         ),
@@ -241,12 +299,12 @@ class _PublicScreenState extends State<PublicScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Plus de fonctionnalités',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryBlue,
+                                  color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                                 ),
                               ),
                               const SizedBox(height: 3),
@@ -254,7 +312,7 @@ class _PublicScreenState extends State<PublicScreen> {
                                 'Connectez-vous pour tout débloquer',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey[600],
+                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -270,7 +328,7 @@ class _PublicScreenState extends State<PublicScreen> {
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 14),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryOrange.withValues(alpha: 0.05),
+                          color: AppTheme.primaryOrange.withValues(alpha: isDark ? 0.15 : 0.05),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: AppTheme.primaryOrange.withValues(alpha: 0.2),
@@ -300,7 +358,7 @@ class _PublicScreenState extends State<PublicScreen> {
                                     'Identifiant appareil',
                                     style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.grey[600],
+                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -386,13 +444,15 @@ class _PublicScreenState extends State<PublicScreen> {
     required VoidCallback onTap,
     required double screenWidth,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? Theme.of(context).cardColor : Colors.white,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: color.withValues(alpha: 0.15),
@@ -400,7 +460,7 @@ class _PublicScreenState extends State<PublicScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: 0.06),
+              color: color.withValues(alpha: isDark ? 0.15 : 0.06),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -416,8 +476,8 @@ class _PublicScreenState extends State<PublicScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    color.withValues(alpha: 0.12),
-                    color.withValues(alpha: 0.06),
+                    color.withValues(alpha: isDark ? 0.2 : 0.12),
+                    color.withValues(alpha: isDark ? 0.1 : 0.06),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(9),
@@ -446,7 +506,7 @@ class _PublicScreenState extends State<PublicScreen> {
                     description,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
                     ),
                   ),
                 ],
