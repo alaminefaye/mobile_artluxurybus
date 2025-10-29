@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin/horaires_list_screen.dart';
+import 'admin/video_advertisements_screen.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../models/user.dart';
@@ -10,6 +11,7 @@ import '../services/auth_service.dart';
 import '../services/notification_api_service.dart';
 import '../services/ads_api_service.dart';
 import '../services/horaire_service.dart';
+import '../services/video_advertisement_service.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
 import '../widgets/location_display_widget.dart';
@@ -57,6 +59,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           NotificationApiService.setToken(token);
           AdsApiService.setToken(token);
           HoraireService.setToken(token);
+          VideoAdvertisementService.setToken(token);
 
           // Charger les notifications pour tous les utilisateurs
           // Le filtrage des notifications de feedback se fera côté affichage
@@ -1949,6 +1952,16 @@ class _HomePageState extends ConsumerState<HomePage> {
           'color': AppTheme.primaryBlue,
           'onTap': () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const BusDashboardScreen())),
+        },
+        {
+          'icon': Icons.play_circle_rounded,
+          'title': 'Gestion des Vidéos',
+          'subtitle': 'Publicités vidéo',
+          'color': const Color(0xFFEC4899),
+          'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const VideoAdvertisementsScreen())),
         },
         {
           'icon': Icons.schedule_rounded,
