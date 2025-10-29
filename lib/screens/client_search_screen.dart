@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
+import '../theme/app_theme.dart';
 import 'create_account_screen.dart';
 import 'register_new_client_screen.dart';
 
@@ -59,11 +60,16 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.info_outline, color: Colors.blue),
-            SizedBox(width: 8),
-            Text('Compte existant'),
+            Icon(
+              Icons.info_outline, 
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? AppTheme.primaryOrange 
+                  : Colors.blue,
+            ),
+            const SizedBox(width: 8),
+            const Text('Compte existant'),
           ],
         ),
         content: Text(
@@ -160,13 +166,17 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: (Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : Colors.blue).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.phone_android,
                     size: 60,
-                    color: Colors.blue,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : Colors.blue,
                   ),
                 ),
                 
@@ -200,15 +210,37 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 TextFormField(
                   controller: _telephoneController,
                   keyboardType: TextInputType.phone,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Numéro de téléphone',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     hintText: '+221 77 123 45 67',
-                    prefixIcon: const Icon(Icons.phone),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[400] 
+                          : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.phone,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[800] 
+                        : Colors.grey[50],
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -248,31 +280,53 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 
                 if (_errorMessage != null) const SizedBox(height: 24),
                 
-                // Bouton rechercher
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _searchClient,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                // Bouton rechercher avec gradient
+                Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.accentGradient
+                        : AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : AppTheme.primaryBlue).withValues(alpha: 0.3),
+                        spreadRadius: 1,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _searchClient,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Rechercher',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        )
-                      : const Text(
-                          'Rechercher',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  ),
                 ),
                 
                 const SizedBox(height: 24),
@@ -316,16 +370,24 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.05),
+                    color: (Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : Colors.blue).withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: (Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : Colors.blue).withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Colors.blue[700],
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : Colors.blue[700],
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -334,7 +396,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                           'Si vous avez déjà voyagé avec nous, vos informations sont peut-être déjà enregistrées. Recherchez d\'abord votre profil.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.blue[900],
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.primaryOrange 
+                                : Colors.blue[900],
                             height: 1.4,
                           ),
                         ),

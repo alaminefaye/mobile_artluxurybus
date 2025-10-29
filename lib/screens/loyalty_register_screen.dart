@@ -83,18 +83,25 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inscription Fidélité'),
-        backgroundColor: AppTheme.primaryBlue,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? AppTheme.primaryOrange 
+            : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
       ),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.primaryBlue,
-              Colors.white,
-            ],
+            colors: Theme.of(context).brightness == Brightness.dark 
+                ? [
+                    Theme.of(context).scaffoldBackgroundColor,
+                    Theme.of(context).scaffoldBackgroundColor,
+                  ]
+                : [
+                    AppTheme.primaryBlue,
+                    Colors.white,
+                  ],
           ),
         ),
         child: SafeArea(
@@ -131,7 +138,9 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Theme.of(context).cardColor 
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
@@ -152,13 +161,17 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                         decoration: InputDecoration(
                           labelText: 'Numéro de téléphone',
                           labelStyle: const TextStyle(fontSize: 13),
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.phone_rounded,
-                            color: AppTheme.primaryBlue,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.primaryOrange 
+                                : AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[100],
+                          fillColor: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.grey[800] 
+                              : Colors.grey[100],
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -176,13 +189,17 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                         decoration: InputDecoration(
                           labelText: 'Nom *',
                           labelStyle: const TextStyle(fontSize: 13),
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.person_rounded,
-                            color: AppTheme.primaryBlue,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.primaryOrange 
+                                : AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[50],
+                          fillColor: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.grey[800] 
+                              : Colors.grey[50],
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -190,8 +207,10 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppTheme.primaryBlue,
+                            borderSide: BorderSide(
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? AppTheme.primaryOrange 
+                                  : AppTheme.primaryBlue,
                               width: 2,
                             ),
                           ),
@@ -213,13 +232,17 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                         decoration: InputDecoration(
                           labelText: 'Prénom *',
                           labelStyle: const TextStyle(fontSize: 13),
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.person_outline_rounded,
-                            color: AppTheme.primaryBlue,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.primaryOrange 
+                                : AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[50],
+                          fillColor: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.grey[800] 
+                              : Colors.grey[50],
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -227,8 +250,10 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppTheme.primaryBlue,
+                            borderSide: BorderSide(
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? AppTheme.primaryOrange 
+                                  : AppTheme.primaryBlue,
                               width: 2,
                             ),
                           ),
@@ -251,13 +276,17 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                         decoration: InputDecoration(
                           labelText: 'Email (optionnel)',
                           labelStyle: const TextStyle(fontSize: 13),
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.email_outlined,
-                            color: AppTheme.primaryBlue,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.primaryOrange 
+                                : AppTheme.primaryBlue,
                             size: 18,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[50],
+                          fillColor: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.grey[800] 
+                              : Colors.grey[50],
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -265,8 +294,10 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                              color: AppTheme.primaryBlue,
+                            borderSide: BorderSide(
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? AppTheme.primaryOrange 
+                                  : AppTheme.primaryBlue,
                               width: 2,
                             ),
                           ),
@@ -322,9 +353,20 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                         width: double.infinity,
                         height: 44,
                         decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
+                          gradient: Theme.of(context).brightness == Brightness.dark 
+                              ? AppTheme.accentGradient 
+                              : AppTheme.primaryGradient,
                           borderRadius: BorderRadius.circular(10),
-                          boxShadow: AppTheme.buttonShadow,
+                          boxShadow: [
+                            BoxShadow(
+                              color: (Theme.of(context).brightness == Brightness.dark 
+                                  ? AppTheme.primaryOrange 
+                                  : AppTheme.primaryBlue).withValues(alpha: 0.3),
+                              spreadRadius: 1,
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: ElevatedButton(
                           onPressed: loyaltyState.isRegistering ? null : _register,
@@ -377,7 +419,9 @@ class _LoyaltyRegisterScreenState extends ConsumerState<LoyaltyRegisterScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Theme.of(context).cardColor.withValues(alpha: 0.9) 
+                        : Colors.white.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(

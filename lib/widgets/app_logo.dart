@@ -47,7 +47,9 @@ class AppLogo extends StatelessWidget {
             style: TextStyle(
               fontSize: size * 0.18,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? const Color(0xFFF1BD92) // AppTheme.primaryOrange
+                  : Theme.of(context).colorScheme.primary,
               letterSpacing: 1.2,
             ),
           ),

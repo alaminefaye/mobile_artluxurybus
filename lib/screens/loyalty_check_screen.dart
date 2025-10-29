@@ -163,7 +163,9 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Vérifier mes points'),
-          backgroundColor: AppTheme.primaryBlue,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark 
+              ? AppTheme.primaryOrange 
+              : AppTheme.primaryBlue,
           foregroundColor: Colors.white,
           elevation: 0,
         ),
@@ -175,12 +177,19 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.primaryBlue,
-              AppTheme.primaryBlue.withValues(alpha: 0.9),
-              AppTheme.primaryBlue.withValues(alpha: 0.6),
-              AppTheme.primaryBlue.withValues(alpha: 0.3),
-            ],
+            colors: Theme.of(context).brightness == Brightness.dark 
+                ? [
+                    Theme.of(context).scaffoldBackgroundColor,
+                    Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.9),
+                    Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8),
+                    Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                  ]
+                : [
+                    AppTheme.primaryBlue,
+                    AppTheme.primaryBlue.withValues(alpha: 0.9),
+                    AppTheme.primaryBlue.withValues(alpha: 0.6),
+                    AppTheme.primaryBlue.withValues(alpha: 0.3),
+                  ],
           ),
         ),
         child: SafeArea(
@@ -236,7 +245,9 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Theme.of(context).cardColor 
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
@@ -252,7 +263,9 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                       // Champ de saisie moderne
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[50],
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.grey[800] 
+                              : Colors.grey[50],
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: Colors.grey.withValues(alpha: 0.2),
@@ -278,7 +291,9 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                       prefixIcon: Container(
                         margin: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? AppTheme.primaryOrange 
+                              : AppTheme.primaryBlue,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Icon(
@@ -309,15 +324,22 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [
-                        AppTheme.primaryBlue,
-                        AppTheme.primaryBlue.withValues(alpha: 0.8),
-                      ],
+                      colors: Theme.of(context).brightness == Brightness.dark 
+                          ? [
+                              AppTheme.primaryOrange,
+                              AppTheme.primaryOrange.withValues(alpha: 0.8),
+                            ]
+                          : [
+                              AppTheme.primaryBlue,
+                              AppTheme.primaryBlue.withValues(alpha: 0.8),
+                            ],
                     ),
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                        color: (Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : AppTheme.primaryBlue).withValues(alpha: 0.3),
                         spreadRadius: 1,
                         blurRadius: 6,
                         offset: const Offset(0, 3),

@@ -156,7 +156,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(
                   'Bienvenue !',
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: AppTheme.primaryBlue,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : AppTheme.primaryBlue,
                     fontSize: 22,
                   ),
                 ),
@@ -195,18 +197,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           decoration: InputDecoration(
                             labelText: 'Email ou Téléphone',
-                            labelStyle: const TextStyle(fontSize: 13),
+                            labelStyle: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? AppTheme.primaryOrange 
+                                  : AppTheme.primaryBlue,
+                            ),
                             hintText: 'exemple@email.com ou 0771234567',
                             hintStyle: const TextStyle(fontSize: 14),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                color: (Theme.of(context).brightness == Brightness.dark 
+                                    ? AppTheme.primaryOrange 
+                                    : AppTheme.primaryBlue).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.email_outlined,
-                                color: AppTheme.primaryBlue,
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? AppTheme.primaryOrange 
+                                    : AppTheme.primaryBlue,
                                 size: 18,
                               ),
                             ),
@@ -234,25 +245,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
-                            labelStyle: const TextStyle(fontSize: 13),
+                            labelStyle: TextStyle(
+                              fontSize: 13,
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? AppTheme.primaryOrange 
+                                  : AppTheme.primaryBlue,
+                            ),
                             hintText: 'Votre mot de passe',
                             hintStyle: const TextStyle(fontSize: 14),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                color: (Theme.of(context).brightness == Brightness.dark 
+                                    ? AppTheme.primaryOrange 
+                                    : AppTheme.primaryBlue).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.lock_outline,
-                                color: AppTheme.primaryBlue,
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? AppTheme.primaryOrange 
+                                    : AppTheme.primaryBlue,
                                 size: 18,
                               ),
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                color: AppTheme.primaryBlue,
+                                color: Theme.of(context).brightness == Brightness.dark 
+                                    ? AppTheme.primaryOrange 
+                                    : AppTheme.primaryBlue,
                                 size: 18,
                               ),
                               onPressed: () {
@@ -300,9 +322,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Container(
                           height: 44,
                           decoration: BoxDecoration(
-                            gradient: AppTheme.primaryGradient,
+                            gradient: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.accentGradient
+                                : AppTheme.primaryGradient,
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: AppTheme.buttonShadow,
+                            boxShadow: [
+                              BoxShadow(
+                                color: (Theme.of(context).brightness == Brightness.dark 
+                                    ? AppTheme.primaryOrange 
+                                    : AppTheme.primaryBlue).withValues(alpha: 0.3),
+                                spreadRadius: 1,
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: ElevatedButton(
                             onPressed: authState.isLoading ? null : _login,
@@ -445,7 +478,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                        color: (Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : AppTheme.primaryBlue).withValues(alpha: 0.3),
                         width: 1.5,
                       ),
                       boxShadow: [
@@ -459,7 +494,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Icon(
                       Icons.palette_outlined,
                       size: 20,
-                      color: AppTheme.primaryBlue,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : AppTheme.primaryBlue,
                     ),
                   ),
                 ),
@@ -507,7 +544,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Icon(
                           Icons.skip_next_rounded,
                           size: 18,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? AppTheme.primaryOrange 
+                              : Theme.of(context).textTheme.bodyLarge?.color,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -515,7 +554,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                            color: Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.primaryOrange 
+                                : Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                         ),
                       ],

@@ -67,7 +67,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Programme Fidélité'),
-          backgroundColor: AppTheme.primaryBlue,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark 
+              ? AppTheme.primaryOrange 
+              : AppTheme.primaryBlue,
           foregroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
@@ -81,7 +83,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
           ),
         ),
       body: Container(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark 
+            ? Theme.of(context).scaffoldBackgroundColor 
+            : Colors.white,
         child: SafeArea(
           child: Column(
             children: [
@@ -110,7 +114,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
         });
         await Future.delayed(const Duration(milliseconds: 500));
       },
-      color: AppTheme.primaryBlue,
+      color: Theme.of(context).brightness == Brightness.dark 
+          ? AppTheme.primaryOrange 
+          : AppTheme.primaryBlue,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(screenWidth * 0.06),
@@ -130,11 +136,15 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
             width: double.infinity,
             height: screenHeight * 0.065,
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
+              gradient: Theme.of(context).brightness == Brightness.dark 
+                  ? AppTheme.accentGradient 
+                  : AppTheme.primaryGradient,
               borderRadius: BorderRadius.circular(screenWidth * 0.05),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                  color: (Theme.of(context).brightness == Brightness.dark 
+                      ? AppTheme.primaryOrange 
+                      : AppTheme.primaryBlue).withValues(alpha: 0.3),
                   spreadRadius: 2,
                   blurRadius: 10,
                   offset: const Offset(0, 5),
@@ -198,7 +208,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
               return Container(
                 padding: EdgeInsets.all(screenWidth * 0.04),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Theme.of(context).cardColor 
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(screenWidth * 0.04),
                   boxShadow: [
                     BoxShadow(
@@ -216,7 +228,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                       Icons.confirmation_number_rounded,
                       '10 Points',
                       'Ticket Gratuit',
-                      AppTheme.primaryBlue,
+                      Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : AppTheme.primaryBlue,
                       screenWidth,
                     ),
                     _buildBenefit(
@@ -263,7 +277,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
             Container(
               padding: EdgeInsets.all(screenWidth * 0.04),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Theme.of(context).cardColor 
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(screenWidth * 0.04),
                 boxShadow: [
                   BoxShadow(
@@ -290,7 +306,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: _selectedCardType == LoyaltyCardType.tickets
-                              ? AppTheme.primaryBlue
+                              ? (Theme.of(context).brightness == Brightness.dark 
+                                  ? AppTheme.primaryOrange 
+                                  : AppTheme.primaryBlue)
                               : Colors.grey.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(screenWidth * 0.03),
                         ),
@@ -301,7 +319,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                               Icons.confirmation_number_rounded,
                               color: _selectedCardType == LoyaltyCardType.tickets
                                   ? Colors.white
-                                  : AppTheme.primaryBlue,
+                                  : (Theme.of(context).brightness == Brightness.dark 
+                                      ? AppTheme.primaryOrange 
+                                      : AppTheme.primaryBlue),
                               size: screenWidth * 0.05,
                             ),
                             SizedBox(width: screenWidth * 0.02),
@@ -310,7 +330,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                               style: TextStyle(
                                 color: _selectedCardType == LoyaltyCardType.tickets
                                     ? Colors.white
-                                    : AppTheme.primaryBlue,
+                                    : (Theme.of(context).brightness == Brightness.dark 
+                                        ? AppTheme.primaryOrange 
+                                        : AppTheme.primaryBlue),
                                 fontSize: screenWidth * 0.035,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -394,7 +416,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                     Container(
                       padding: EdgeInsets.all(screenWidth * 0.04),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? Theme.of(context).cardColor 
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(screenWidth * 0.04),
                         boxShadow: [
                           BoxShadow(
@@ -412,7 +436,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                             Icons.confirmation_number_rounded,
                             '10 Points',
                             'Ticket Gratuit',
-                            AppTheme.primaryBlue,
+                            Theme.of(context).brightness == Brightness.dark 
+                                ? AppTheme.primaryOrange 
+                                : AppTheme.primaryBlue,
                             screenWidth,
                           ),
                           _buildBenefit(
@@ -491,7 +517,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
           style: TextStyle(
             fontSize: screenWidth * 0.03,
             fontWeight: FontWeight.bold,
-            color: color,
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.white 
+                : color,
           ),
         ),
         Text(
@@ -499,7 +527,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: screenWidth * 0.025,
-            color: AppTheme.textDark,
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? Colors.white.withValues(alpha: 0.8) 
+                : AppTheme.textDark,
           ),
         ),
       ],
@@ -511,7 +541,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
       // Afficher un loader la toute première fois, le fetch est lancé en initState
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.dark 
+              ? Theme.of(context).cardColor 
+              : Colors.white,
           borderRadius: BorderRadius.circular(screenWidth * 0.04),
           boxShadow: [
             BoxShadow(
@@ -533,7 +565,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Theme.of(context).cardColor 
+                  : Colors.white,
               borderRadius: BorderRadius.circular(screenWidth * 0.04),
               boxShadow: [
                 BoxShadow(
@@ -563,7 +597,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
           
           return Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Theme.of(context).cardColor 
+                  : Colors.white,
               borderRadius: BorderRadius.circular(screenWidth * 0.04),
               boxShadow: [
                 BoxShadow(
@@ -577,12 +613,21 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
             padding: EdgeInsets.all(screenWidth * 0.05),
             child: Row(
               children: [
-                Icon(Icons.history, color: AppTheme.textDark.withValues(alpha: 0.6)),
+                Icon(
+                  Icons.history, 
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white.withValues(alpha: 0.6) 
+                      : AppTheme.textDark.withValues(alpha: 0.6),
+                ),
                 SizedBox(width: screenWidth * 0.03),
                 Expanded(
                   child: Text(
                     'Aucun historique trouvé pour ce numéro',
-                    style: TextStyle(color: AppTheme.textDark.withValues(alpha: 0.7)),
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.white.withValues(alpha: 0.7) 
+                          : AppTheme.textDark.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
               ],
@@ -605,7 +650,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
 
         return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark 
+            ? Theme.of(context).cardColor 
+            : Colors.white,
         borderRadius: BorderRadius.circular(screenWidth * 0.04),
         boxShadow: [
           BoxShadow(
@@ -626,9 +673,11 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
               children: [
                 Icon(
                   Icons.history,
-                  color: _selectedCardType == LoyaltyCardType.tickets 
-                      ? AppTheme.primaryBlue 
-                      : AppTheme.primaryOrange,
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? AppTheme.primaryOrange 
+                      : (_selectedCardType == LoyaltyCardType.tickets 
+                          ? AppTheme.primaryBlue 
+                          : AppTheme.primaryOrange),
                   size: screenWidth * 0.06,
                 ),
                 SizedBox(width: screenWidth * 0.03),
@@ -637,7 +686,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                   style: TextStyle(
                     fontSize: screenWidth * 0.045,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : AppTheme.textDark,
                   ),
                 ),
               ],
@@ -650,7 +701,11 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
               padding: EdgeInsets.all(screenWidth * 0.04),
               child: Text(
                 'Aucune activité récente',
-                style: TextStyle(color: AppTheme.textDark.withValues(alpha: 0.6)),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white.withValues(alpha: 0.6) 
+                      : AppTheme.textDark.withValues(alpha: 0.6),
+                ),
               ),
             )
           else
@@ -672,7 +727,9 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                   return _historyRow(
                     screenWidth,
                     icon: isLoyalty ? Icons.card_giftcard_rounded : Icons.directions_bus_rounded,
-                    color: AppTheme.primaryBlue,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : AppTheme.primaryBlue,
                     description: desc,
                     date: date,
                     pointsLabel: isLoyalty ? 'GRATUIT' : '+1 pts',
@@ -728,14 +785,18 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                   style: TextStyle(
                     fontSize: screenWidth * 0.035,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textDark,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : AppTheme.textDark,
                   ),
                 ),
                 Text(
                   date,
                   style: TextStyle(
                     fontSize: screenWidth * 0.03,
-                    color: AppTheme.textDark.withValues(alpha: 0.6),
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white.withValues(alpha: 0.7) 
+                        : AppTheme.textDark.withValues(alpha: 0.6),
                   ),
                 ),
               ],

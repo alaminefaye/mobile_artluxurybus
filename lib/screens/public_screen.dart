@@ -149,7 +149,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.12),
+                    color: (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue).withValues(alpha: 0.12),
                     width: 1,
                   ),
                 ),
@@ -158,7 +158,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                        color: (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -203,7 +203,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                 icon: Icons.card_giftcard_rounded,
                 title: 'Points de fidélité',
                 description: 'Consultez et gérez vos points',
-                color: AppTheme.primaryBlue,
+                color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -262,7 +262,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                   color: isDark ? Theme.of(context).cardColor : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.15),
+                    color: (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue).withValues(alpha: 0.15),
                     width: 1,
                   ),
                   boxShadow: [
@@ -400,7 +400,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryBlue,
+                          backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                           foregroundColor: Colors.white,
                           elevation: 2,
                           shape: RoundedRectangleBorder(

@@ -4,6 +4,7 @@ import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
 import '../services/auth_service.dart';
 import '../models/simple_auth_models.dart';
+import '../theme/app_theme.dart';
 
 class RegisterNewClientScreen extends StatefulWidget {
   final String? initialPhone;
@@ -162,25 +163,32 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
               children: [
                 // Icône et titre
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: (Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : Colors.blue).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.person_add,
-                    size: 60,
-                    color: Colors.blue,
+                    size: 40,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : Colors.blue,
                   ),
                 ),
 
                 const SizedBox(height: 24),
 
-                const Text(
+                Text(
                   'Créer un compte',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.primaryOrange 
+                        : null,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -202,15 +210,41 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                 TextFormField(
                   controller: _nomController,
                   textCapitalization: TextCapitalization.words,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Nom *',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     hintText: 'Votre nom de famille',
-                    prefixIcon: const Icon(Icons.person_outline),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[400] 
+                          : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.person_outline,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[800] 
+                        : Colors.grey[50],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, 
+                      vertical: 12,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -226,15 +260,41 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                 TextFormField(
                   controller: _prenomController,
                   textCapitalization: TextCapitalization.words,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Prénom *',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     hintText: 'Votre prénom',
-                    prefixIcon: const Icon(Icons.person),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[400] 
+                          : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.person,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[800] 
+                        : Colors.grey[50],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, 
+                      vertical: 12,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -250,15 +310,41 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                 TextFormField(
                   controller: _telephoneController,
                   keyboardType: TextInputType.phone,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Téléphone *',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     hintText: '+221 77 123 45 67',
-                    prefixIcon: const Icon(Icons.phone),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[400] 
+                          : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.phone,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[800] 
+                        : Colors.grey[50],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, 
+                      vertical: 12,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -277,15 +363,41 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Email (optionnel)',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     hintText: 'votre.email@exemple.com',
-                    prefixIcon: const Icon(Icons.email_outlined),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[400] 
+                          : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[800] 
+                        : Colors.grey[50],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, 
+                      vertical: 12,
+                    ),
                   ),
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
@@ -305,14 +417,40 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Date de naissance (optionnel)',
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : null,
+                      ),
                       hintText: 'Pour recevoir un cadeau d\'anniversaire 🎂',
-                      prefixIcon: const Icon(Icons.cake),
-                      suffixIcon: const Icon(Icons.calendar_today),
+                      hintStyle: TextStyle(
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? Colors.grey[400] 
+                            : Colors.grey[600],
+                      ),
+                      prefixIcon: Icon(
+                        Icons.cake,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : null,
+                      ),
+                      suffixIcon: Icon(
+                        Icons.calendar_today,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : null,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[800] 
+                          : Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, 
+                        vertical: 12,
+                      ),
                     ),
                     child: Text(
                       _selectedDate != null
@@ -320,8 +458,12 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                           : 'Sélectionnez votre date',
                       style: TextStyle(
                         color: _selectedDate != null
-                            ? Colors.black87
-                            : Colors.grey[600],
+                            ? (Theme.of(context).brightness == Brightness.dark 
+                                ? Colors.white 
+                                : Colors.black87)
+                            : (Theme.of(context).brightness == Brightness.dark 
+                                ? Colors.grey[400] 
+                                : Colors.grey[600]),
                       ),
                     ),
                   ),
@@ -353,15 +495,38 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Mot de passe *',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     hintText: 'Minimum 8 caractères',
-                    prefixIcon: const Icon(Icons.lock),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[400] 
+                          : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.lock,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_off
                             : Icons.visibility,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : null,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
@@ -371,7 +536,13 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[800] 
+                        : Colors.grey[50],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, 
+                      vertical: 12,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -390,15 +561,38 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white 
+                        : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Confirmer le mot de passe *',
+                    labelStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     hintText: 'Retapez votre mot de passe',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? Colors.grey[400] 
+                          : Colors.grey[600],
+                    ),
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      color: Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : null,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
                             ? Icons.visibility_off
                             : Icons.visibility,
+                        color: Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : null,
                       ),
                       onPressed: () {
                         setState(() =>
@@ -409,7 +603,13 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.grey[800] 
+                        : Colors.grey[50],
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, 
+                      vertical: 12,
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -424,32 +624,54 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
 
                 const SizedBox(height: 32),
 
-                // Bouton inscription
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _register,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                // Bouton inscription avec gradient
+                Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: Theme.of(context).brightness == Brightness.dark 
+                        ? AppTheme.accentGradient
+                        : AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : AppTheme.primaryBlue).withValues(alpha: 0.3),
+                        spreadRadius: 1,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _register,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'S\'inscrire',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        )
-                      : const Text(
-                          'S\'inscrire',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -461,12 +683,16 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
                     gradient: LinearGradient(
                       colors: [
                         Colors.orange.withValues(alpha: 0.1),
-                        Colors.blue.withValues(alpha: 0.1),
+                        (Theme.of(context).brightness == Brightness.dark 
+                            ? AppTheme.primaryOrange 
+                            : Colors.blue).withValues(alpha: 0.1),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.2),
+                      color: (Theme.of(context).brightness == Brightness.dark 
+                          ? AppTheme.primaryOrange 
+                          : Colors.blue).withValues(alpha: 0.2),
                     ),
                   ),
                   child: Column(
@@ -526,10 +752,18 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.withValues(alpha: 0.1),
+            color: (Theme.of(context).brightness == Brightness.dark 
+                ? AppTheme.primaryOrange 
+                : Colors.blue).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 20, color: Colors.blue[700]),
+          child: Icon(
+            icon, 
+            size: 20, 
+            color: Theme.of(context).brightness == Brightness.dark 
+                ? AppTheme.primaryOrange 
+                : Colors.blue[700],
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
