@@ -322,20 +322,19 @@ class NotificationService {
 
   /// Gérer les messages en premier plan
   static void _handleForegroundMessage(RemoteMessage message) {
-    // 🔊 Vérifier si c'est une annonce vocale
-    if (message.data['msg_type'] == 'annonce' ||
-        message.data['type'] == 'message_notification') {
+    // 🔊 Vérifier si c'est une annonce vocale UNIQUEMENT
+    if (message.data['msg_type'] == 'annonce') {
       _handleAnnouncementMessage(message);
     }
 
-    // Afficher une notification locale
+    // Afficher une notification locale pour TOUTES les notifications
     _showLocalNotification(
       title: message.notification?.title ?? 'Art Luxury Bus',
       body: message.notification?.body ?? 'Nouvelle notification',
       data: message.data,
     );
 
-    // Envoyer via le stream
+    // Envoyer via le stream pour TOUTES les notifications
     _notificationStreamController?.add({
       'type': 'foreground',
       'title': message.notification?.title,
