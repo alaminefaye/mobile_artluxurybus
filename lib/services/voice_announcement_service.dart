@@ -184,6 +184,13 @@ class VoiceAnnouncementService {
         break;
       }
 
+      // 🆕 Vérifier si l'annonce est encore active (pas expirée)
+      if (!message.isCurrentlyActive) {
+        debugPrint('⏹️ [VoiceService] Annonce #${message.id} expirée, arrêt automatique');
+        await stopAnnouncement(message.id);
+        break;
+      }
+
       debugPrint('🔊 [VoiceService] Lecture de l\'annonce #${message.id}');
 
       // Lire l'annonce complète
@@ -206,7 +213,18 @@ class VoiceAnnouncementService {
       // Si on doit toujours continuer, pause de 5 secondes avant la prochaine répétition
       if (_shouldContinue[message.id] == true) {
         debugPrint('⏸️ [VoiceService] Pause de 5 secondes avant répétition...');
-        await Future.delayed(const Duration(seconds: 5));
+        
+        // Pause intelligente avec vérification d'expiration (1 seconde à la fois)
+        for (int i = 0; i < 5; i++) {
+          await Future.delayed(const Duration(seconds: 1));
+          
+          // Vérifier pendant la pause si l'annonce est toujours active
+          if (_shouldContinue[message.id] != true || !message.isCurrentlyActive) {
+            debugPrint('⏹️ [VoiceService] Annonce expirée pendant la pause, arrêt');
+            await stopAnnouncement(message.id);
+            return; // Sortir complètement de la boucle
+          }
+        }
       }
     }
   }
@@ -296,28 +314,40 @@ class VoiceAnnouncementService {
 
   /// Arrêter une annonce spécifique
   Future<void> stopAnnouncement(int messageId) async {
+    debugPrint('🛑 [VoiceService] Arrêt de l\'annonce #$messageId...');
+    
     // Marquer qu'on doit arrêter la boucle
     _shouldContinue[messageId] = false;
 
+    // Arrêter la lecture vocale si c'est cette annonce qui parle
+    if (_isSpeaking) {
+      await _flutterTts.stop();
+      _isSpeaking = false;
+    }
+
+    // Nettoyer les timers
     if (_activeTimers.containsKey(messageId)) {
       _activeTimers[messageId]?.cancel();
       _activeTimers.remove(messageId);
-      _activeAnnouncements.remove(messageId);
-
-      // Fermer aussi l'overlay si il existe
-      if (_activeOverlays.containsKey(messageId)) {
-        try {
-          _activeOverlays[messageId]?.remove();
-          _activeOverlays.remove(messageId);
-          debugPrint(
-              '🎨 [VoiceService] Overlay fermé pour message #$messageId');
-        } catch (e) {
-          debugPrint('⚠️ [VoiceService] Erreur fermeture overlay: $e');
-        }
-      }
-
-      debugPrint('⏹️ [VoiceService] Annonce #$messageId arrêtée');
     }
+
+    // Retirer de la liste des annonces actives
+    _activeAnnouncements.remove(messageId);
+
+    // 🆕 TOUJOURS fermer l'overlay, même si il n'y avait pas de timer
+    if (_activeOverlays.containsKey(messageId)) {
+      try {
+        _activeOverlays[messageId]?.remove();
+        _activeOverlays.remove(messageId);
+        debugPrint('🎨 [VoiceService] Overlay fermé pour message #$messageId');
+      } catch (e) {
+        debugPrint('⚠️ [VoiceService] Erreur fermeture overlay: $e');
+        // Forcer le nettoyage même en cas d'erreur
+        _activeOverlays.remove(messageId);
+      }
+    }
+
+    debugPrint('✅ [VoiceService] Annonce #$messageId complètement arrêtée');
   }
 
   /// Arrêter toutes les annonces

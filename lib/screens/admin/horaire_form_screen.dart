@@ -242,7 +242,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
 
               // Sélection Gare
               DropdownButtonFormField<Gare>(
-                value: _selectedGare,
+                initialValue: _selectedGare,
                 decoration: InputDecoration(
                   labelText: 'Gare *',
                   prefixIcon: const Icon(Icons.location_on),
@@ -271,7 +271,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
 
               // Sélection Trajet
               DropdownButtonFormField<Trajet>(
-                value: _selectedTrajet,
+                initialValue: _selectedTrajet,
                 decoration: InputDecoration(
                   labelText: 'Trajet *',
                   prefixIcon: const Icon(Icons.route),
@@ -300,7 +300,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
 
               // Sélection Bus (optionnel)
               DropdownButtonFormField<Bus>(
-                value: _selectedBus,
+                initialValue: _selectedBus,
                 isExpanded: true, // Important pour éviter l'overflow
                 decoration: InputDecoration(
                   labelText: 'Bus (optionnel)',
@@ -322,7 +322,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
                 onChanged: (value) {
                   setState(() => _selectedBus = value);
@@ -333,7 +333,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
 
               // Sélection Statut
               DropdownButtonFormField<String>(
-                value: _selectedStatut,
+                initialValue: _selectedStatut,
                 decoration: InputDecoration(
                   labelText: 'Statut',
                   prefixIcon: const Icon(Icons.info_outline),

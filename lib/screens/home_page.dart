@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin/horaires_list_screen.dart';
 import '../theme/app_theme.dart';
@@ -84,24 +85,23 @@ class _HomePageState extends ConsumerState<HomePage> {
           // Erreur lors de l'enregistrement FCM
         }
 
-        // 🔊 INITIALISER LES ANNONCES VOCALES AUTOMATIQUES
-        _initializeVoiceAnnouncements();
+        // 🔊 METTRE À JOUR LE CONTEXTE POUR LES ANNONCES VOCALES
+        _updateVoiceAnnouncementsContext();
       }
     });
   }
 
-  /// Initialiser le gestionnaire d'annonces vocales
-  Future<void> _initializeVoiceAnnouncements() async {
+  /// Mettre à jour le contexte pour le gestionnaire d'annonces vocales
+  void _updateVoiceAnnouncementsContext() {
     try {
-      debugPrint('🔊 [HomePage] Initialisation des annonces vocales...');
+      debugPrint('🔊 [HomePage] Mise à jour du contexte pour les annonces vocales...');
       // Définir le contexte pour l'affichage des annonces
       if (mounted) {
         AnnouncementManager().setContext(context);
+        debugPrint('✅ [HomePage] Contexte mis à jour pour les annonces vocales');
       }
-      await AnnouncementManager().start();
-      debugPrint('✅ [HomePage] Gestionnaire d\'annonces vocales démarré');
     } catch (e) {
-      debugPrint('❌ [HomePage] Erreur initialisation annonces vocales: $e');
+      debugPrint('❌ [HomePage] Erreur mise à jour contexte annonces vocales: $e');
     }
   }
 

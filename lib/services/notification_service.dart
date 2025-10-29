@@ -6,14 +6,23 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/feedback_api_service.dart';
 import '../services/device_info_service.dart';
+import '../services/announcement_manager.dart';
 import '../firebase_options.dart';
 
 // Handler pour les notifications en arrière-plan
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Notification en arrière-plan reçue - traitement silencieux
-
+  // Vérifier si Firebase est déjà initialisé pour éviter l'erreur duplicate-app
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (e) {
+    if (e.toString().contains('duplicate-app')) {
+      debugPrint('ℹ️ [Background Handler] Firebase déjà initialisé');
+    } else {
+      debugPrint('⚠️ [Background Handler] Erreur Firebase: $e');
+    }
+  }
+  
   // Traiter la notification en arrière-plan
   await NotificationService._handleBackgroundMessage(message);
 }
@@ -381,14 +390,20 @@ class NotificationService {
         return;
       }
 
-      // Importer dynamiquement pour éviter les dépendances circulaires
+      // Déclencher immédiatement une vérification de l'AnnouncementManager
       final messageId = message.data['message_id'];
       if (messageId != null) {
-        // Lancer le gestionnaire d'annonces pour traiter cette annonce
         debugPrint(
-          '📢 [NotificationService] Déclenchement annonce #$messageId',
+          '📢 [NotificationService] Déclenchement immédiat annonce #$messageId',
         );
-        // Le AnnouncementManager va détecter et traiter automatiquement
+        
+        // Déclencher le rafraîchissement immédiat de l'AnnouncementManager
+        try {
+          await AnnouncementManager().refresh();
+          debugPrint('✅ [NotificationService] AnnouncementManager rafraîchi immédiatement');
+        } catch (e) {
+          debugPrint('⚠️ [NotificationService] Impossible de rafraîchir AnnouncementManager: $e');
+        }
       }
     } catch (e) {
       debugPrint('❌ [NotificationService] Erreur traitement annonce: $e');
@@ -526,12 +541,40 @@ class NotificationService {
         body: 'Ceci est un test des notifications push Art Luxury Bus 🔔',
         data: {'type': 'test'},
       );
-      debugPrint(
-        '✅ [NotificationService] TEST - Notification envoyée avec succès !',
+      
+      debugPrint('✅ [NotificationService] TEST - Notification locale envoyée');
+    } catch (e) {
+      debugPrint('❌ [NotificationService] TEST - Erreur: $e');
+    }
+  }
+
+  /// Tester les annonces vocales
+  static Future<void> testAnnouncementPush() async {
+    debugPrint('🎤 [NotificationService] TEST - Simulation notification d\'annonce...');
+    
+    try {
+      // Simuler une notification d'annonce reçue
+      final fakeMessage = RemoteMessage(
+        data: {
+          'msg_type': 'annonce',
+          'type': 'message_notification',
+          'message_id': '999',
+          'appareil': 'mobile',
+          'titre': 'Test Annonce',
+          'contenu': 'Ceci est un test d\'annonce vocale pour vérifier le fonctionnement',
+        },
+        notification: const RemoteNotification(
+          title: 'Test Annonce',
+          body: 'Ceci est un test d\'annonce vocale',
+        ),
       );
-    } catch (e, stackTrace) {
-      debugPrint('❌ [NotificationService] TEST - Erreur lors de l\'envoi: $e');
-      debugPrint('Stack trace: $stackTrace');
+      
+      // Déclencher le traitement comme si c'était une vraie notification
+      await _handleAnnouncementMessage(fakeMessage);
+      
+      debugPrint('✅ [NotificationService] TEST - Notification d\'annonce simulée');
+    } catch (e) {
+      debugPrint('❌ [NotificationService] TEST - Erreur simulation: $e');
     }
   }
 

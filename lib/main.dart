@@ -17,6 +17,7 @@ import 'services/feedback_api_service.dart';
 import 'services/notification_api_service.dart';
 import 'services/ads_api_service.dart';
 import 'services/horaire_service.dart';
+import 'services/announcement_manager.dart';
 
 void main() async {
   // Capturer toutes les erreurs Flutter
@@ -57,6 +58,15 @@ void main() async {
     await NotificationService.initialize();
     debugPrint('✅ [MAIN] Notifications initialisées');
 
+    // Initialiser le gestionnaire d'annonces GLOBALEMENT
+    debugPrint('📢 [MAIN] Initialisation du gestionnaire d\'annonces...');
+    try {
+      await AnnouncementManager().start();
+      debugPrint('✅ [MAIN] Gestionnaire d\'annonces démarré globalement');
+    } catch (e) {
+      debugPrint('❌ [MAIN] Erreur initialisation gestionnaire d\'annonces: $e');
+    }
+
     // Test supprimé - notifications locales fonctionnent
   } catch (e, stackTrace) {
     debugPrint('❌ [MAIN ERROR] Erreur lors de l\'initialisation: $e');
@@ -89,6 +99,14 @@ class _MyAppState extends ConsumerState<MyApp> {
     _setupNotificationListener();
     _setupAuthListener();
     _checkInitialNotification();
+    
+    // Définir le contexte global pour l'AnnouncementManager après le premier build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AnnouncementManager().setContext(context);
+        debugPrint('📱 [MAIN] Contexte global défini pour AnnouncementManager');
+      }
+    });
   }
 
   /// Écouter les changements d'authentification pour les notifications en attente
