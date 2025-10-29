@@ -184,9 +184,17 @@ class VoiceAnnouncementService {
         break;
       }
 
-      // 🆕 Vérifier si l'annonce est encore active (pas expirée)
-      if (!message.isCurrentlyActive) {
-        debugPrint('⏹️ [VoiceService] Annonce #${message.id} expirée, arrêt automatique');
+      // 🆕 Vérifier si l'annonce est encore active (pas expirée) avec vérification en temps réel
+      final now = DateTime.now();
+      final isExpired = message.dateFin != null && now.isAfter(message.dateFin!);
+      final isNotStarted = message.dateDebut != null && now.isBefore(message.dateDebut!);
+      
+      if (!message.active || isExpired || isNotStarted) {
+        debugPrint('⏹️ [VoiceService] Annonce #${message.id} expirée ou inactive, arrêt automatique');
+        debugPrint('   - active: ${message.active}');
+        debugPrint('   - isExpired: $isExpired (dateFin: ${message.dateFin})');
+        debugPrint('   - isNotStarted: $isNotStarted (dateDebut: ${message.dateDebut})');
+        debugPrint('   - now: $now');
         await stopAnnouncement(message.id);
         break;
       }
@@ -218,9 +226,16 @@ class VoiceAnnouncementService {
         for (int i = 0; i < 5; i++) {
           await Future.delayed(const Duration(seconds: 1));
           
-          // Vérifier pendant la pause si l'annonce est toujours active
-          if (_shouldContinue[message.id] != true || !message.isCurrentlyActive) {
-            debugPrint('⏹️ [VoiceService] Annonce expirée pendant la pause, arrêt');
+          // Vérifier pendant la pause si l'annonce est toujours active avec vérification en temps réel
+          final now = DateTime.now();
+          final isExpired = message.dateFin != null && now.isAfter(message.dateFin!);
+          final isNotStarted = message.dateDebut != null && now.isBefore(message.dateDebut!);
+          
+          if (_shouldContinue[message.id] != true || !message.active || isExpired || isNotStarted) {
+            debugPrint('⏹️ [VoiceService] Annonce expirée pendant la pause, arrêt automatique');
+            debugPrint('   - active: ${message.active}');
+            debugPrint('   - isExpired: $isExpired (dateFin: ${message.dateFin})');
+            debugPrint('   - now: $now');
             await stopAnnouncement(message.id);
             return; // Sortir complètement de la boucle
           }
