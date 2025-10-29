@@ -12,6 +12,11 @@ import 'screens/notification_detail_screen.dart';
 import 'models/notification_model.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
+import 'services/auth_service.dart';
+import 'services/feedback_api_service.dart';
+import 'services/notification_api_service.dart';
+import 'services/ads_api_service.dart';
+import 'services/horaire_service.dart';
 
 void main() async {
   // Capturer toutes les erreurs Flutter
@@ -31,10 +36,27 @@ void main() async {
   debugPrint('🚀 [MAIN] Démarrage de l\'application...');
   
   try {
-    // Initialiser les notifications Firebase avec gestion d'erreur
+    // Initialiser l'authentification AVANT les notifications
+    debugPrint('🔐 [MAIN] Initialisation de l\'authentification...');
+    final authService = AuthService();
+    final token = await authService.getToken();
+    
+    if (token != null) {
+      debugPrint('✅ [MAIN] Token d\'authentification trouvé, configuration des services...');
+      FeedbackApiService.setToken(token);
+      NotificationApiService.setToken(token);
+      AdsApiService.setToken(token);
+      HoraireService.setToken(token);
+    } else {
+      debugPrint('⚠️ [MAIN] Aucun token d\'authentification trouvé');
+    }
+    
+    // Initialiser les notifications Firebase APRÈS l'auth
     debugPrint('🔔 [MAIN] Initialisation des notifications...');
     await NotificationService.initialize();
     debugPrint('✅ [MAIN] Notifications initialisées');
+    
+    // Test supprimé - notifications locales fonctionnent
   } catch (e, stackTrace) {
     debugPrint('❌ [MAIN ERROR] Erreur lors de l\'initialisation: $e');
     debugPrint('Stack trace: $stackTrace');

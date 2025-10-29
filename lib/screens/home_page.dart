@@ -27,6 +27,7 @@ import 'theme_settings_screen.dart';
 import 'company_info_screen.dart';
 import 'edit_profile_screen.dart';
 import 'security_screen.dart';
+import 'debug_notifications_screen.dart';
 import '../services/announcement_manager.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -2381,6 +2382,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
                   const SizedBox(height: 24),
 
+                  // DEBUG: Bouton test notifications (temporaire)
+                  _buildDebugNotificationsButton(),
+
+                  const SizedBox(height: 12),
+
                   // Bouton de déconnexion compact
                   _buildLogoutButton(),
 
@@ -2497,6 +2503,56 @@ class _HomePageState extends ConsumerState<HomePage> {
           color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
         ),
         onTap: onTap,
+      ),
+    );
+  }
+
+  // DEBUG: Bouton test notifications (temporaire) 
+  Widget _buildDebugNotificationsButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.orange.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DebugNotificationsScreen(),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.bug_report,
+                  color: Colors.orange[600],
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Debug Notifications',
+                  style: TextStyle(
+                    color: Colors.orange[600],
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
