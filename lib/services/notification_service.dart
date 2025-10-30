@@ -322,23 +322,44 @@ class NotificationService {
 
   /// Gérer les messages en premier plan
   static void _handleForegroundMessage(RemoteMessage message) {
+    debugPrint('📱 [NotificationService] Message reçu en premier plan:');
+    debugPrint('   - Titre: ${message.notification?.title}');
+    debugPrint('   - Corps: ${message.notification?.body}');
+    debugPrint('   - Données: ${message.data}');
+
     // 🔊 Vérifier si c'est une annonce vocale UNIQUEMENT
     if (message.data['msg_type'] == 'annonce') {
       _handleAnnouncementMessage(message);
     }
 
+    // Déterminer le titre et le corps de la notification
+    String title = message.notification?.title ?? 
+                   message.data['titre'] ?? 
+                   message.data['title'] ?? 
+                   'Art Luxury Bus';
+    
+    String body = message.notification?.body ?? 
+                  message.data['contenu'] ?? 
+                  message.data['body'] ?? 
+                  message.data['message'] ?? 
+                  'Nouvelle notification';
+
+    debugPrint('📱 [NotificationService] Affichage notification locale:');
+    debugPrint('   - Titre: $title');
+    debugPrint('   - Corps: $body');
+
     // Afficher une notification locale pour TOUTES les notifications
     _showLocalNotification(
-      title: message.notification?.title ?? 'Art Luxury Bus',
-      body: message.notification?.body ?? 'Nouvelle notification',
+      title: title,
+      body: body,
       data: message.data,
     );
 
     // Envoyer via le stream pour TOUTES les notifications
     _notificationStreamController?.add({
       'type': 'foreground',
-      'title': message.notification?.title,
-      'body': message.notification?.body,
+      'title': title,
+      'body': body,
       'data': message.data,
     });
   }

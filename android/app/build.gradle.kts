@@ -14,12 +14,17 @@ android {
     compileOptions {
         // Flag pour activer core library desugaring
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    
+    // Supprimer les warnings Java 8
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.addAll(listOf("-Xlint:-options"))
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -40,6 +45,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Désactiver le stripping des symboles natifs pour éviter les erreurs
+            ndk {
+                debugSymbolLevel = "NONE"
+            }
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.

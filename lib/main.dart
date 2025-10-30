@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart' as theme_provider;
 import 'screens/auth/login_screen.dart';
@@ -19,6 +20,7 @@ import 'services/notification_api_service.dart';
 import 'services/ads_api_service.dart';
 import 'services/horaire_service.dart';
 import 'services/announcement_manager.dart';
+import 'firebase_config_test.dart';
 
 void main() async {
   // Capturer toutes les erreurs Flutter
@@ -59,6 +61,72 @@ void main() async {
     debugPrint('🔔 [MAIN] Initialisation des notifications...');
     await NotificationService.initialize();
     debugPrint('✅ [MAIN] Notifications initialisées');
+
+    // Test de configuration Firebase
+    debugPrint('🧪 [MAIN] Test de configuration Firebase...');
+    await FirebaseConfigTest.testFirebaseConfig();
+
+    // Diagnostic simple des notifications
+    debugPrint('🔍 [MAIN] Diagnostic simple des notifications...');
+    try {
+      final messaging = FirebaseMessaging.instance;
+      final settings = await messaging.getNotificationSettings();
+      debugPrint(
+          '📱 Permissions: Alert=${settings.alert}, Badge=${settings.badge}, Sound=${settings.sound}, Auth=${settings.authorizationStatus}');
+
+      final token = await messaging.getToken();
+      if (token != null) {
+        debugPrint('✅ Token FCM: ${token.substring(0, 30)}...');
+      } else {
+        debugPrint('❌ Token FCM non obtenu');
+      }
+
+      // Test notification locale simple
+      final localNotifications = FlutterLocalNotificationsPlugin();
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initSettings = InitializationSettings(android: androidSettings);
+      await localNotifications.initialize(initSettings);
+
+      const channel = AndroidNotificationChannel(
+        'art_luxury_bus_channel',
+        'Art Luxury Bus Notifications',
+        description: 'Notifications de l\'application Art Luxury Bus',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+        showBadge: true,
+      );
+
+      final androidPlugin =
+          localNotifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        await androidPlugin.createNotificationChannel(channel);
+        debugPrint('✅ Canal Android créé');
+      }
+
+      // Envoyer notification de test
+      await localNotifications.show(
+        999,
+        '🧪 Test Notification',
+        'Ceci est un test de notification',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'art_luxury_bus_channel',
+            'Art Luxury Bus Notifications',
+            importance: Importance.max,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+            playSound: true,
+            enableVibration: true,
+          ),
+        ),
+      );
+      debugPrint('✅ Notification de test envoyée - Vérifiez votre écran !');
+    } catch (e) {
+      debugPrint('❌ Erreur diagnostic: $e');
+    }
 
     // Initialiser le gestionnaire d'annonces GLOBALEMENT
     debugPrint('📢 [MAIN] Initialisation du gestionnaire d\'annonces...');
@@ -101,7 +169,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     _setupNotificationListener();
     _setupAuthListener();
     _checkInitialNotification();
-    
+
     // Définir le contexte global pour l'AnnouncementManager après le premier build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
