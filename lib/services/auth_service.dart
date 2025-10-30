@@ -33,20 +33,21 @@ class AuthService {
         body: json.encode(loginRequest.toJson()),
       );
 
-
       if (response.statusCode != 200) {
-        
         String errorMessage;
         if (response.statusCode == 500) {
-          errorMessage = 'Le serveur est temporairement indisponible. Veuillez contacter l\'administrateur.';
+          errorMessage =
+              'Le serveur est temporairement indisponible. Veuillez contacter l\'administrateur.';
         } else if (response.statusCode == 404) {
-          errorMessage = 'Service d\'authentification non trouvé sur le serveur.';
+          errorMessage =
+              'Service d\'authentification non trouvé sur le serveur.';
         } else if (response.statusCode == 401) {
           errorMessage = 'Identifiants incorrects.';
         } else {
-          errorMessage = 'Erreur serveur (${response.statusCode}). Veuillez réessayer.';
+          errorMessage =
+              'Erreur serveur (${response.statusCode}). Veuillez réessayer.';
         }
-        
+
         return AuthResponse(
           success: false,
           message: errorMessage,
@@ -54,7 +55,7 @@ class AuthService {
       }
 
       final responseData = json.decode(response.body);
-      
+
       // Vérifier si la réponse a le bon format
       if (responseData is! Map<String, dynamic>) {
         return AuthResponse(
@@ -63,13 +64,12 @@ class AuthService {
         );
       }
 
-      
       final authResponse = AuthResponse.fromJson(responseData);
 
       if (authResponse.success && authResponse.data != null) {
         // Sauvegarder le token et les données utilisateur
         await _saveAuthData(authResponse.data!);
-        
+
         // 🔥 NOUVEAU: Initialiser FCM pour le nouvel utilisateur
         await _initializeFCMForUser(authResponse.data!);
       }
@@ -112,13 +112,13 @@ class AuthService {
     try {
       final token = await getToken();
       final user = await getSavedUser();
-      
+
       if (token != null) {
         // 🔥 NOUVEAU: Nettoyer FCM avant la déconnexion
         if (user != null) {
           await _cleanupFCMForUser(user, token);
         }
-        
+
         await http.post(
           Uri.parse(ApiConfig.logoutEndpoint.fullUrl),
           headers: await _authHeaders,
@@ -237,16 +237,14 @@ class AuthService {
   // 🔥 NOUVEAU: Initialiser FCM pour un utilisateur
   Future<void> _initializeFCMForUser(AuthData authData) async {
     try {
-      
       // Nettoyer d'abord tous les anciens tokens (sécurité)
       await FCMService.cleanupAllTokens();
-      
+
       // Initialiser FCM pour le nouvel utilisateur
       await FCMService.initializeFCMForUser(
         authData.user.id.toString(),
         authData.token,
       );
-      
     } catch (e) {
       // Erreur ignorée en production
     }
@@ -255,12 +253,10 @@ class AuthService {
   // 🔥 NOUVEAU: Nettoyer FCM pour un utilisateur
   Future<void> _cleanupFCMForUser(User user, String token) async {
     try {
-      
       await FCMService.cleanupFCMForUser(
         user.id.toString(),
         token,
       );
-      
     } catch (e) {
       // En cas d'erreur, nettoyage de sécurité
       await FCMService.cleanupAllTokens();
@@ -272,14 +268,15 @@ class AuthService {
     try {
       final user = await getSavedUser();
       final token = await getToken();
-      
+
       if (user != null && token != null) {
         // Vérifier si l'utilisateur a un token valide
-        bool hasValidToken = await FCMService.hasValidTokenForUser(user.id.toString());
-        
+        bool hasValidToken =
+            await FCMService.hasValidTokenForUser(user.id.toString());
+
         if (!hasValidToken) {
           await _initializeFCMForUser(AuthData(
-            user: user, 
+            user: user,
             token: token,
             tokenType: 'Bearer',
           ));
@@ -297,7 +294,7 @@ class AuthService {
   }) async {
     try {
       final headers = await _authHeaders;
-      
+
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/user/profile'),
         headers: headers,
@@ -306,7 +303,6 @@ class AuthService {
           'email': email,
         }),
       );
-
 
       final data = json.decode(response.body);
 
@@ -344,7 +340,7 @@ class AuthService {
   }) async {
     try {
       final headers = await _authHeaders;
-      
+
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/user/change-password'),
         headers: headers,
@@ -354,7 +350,6 @@ class AuthService {
           'new_password_confirmation': newPasswordConfirmation,
         }),
       );
-
 
       final data = json.decode(response.body);
 
@@ -366,7 +361,8 @@ class AuthService {
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Erreur lors du changement de mot de passe',
+          'message':
+              data['message'] ?? 'Erreur lors du changement de mot de passe',
           'errors': data['errors'],
         };
       }
@@ -382,7 +378,7 @@ class AuthService {
   Future<Map<String, dynamic>> uploadAvatar(File avatarFile) async {
     try {
       final headers = await _authHeaders;
-      
+
       // Créer une requête multipart
       var request = http.MultipartRequest(
         'POST',
@@ -404,7 +400,6 @@ class AuthService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-
       final data = json.decode(response.body);
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -420,7 +415,8 @@ class AuthService {
 
         return {
           'success': true,
-          'message': data['message'] ?? 'Photo de profil mise à jour avec succès',
+          'message':
+              data['message'] ?? 'Photo de profil mise à jour avec succès',
           'data': data['data'],
         };
       } else {
@@ -443,12 +439,12 @@ class AuthService {
     try {
       final user = await getSavedUser();
       if (user == null) return false;
-      
+
       // Vérifier le rôle ou les permissions
-      return user.role == 'Super Admin' || 
-             user.role == 'Admin' || 
-             user.role == 'RH' || 
-             (user.permissions?.contains('manage_horaires') ?? false);
+      return user.role == 'Super Admin' ||
+          user.role == 'Admin' ||
+          user.role == 'chef agence' ||
+          (user.permissions?.contains('manage_horaires') ?? false);
     } catch (e) {
       return false;
     }
