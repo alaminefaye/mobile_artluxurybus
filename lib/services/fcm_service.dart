@@ -7,7 +7,7 @@ import '../utils/debug_logger.dart';
 
 class FCMService {
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  static const String _baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
+  static const String _baseUrl = 'https://skf-artluxurybus.com/api';
   
   /// Initialiser FCM pour un utilisateur connecté
   static Future<void> initializeFCMForUser(String userId, String authToken) async {

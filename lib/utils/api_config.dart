@@ -1,6 +1,6 @@
 class ApiConfig {
   // Configuration pour le serveur en ligne - PRODUCTION ✅ RÉPARÉ !
-  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
+  static const String baseUrl = 'https://skf-artluxurybus.com/api';
   
   // Serveur Laravel local (désactivé)
   // static const String baseUrl = 'http://localhost:8000/api';

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/ad_model.dart';
 
 class AdsApiService {
-  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
+  static const String baseUrl = 'https://skf-artluxurybus.com/api';
   static String? _token;
 
   static void setToken(String? token) { _token = token; }

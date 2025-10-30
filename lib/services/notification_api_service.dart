@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/notification_model.dart';
 
 class NotificationApiService {
-  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
+  static const String baseUrl = 'https://skf-artluxurybus.com/api';
   static String? _token;
 
   static void setToken(String? token) {

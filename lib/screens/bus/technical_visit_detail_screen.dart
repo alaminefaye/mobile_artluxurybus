@@ -239,7 +239,7 @@ class TechnicalVisitDetailScreen extends StatelessWidget {
                       child: Image.network(
                         visit.documentPhoto!.startsWith('http')
                             ? visit.documentPhoto!
-                            : 'https://gestion-compagny.universaltechnologiesafrica.com/storage/${visit.documentPhoto!}',
+                            : 'https://skf-artluxurybus.com/storage/${visit.documentPhoto!}',
                         width: double.infinity,
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {

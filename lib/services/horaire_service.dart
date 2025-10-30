@@ -5,7 +5,7 @@ import '../models/horaire_model.dart';
 
 class HoraireService {
   // URL de base de votre API
-  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
+  static const String baseUrl = 'https://skf-artluxurybus.com/api';
   
   // Timeout pour les requêtes
   static const Duration timeoutDuration = Duration(seconds: 10);
@@ -124,27 +124,49 @@ class HoraireService {
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        if (jsonData['success'] == true) {
-          final Map<String, dynamic> data = jsonData['data'];
+        
+        // Gérer les deux formats de réponse
+        if (jsonData is List) {
+          // Nouveau format : liste directe
+          Map<String, List<Horaire>> groupedHoraires = {};
+          final List<dynamic> horairesJson = jsonData;
+          
+          // Grouper par gare ou créer une gare par défaut
+          groupedHoraires['Horaires'] = horairesJson.map((horaireJson) {
+            return Horaire.fromJson(horaireJson);
+          }).toList();
+          
+          return groupedHoraires;
+        } else if (jsonData['success'] == true) {
+          // Ancien format : structure avec success et data
+          final dynamic data = jsonData['data'];
           Map<String, List<Horaire>> groupedHoraires = {};
 
-          data.forEach((gareName, gareData) {
-            if (gareData is Map && gareData['horaires'] is List) {
-              final List<dynamic> horairesJson = gareData['horaires'];
-              
-              // Convertir chaque horaire en ajoutant les infos de la gare
-              groupedHoraires[gareName] = horairesJson.map((horaireJson) {
-                // Créer une structure complète avec la gare
-                final completeHoraire = Map<String, dynamic>.from(horaireJson);
-                completeHoraire['gare'] = {
-                  'id': gareData['id'] ?? 0,
-                  'nom': gareName,
-                  'appareil': gareData['appareil'],
-                };
-                return Horaire.fromJson(completeHoraire);
-              }).toList();
-            }
-          });
+          if (data is Map<String, dynamic>) {
+            // Format ancien serveur
+            data.forEach((gareName, gareData) {
+              if (gareData is Map && gareData['horaires'] is List) {
+                final List<dynamic> horairesJson = gareData['horaires'];
+                
+                // Convertir chaque horaire en ajoutant les infos de la gare
+                groupedHoraires[gareName] = horairesJson.map((horaireJson) {
+                  // Créer une structure complète avec la gare
+                  final completeHoraire = Map<String, dynamic>.from(horaireJson);
+                  completeHoraire['gare'] = {
+                    'id': gareData['id'] ?? 0,
+                    'nom': gareName,
+                    'appareil': gareData['appareil'],
+                  };
+                  return Horaire.fromJson(completeHoraire);
+                }).toList();
+              }
+            });
+          } else if (data is List) {
+            // Format liste dans data
+            groupedHoraires['Horaires'] = data.map((horaireJson) {
+              return Horaire.fromJson(horaireJson);
+            }).toList();
+          }
 
           return groupedHoraires;
         }

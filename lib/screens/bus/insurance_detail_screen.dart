@@ -197,7 +197,7 @@ class InsuranceDetailScreen extends StatelessWidget {
                       child: Image.network(
                         insurance.documentPhoto!.startsWith('http')
                             ? insurance.documentPhoto!
-                            : 'https://gestion-compagny.universaltechnologiesafrica.com/storage/${insurance.documentPhoto!}',
+                            : 'https://skf-artluxurybus.com/storage/${insurance.documentPhoto!}',
                         width: double.infinity,
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {

@@ -100,7 +100,7 @@ class FuelRecordDetailScreen extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
-                          'https://gestion-compagny.universaltechnologiesafrica.com/storage/${fuelRecord.invoicePhoto}',
+                          'https://skf-artluxurybus.com/storage/${fuelRecord.invoicePhoto}',
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {

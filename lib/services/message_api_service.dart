@@ -6,7 +6,7 @@ import 'auth_service.dart';
 import 'device_info_service.dart';
 
 class MessageApiService {
-  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com/api';
+  static const String baseUrl = 'https://skf-artluxurybus.com/api';
   final AuthService _authService = AuthService();
 
   /// Récupérer tous les messages actifs pour l'application mobile

@@ -219,7 +219,7 @@ class PatentDetailScreen extends ConsumerWidget {
                         patent.documentUrl ?? 
                         (patent.documentPath!.startsWith('http')
                             ? patent.documentPath!
-                            : 'https://gestion-compagny.universaltechnologiesafrica.com/storage/${patent.documentPath}'),
+                            : 'https://skf-artluxurybus.com/storage/${patent.documentPath}'),
                         width: double.infinity,
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {

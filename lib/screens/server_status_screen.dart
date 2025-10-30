@@ -71,14 +71,14 @@ class ServerStatusScreen extends StatelessWidget {
                 children: [
                   const Expanded(
                     child: Text(
-                      'https://gestion-compagny.universaltechnologiesafrica.com/api',
+                      'https://skf-artluxurybus.com/api',
                       style: TextStyle(fontFamily: 'monospace'),
                     ),
                   ),
                   IconButton(
                     onPressed: () {
                       Clipboard.setData(const ClipboardData(
-                        text: 'https://gestion-compagny.universaltechnologiesafrica.com/api'
+                        text: 'https://skf-artluxurybus.com/api'
                       ));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('URL copiée!')),

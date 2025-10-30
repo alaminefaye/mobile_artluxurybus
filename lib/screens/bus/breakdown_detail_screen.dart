@@ -232,7 +232,7 @@ class BreakdownDetailScreen extends StatelessWidget {
                       child: Image.network(
                         breakdown.facturePhoto!.startsWith('http')
                             ? breakdown.facturePhoto!
-                            : 'https://gestion-compagny.universaltechnologiesafrica.com/storage/${breakdown.facturePhoto!}',
+                            : 'https://skf-artluxurybus.com/storage/${breakdown.facturePhoto!}',
                         width: double.infinity,
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {

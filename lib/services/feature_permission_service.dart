@@ -5,7 +5,7 @@ import '../models/feature_permission_model.dart';
 import 'auth_service.dart';
 
 class FeaturePermissionService {
-  static const String baseUrl = 'https://gestion-compagny.universaltechnologiesafrica.com';
+  static const String baseUrl = 'https://skf-artluxurybus.com';
   final AuthService _authService = AuthService();
 
   /// Récupérer toutes les permissions de l'utilisateur

@@ -107,7 +107,7 @@ class User {
     // Si c'est déjà une URL complète, la retourner telle quelle
     if (profilePhoto!.startsWith('http')) return profilePhoto;
     // Sinon, construire l'URL complète
-    return 'https://gestion-compagny.universaltechnologiesafrica.com/storage/$profilePhoto';
+    return 'https://skf-artluxurybus.com/storage/$profilePhoto';
   }
 }
 
