@@ -3,7 +3,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/debug_logger.dart';
 
 class FCMService {
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
@@ -30,12 +29,10 @@ class FCMService {
           // 4. Sauvegarder le token localement
           await _saveTokenLocally(token, userId);
           
-          DebugLogger.log('✅ FCM Token initialisé pour utilisateur: $userId');
-          DebugLogger.log('Token: ${token.substring(0, 20)}...');
         }
       }
     } catch (e) {
-      DebugLogger.error('❌ Erreur initialisation FCM', e);
+      // Erreur ignorée en production
     }
   }
 
@@ -54,14 +51,13 @@ class FCMService {
         await prefs.remove('fcm_token_$userId');
         await prefs.remove('fcm_user_id');
         
-        DebugLogger.log('✅ FCM Token nettoyé pour utilisateur: $userId');
       }
       
       // 4. Supprimer le token de Firebase (optionnel)
       await _firebaseMessaging.deleteToken();
       
     } catch (e) {
-      DebugLogger.error('❌ Erreur nettoyage FCM', e);
+      // Erreur ignorée en production
     }
   }
 
@@ -76,12 +72,6 @@ class FCMService {
         'device_id': deviceId,
       };
       
-      // Log des données envoyées pour debug
-      DebugLogger.log('📤 Envoi token au serveur:');
-      DebugLogger.log('   URL: $_baseUrl/fcm/register-token');
-      DebugLogger.log('   Device Type: ${requestBody['device_type']}');
-      DebugLogger.log('   Device ID: $deviceId');
-      DebugLogger.log('   Token (début): ${token.substring(0, 20)}...');
       
       final response = await http.post(
         Uri.parse('$_baseUrl/fcm/register-token'),
@@ -93,53 +83,25 @@ class FCMService {
         body: jsonEncode(requestBody),
       );
 
-      DebugLogger.log('📥 Réponse serveur: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        DebugLogger.log('✅ Token FCM envoyé au serveur avec succès');
       } else if (response.statusCode == 403) {
         // Utilisateur Pointage - c'est normal qu'il soit bloqué
         try {
           final responseData = jsonDecode(response.body);
-          if (responseData['code'] == 'FCM_BLOCKED_POINTAGE') {
-            DebugLogger.log('ℹ️ Token FCM bloqué pour utilisateur Pointage (normal)');
-          } else {
-            DebugLogger.error('❌ Accès refusé: ${response.statusCode}');
-            DebugLogger.log('   Réponse: ${response.body}');
+          if (responseData['code'] != 'FCM_BLOCKED_POINTAGE') {
+            // Log only if not the expected pointage block
           }
         } catch (e) {
-          DebugLogger.error('❌ Accès refusé: ${response.statusCode}');
+          // Erreur d'accès - ignorée en production
         }
       } else if (response.statusCode == 422) {
-        // Erreur de validation
-        DebugLogger.error('❌ Erreur de validation (422)');
-        if (response.body.isNotEmpty) {
-          try {
-            final errorData = jsonDecode(response.body);
-            DebugLogger.log('   Message: ${errorData['message'] ?? 'Erreur inconnue'}');
-            if (errorData['errors'] != null) {
-              DebugLogger.log('   Erreurs de validation:');
-              (errorData['errors'] as Map).forEach((key, value) {
-                DebugLogger.log('      - $key: ${value is List ? value.join(', ') : value}');
-              });
-            }
-          } catch (e) {
-            DebugLogger.log('   Corps brut: ${response.body}');
-          }
-        }
+        // Erreur de validation - ignorée en production
       } else {
-        DebugLogger.error('❌ Erreur envoi token: ${response.statusCode}');
-        if (response.body.isNotEmpty) {
-          try {
-            final errorData = jsonDecode(response.body);
-            DebugLogger.log('   Détails: ${errorData['message'] ?? 'Erreur inconnue'}');
-          } catch (e) {
-            DebugLogger.log('   Corps de réponse: ${response.body}');
-          }
-        }
+        // Erreur serveur - ignorée en production
       }
     } catch (e) {
-      DebugLogger.error('❌ Erreur réseau envoi token', e);
+      // Erreur ignorée en production
     }
   }
 
@@ -154,12 +116,10 @@ class FCMService {
       );
 
       if (response.statusCode == 200) {
-        DebugLogger.log('✅ Token FCM désactivé sur le serveur');
       } else {
-        DebugLogger.error('❌ Erreur désactivation token: ${response.statusCode}');
       }
     } catch (e) {
-      DebugLogger.error('❌ Erreur réseau désactivation token', e);
+      // Erreur ignorée en production
     }
   }
 
@@ -205,9 +165,8 @@ class FCMService {
       // Supprimer le token Firebase
       await _firebaseMessaging.deleteToken();
       
-      DebugLogger.log('✅ Tous les tokens FCM nettoyés');
     } catch (e) {
-      DebugLogger.error('❌ Erreur nettoyage complet', e);
+      // Erreur ignorée en production
     }
   }
 }

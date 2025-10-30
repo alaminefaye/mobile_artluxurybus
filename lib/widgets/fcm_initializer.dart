@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../utils/debug_logger.dart';
 
 /// Widget qui initialise FCM au démarrage de l'application
 class FCMInitializer extends StatefulWidget {
@@ -26,21 +25,16 @@ class _FCMInitializerState extends State<FCMInitializer> {
 
   Future<void> _initializeFCM() async {
     try {
-      DebugLogger.log('🔔 Initialisation FCM au démarrage...');
-      
       final authService = AuthService();
       final isLoggedIn = await authService.isLoggedIn();
       
       if (isLoggedIn) {
         // Vérifier et réparer FCM si nécessaire
         await authService.ensureFCMIsValid();
-        DebugLogger.log('✅ FCM vérifié et initialisé');
-      } else {
-        DebugLogger.log('ℹ️ Utilisateur non connecté - FCM non initialisé');
       }
       
     } catch (e) {
-      DebugLogger.error('❌ Erreur initialisation FCM', e);
+      // Erreur ignorée en production
     } finally {
       if (mounted) {
         setState(() {

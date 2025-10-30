@@ -7,13 +7,11 @@ class ApiResponseValidator {
     try {
       // Vérifier la structure stats
       if (!json.containsKey('stats')) {
-        debugPrint('❌ Validation: Clé "stats" manquante');
         return false;
       }
       
       final stats = json['stats'] as Map<String, dynamic>?;
       if (stats == null) {
-        debugPrint('❌ Validation: "stats" est null');
         return false;
       }
       
@@ -29,24 +27,20 @@ class ApiResponseValidator {
       
       for (final field in requiredStatsFields) {
         if (!stats.containsKey(field)) {
-          debugPrint('❌ Validation: Champ "$field" manquant dans stats');
           return false;
         }
       }
       
       // Vérifier recent_breakdowns
       if (!json.containsKey('recent_breakdowns')) {
-        debugPrint('❌ Validation: Clé "recent_breakdowns" manquante');
         return false;
       }
       
       final recentBreakdowns = json['recent_breakdowns'];
       if (recentBreakdowns is! List) {
-        debugPrint('❌ Validation: "recent_breakdowns" n\'est pas une liste');
         return false;
       }
       
-      debugPrint('✅ Validation dashboard: OK');
       return true;
     } catch (e) {
       debugPrint('❌ Erreur lors de la validation: $e');
@@ -69,18 +63,15 @@ class ApiResponseValidator {
       
       for (final field in requiredFields) {
         if (!json.containsKey(field)) {
-          debugPrint('❌ Validation: Champ "$field" manquant dans la réponse paginée');
           return false;
         }
       }
       
       // Vérifier que data est une liste
       if (json['data'] is! List) {
-        debugPrint('❌ Validation: "data" n\'est pas une liste');
         return false;
       }
       
-      debugPrint('✅ Validation pagination: OK');
       return true;
     } catch (e) {
       debugPrint('❌ Erreur lors de la validation: $e');
@@ -96,7 +87,6 @@ class ApiResponseValidator {
       DateTime.parse(dateString);
       return true;
     } catch (e) {
-      debugPrint('❌ Format de date invalide: $dateString');
       return false;
     }
   }
@@ -105,16 +95,12 @@ class ApiResponseValidator {
   static void logJsonStructure(Map<String, dynamic> json, {String prefix = ''}) {
     json.forEach((key, value) {
       if (value is Map) {
-        debugPrint('$prefix$key: {Map}');
         logJsonStructure(value as Map<String, dynamic>, prefix: '$prefix  ');
       } else if (value is List) {
-        debugPrint('$prefix$key: [List length=${value.length}]');
         if (value.isNotEmpty && value.first is Map) {
-          debugPrint('$prefix  Premier élément:');
           logJsonStructure(value.first as Map<String, dynamic>, prefix: '$prefix    ');
         }
       } else {
-        debugPrint('$prefix$key: ${value.runtimeType} = $value');
       }
     });
   }

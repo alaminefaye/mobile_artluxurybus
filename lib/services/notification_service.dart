@@ -574,7 +574,7 @@ class NotificationService {
     
     try {
       // Simuler une notification d'annonce reçue
-      final fakeMessage = const RemoteMessage(
+      const fakeMessage = RemoteMessage(
         data: {
           'msg_type': 'annonce',
           'type': 'message_notification',

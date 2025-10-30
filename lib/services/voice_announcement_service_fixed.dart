@@ -38,7 +38,6 @@ class VoiceAnnouncementService {
     if (_isInitialized) return;
 
     try {
-      debugPrint('🔊 [VoiceService] Initialisation...');
 
       // Charger les préférences
       final prefs = await SharedPreferences.getInstance();
@@ -59,25 +58,19 @@ class VoiceAnnouncementService {
       // Callbacks
       _flutterTts.setStartHandler(() {
         _isSpeaking = true;
-        debugPrint('🔊 [VoiceService] Début de l\'annonce vocale');
       });
 
       _flutterTts.setCompletionHandler(() {
         _isSpeaking = false;
-        debugPrint('✅ [VoiceService] Annonce vocale terminée');
       });
 
       _flutterTts.setErrorHandler((msg) {
         _isSpeaking = false;
-        debugPrint('❌ [VoiceService] Erreur TTS: $msg');
       });
 
       _isInitialized = true;
-      debugPrint('✅ [VoiceService] Initialisé avec succès');
-      debugPrint(
-          '   Langue: $language, Volume: $volume, Pitch: $pitch, Rate: $rate');
     } catch (e) {
-      debugPrint('❌ [VoiceService] Erreur d\'initialisation: $e');
+      // Erreur ignorée en production
     }
   }
 

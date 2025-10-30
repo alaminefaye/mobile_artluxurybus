@@ -6,7 +6,6 @@ import '../models/simple_auth_models.dart';
 // LoginRequest maintenant dans simple_auth_models.dart
 import '../models/user.dart';
 import '../utils/api_config.dart';
-import '../utils/debug_logger.dart';
 import 'fcm_service.dart';
 
 class AuthService {
@@ -34,10 +33,8 @@ class AuthService {
         body: json.encode(loginRequest.toJson()),
       );
 
-      DebugLogger.response(response.statusCode, response.body);
 
       if (response.statusCode != 200) {
-        DebugLogger.error('Server error', 'Status: ${response.statusCode}, Body: ${response.body.substring(0, 200)}...');
         
         String errorMessage;
         if (response.statusCode == 500) {
@@ -66,8 +63,6 @@ class AuthService {
         );
       }
 
-      // Log des données reçues pour debug
-      DebugLogger.log('Parsing response: ${responseData.keys}');
       
       final authResponse = AuthResponse.fromJson(responseData);
 
@@ -81,7 +76,6 @@ class AuthService {
 
       return authResponse;
     } catch (e) {
-      DebugLogger.error('Login failed', e);
       return AuthResponse(
         success: false,
         message: 'Erreur de connexion: $e',
@@ -243,7 +237,6 @@ class AuthService {
   // 🔥 NOUVEAU: Initialiser FCM pour un utilisateur
   Future<void> _initializeFCMForUser(AuthData authData) async {
     try {
-      DebugLogger.log('🔔 Initialisation FCM pour: ${authData.user.name}');
       
       // Nettoyer d'abord tous les anciens tokens (sécurité)
       await FCMService.cleanupAllTokens();
@@ -254,25 +247,21 @@ class AuthService {
         authData.token,
       );
       
-      DebugLogger.log('✅ FCM initialisé avec succès');
     } catch (e) {
-      DebugLogger.error('❌ Erreur initialisation FCM', e);
+      // Erreur ignorée en production
     }
   }
 
   // 🔥 NOUVEAU: Nettoyer FCM pour un utilisateur
   Future<void> _cleanupFCMForUser(User user, String token) async {
     try {
-      DebugLogger.log('🧹 Nettoyage FCM pour: ${user.name}');
       
       await FCMService.cleanupFCMForUser(
         user.id.toString(),
         token,
       );
       
-      DebugLogger.log('✅ FCM nettoyé avec succès');
     } catch (e) {
-      DebugLogger.error('❌ Erreur nettoyage FCM', e);
       // En cas d'erreur, nettoyage de sécurité
       await FCMService.cleanupAllTokens();
     }
@@ -289,7 +278,6 @@ class AuthService {
         bool hasValidToken = await FCMService.hasValidTokenForUser(user.id.toString());
         
         if (!hasValidToken) {
-          DebugLogger.log('🔧 Réparation FCM nécessaire pour: ${user.name}');
           await _initializeFCMForUser(AuthData(
             user: user, 
             token: token,
@@ -298,7 +286,7 @@ class AuthService {
         }
       }
     } catch (e) {
-      DebugLogger.error('❌ Erreur vérification FCM', e);
+      // Erreur ignorée en production
     }
   }
 
@@ -319,7 +307,6 @@ class AuthService {
         }),
       );
 
-      DebugLogger.response(response.statusCode, response.body);
 
       final data = json.decode(response.body);
 
@@ -342,7 +329,6 @@ class AuthService {
         };
       }
     } catch (e) {
-      DebugLogger.error('Erreur updateProfile', e);
       return {
         'success': false,
         'message': 'Erreur de connexion: ${e.toString()}',
@@ -369,7 +355,6 @@ class AuthService {
         }),
       );
 
-      DebugLogger.response(response.statusCode, response.body);
 
       final data = json.decode(response.body);
 
@@ -386,7 +371,6 @@ class AuthService {
         };
       }
     } catch (e) {
-      DebugLogger.error('Erreur changePassword', e);
       return {
         'success': false,
         'message': 'Erreur de connexion: ${e.toString()}',
@@ -420,7 +404,6 @@ class AuthService {
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      DebugLogger.response(response.statusCode, response.body);
 
       final data = json.decode(response.body);
 
@@ -448,11 +431,26 @@ class AuthService {
         };
       }
     } catch (e) {
-      DebugLogger.error('Erreur uploadAvatar', e);
       return {
         'success': false,
         'message': 'Erreur de connexion: ${e.toString()}',
       };
+    }
+  }
+
+  // Vérifier si l'utilisateur connecté est un administrateur
+  Future<bool> isUserAdmin() async {
+    try {
+      final user = await getSavedUser();
+      if (user == null) return false;
+      
+      // Vérifier le rôle ou les permissions
+      return user.role == 'Super Admin' || 
+             user.role == 'Admin' || 
+             user.role == 'RH' || 
+             (user.permissions?.contains('manage_horaires') ?? false);
+    } catch (e) {
+      return false;
     }
   }
 }

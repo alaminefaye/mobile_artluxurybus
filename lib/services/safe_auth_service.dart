@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/safe_auth_response.dart';
 import '../models/login_request.dart';
 import '../utils/api_config.dart';
-import '../utils/debug_logger.dart';
 
 class SafeAuthService {
   static const String tokenKey = 'auth_token';
@@ -16,15 +15,12 @@ class SafeAuthService {
   // Connexion ultra-sécurisée
   Future<SafeAuthResponse> login(LoginRequest loginRequest) async {
     try {
-      DebugLogger.log('Starting login request...');
-      
       final response = await http.post(
         Uri.parse(ApiConfig.loginEndpoint.fullUrl),
         headers: _headers,
         body: json.encode(loginRequest.toJson()),
       );
 
-      DebugLogger.response(response.statusCode, response.body);
 
       if (response.statusCode != 200) {
         return SafeAuthResponse(
@@ -38,7 +34,6 @@ class SafeAuthService {
       try {
         responseData = json.decode(response.body);
       } catch (e) {
-        DebugLogger.error('JSON decode error', e);
         return SafeAuthResponse(
           success: false,
           message: 'Réponse JSON invalide',
@@ -52,7 +47,6 @@ class SafeAuthService {
         );
       }
 
-      DebugLogger.log('Response keys: ${responseData.keys.toList()}');
       
       // Utilisation du parsing ultra-sécurisé
       final authResponse = SafeAuthResponse.fromJson(responseData);
@@ -63,9 +57,7 @@ class SafeAuthService {
       }
 
       return authResponse;
-    } catch (e, stackTrace) {
-      DebugLogger.error('Login failed', e);
-      DebugLogger.log('Stack trace: $stackTrace');
+    } catch (e) {
       return SafeAuthResponse(
         success: false,
         message: 'Erreur de connexion: $e',
@@ -79,9 +71,8 @@ class SafeAuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(tokenKey, authData.token);
       await prefs.setString(userKey, json.encode(authData.user.toJson()));
-      DebugLogger.log('Auth data saved successfully');
     } catch (e) {
-      DebugLogger.error('Failed to save auth data', e);
+      // Erreur ignorée en production
     }
   }
 
@@ -91,9 +82,8 @@ class SafeAuthService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(tokenKey);
       await prefs.remove(userKey);
-      DebugLogger.log('Auth data cleared');
     } catch (e) {
-      DebugLogger.error('Failed to clear auth data', e);
+      // Erreur ignorée en production
     }
   }
 
@@ -103,7 +93,6 @@ class SafeAuthService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(tokenKey);
     } catch (e) {
-      DebugLogger.error('Failed to get token', e);
       return null;
     }
   }
@@ -118,7 +107,6 @@ class SafeAuthService {
       }
       return null;
     } catch (e) {
-      DebugLogger.error('Failed to get saved user', e);
       return null;
     }
   }
@@ -129,7 +117,6 @@ class SafeAuthService {
       final token = await getToken();
       return token != null && token.isNotEmpty;
     } catch (e) {
-      DebugLogger.error('Failed to check login status', e);
       return false;
     }
   }

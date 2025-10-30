@@ -85,7 +85,6 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
           _autoFlipTimer?.cancel();
           
           // Notifier le parent que les départs sont affichés
-          debugPrint('🚀 [LoyaltyCard] Affichage du tableau des départs après 4 flips recto-verso - Notification envoyée');
           widget.showingDeparturesNotifier?.value = true;
           
           // Retour automatique après 1 minute

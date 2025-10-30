@@ -3,6 +3,7 @@ import 'dart:async';
 import '../models/horaire_model.dart';
 import '../services/horaire_service.dart';
 import '../services/device_service.dart';
+import '../services/auth_service.dart';
 
 // Service provider
 final horaireServiceProvider = Provider<HoraireService>((ref) {
@@ -41,6 +42,7 @@ class HoraireState {
 // Notifier pour gérer l'état des horaires
 class HoraireNotifier extends StateNotifier<HoraireState> {
   final HoraireService _service;
+  final AuthService _authService = AuthService();
   Timer? _autoRefreshTimer;
 
   HoraireNotifier(this._service) : super(HoraireState()) {
@@ -48,6 +50,32 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
     fetchTodayHoraires();
     // Démarrer le rafraîchissement automatique toutes les 30 secondes
     startAutoRefresh();
+  }
+
+  // Vérifier si l'utilisateur connecté est un administrateur
+  Future<bool> _isUserAdmin() async {
+    try {
+      final user = await _authService.getSavedUser();
+      print('👤 [HoraireProvider] Utilisateur connecté: ${user?.name} (role: ${user?.role})');
+      
+      if (user == null) {
+        print('🔐 [HoraireProvider] Pas d\'utilisateur connecté');
+        return false;
+      }
+      
+      // Vérifier le rôle ou les permissions directement
+      final isAdmin = user.role == 'Super Admin' || 
+                     user.role == 'Admin' || 
+                     user.role == 'chef agence' || 
+                     (user.permissions?.contains('manage_horaires') ?? false);
+      
+      print('🔐 [HoraireProvider] Résultat isUserAdmin(): $isAdmin');
+      
+      return isAdmin;
+    } catch (e) {
+      print('❌ [HoraireProvider] Erreur détection admin: $e');
+      return false;
+    }
   }
 
   // Démarrer le rafraîchissement automatique
@@ -92,32 +120,66 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
   }
 
   // Récupérer les horaires d'aujourd'hui groupés par gare
-  // Filtre automatiquement par le device_id de l'appareil
+  // Pour les admins: récupère TOUS les horaires
+  // Pour les utilisateurs publics: filtre automatiquement par le device_id de l'appareil
   Future<void> fetchTodayHoraires({bool silent = false}) async {
     if (!silent) {
       state = state.copyWith(isLoading: true, error: null);
     }
 
     try {
-      // Récupérer le device_id
-      final deviceId = await DeviceService.getDeviceId();
+      print('🔄 [HoraireProvider] Début récupération des horaires...');
       
-      // Appeler l'API avec le device_id pour filtrer
-      final grouped = await _service.fetchTodayHoraires(deviceId: deviceId);
+      // Vérifier si l'utilisateur est admin
+      final isAdmin = await _isUserAdmin();
+      print('👤 [HoraireProvider] Utilisateur admin: $isAdmin');
       
-      // Aplatir pour avoir aussi une liste simple
-      final allHoraires = <Horaire>[];
-      grouped.forEach((gare, horaires) {
-        allHoraires.addAll(horaires);
-      });
+      if (isAdmin) {
+        print('✅ [HoraireProvider] Mode ADMIN - Récupération de TOUS les horaires');
+        // ✅ ADMIN: Récupérer TOUS les horaires (sans filtre par device_id)
+        final allHoraires = await _service.fetchAllHoraires();
+        print('📊 [HoraireProvider] Horaires récupérés (admin): ${allHoraires.length}');
+        
+        // Grouper par gare pour compatibilité
+        Map<String, List<Horaire>> grouped = {};
+        for (final horaire in allHoraires) {
+          final gareName = horaire.gare.nom;
+          if (!grouped.containsKey(gareName)) {
+            grouped[gareName] = [];
+          }
+          grouped[gareName]!.add(horaire);
+        }
 
-      state = state.copyWith(
-        horairesGrouped: grouped,
-        horaires: allHoraires,
-        isLoading: false,
-        error: null,
-      );
+        state = state.copyWith(
+          horairesGrouped: grouped,
+          horaires: allHoraires,
+          isLoading: false,
+          error: null,
+        );
+      } else {
+        print('🔒 [HoraireProvider] Mode PUBLIC - Filtrage par device_id');
+        // 🔒 UTILISATEUR PUBLIC: Filtrer par device_id comme avant
+        final deviceId = await DeviceService.getDeviceId();
+        print('📱 [HoraireProvider] Device ID: $deviceId');
+        final grouped = await _service.fetchTodayHoraires(deviceId: deviceId);
+        
+        // Aplatir pour avoir aussi une liste simple
+        final allHoraires = <Horaire>[];
+        grouped.forEach((gare, horaires) {
+          allHoraires.addAll(horaires);
+        });
+        print('📊 [HoraireProvider] Horaires récupérés (public): ${allHoraires.length}');
+
+        state = state.copyWith(
+          horairesGrouped: grouped,
+          horaires: allHoraires,
+          isLoading: false,
+          error: null,
+        );
+      }
+      print('✅ [HoraireProvider] Récupération terminée avec succès');
     } catch (e) {
+      print('❌ [HoraireProvider] Erreur: $e');
       if (!silent) {
         state = state.copyWith(
           isLoading: false,

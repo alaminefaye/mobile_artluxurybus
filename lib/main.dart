@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:logging/logging.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart' as theme_provider;
 import 'screens/auth/login_screen.dart';
@@ -20,131 +18,37 @@ import 'services/notification_api_service.dart';
 import 'services/ads_api_service.dart';
 import 'services/horaire_service.dart';
 import 'services/announcement_manager.dart';
-import 'firebase_config_test.dart';
 
 void main() async {
-  // Capturer toutes les erreurs Flutter
-  FlutterError.onError = (FlutterErrorDetails details) {
-    debugPrint('❌ [FLUTTER ERROR] ${details.exception}');
-    debugPrint('Stack trace: ${details.stack}');
-  };
-
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize logging AVANT tout
-  Logger.root.level = Level.ALL;
-  Logger.root.onRecord.listen((record) {
-    debugPrint('${record.level.name}: ${record.time}: ${record.message}');
-  });
-
-  debugPrint('🚀 [MAIN] Démarrage de l\'application...');
 
   try {
     // Initialiser l'authentification AVANT les notifications
-    debugPrint('🔐 [MAIN] Initialisation de l\'authentification...');
     final authService = AuthService();
     final token = await authService.getToken();
 
     if (token != null) {
-      debugPrint(
-          '✅ [MAIN] Token d\'authentification trouvé, configuration des services...');
       FeedbackApiService.setToken(token);
       NotificationApiService.setToken(token);
       AdsApiService.setToken(token);
       HoraireService.setToken(token);
       VideoAdvertisementService.setToken(token);
-    } else {
-      debugPrint('⚠️ [MAIN] Aucun token d\'authentification trouvé');
     }
 
     // Initialiser les notifications Firebase APRÈS l'auth
-    debugPrint('🔔 [MAIN] Initialisation des notifications...');
     await NotificationService.initialize();
-    debugPrint('✅ [MAIN] Notifications initialisées');
-
-    // Test de configuration Firebase
-    debugPrint('🧪 [MAIN] Test de configuration Firebase...');
-    await FirebaseConfigTest.testFirebaseConfig();
-
-    // Diagnostic simple des notifications
-    debugPrint('🔍 [MAIN] Diagnostic simple des notifications...');
-    try {
-      final messaging = FirebaseMessaging.instance;
-      final settings = await messaging.getNotificationSettings();
-      debugPrint(
-          '📱 Permissions: Alert=${settings.alert}, Badge=${settings.badge}, Sound=${settings.sound}, Auth=${settings.authorizationStatus}');
-
-      final token = await messaging.getToken();
-      if (token != null) {
-        debugPrint('✅ Token FCM: ${token.substring(0, 30)}...');
-      } else {
-        debugPrint('❌ Token FCM non obtenu');
-      }
-
-      // Test notification locale simple
-      final localNotifications = FlutterLocalNotificationsPlugin();
-      const androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
-      const initSettings = InitializationSettings(android: androidSettings);
-      await localNotifications.initialize(initSettings);
-
-      const channel = AndroidNotificationChannel(
-        'art_luxury_bus_channel',
-        'Art Luxury Bus Notifications',
-        description: 'Notifications de l\'application Art Luxury Bus',
-        importance: Importance.max,
-        playSound: true,
-        enableVibration: true,
-        showBadge: true,
-      );
-
-      final androidPlugin =
-          localNotifications.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      if (androidPlugin != null) {
-        await androidPlugin.createNotificationChannel(channel);
-        debugPrint('✅ Canal Android créé');
-      }
-
-      // Envoyer notification de test
-      await localNotifications.show(
-        999,
-        '🧪 Test Notification',
-        'Ceci est un test de notification',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'art_luxury_bus_channel',
-            'Art Luxury Bus Notifications',
-            importance: Importance.max,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-            playSound: true,
-            enableVibration: true,
-          ),
-        ),
-      );
-      debugPrint('✅ Notification de test envoyée - Vérifiez votre écran !');
-    } catch (e) {
-      debugPrint('❌ Erreur diagnostic: $e');
-    }
 
     // Initialiser le gestionnaire d'annonces GLOBALEMENT
-    debugPrint('📢 [MAIN] Initialisation du gestionnaire d\'annonces...');
     try {
       await AnnouncementManager().start();
-      debugPrint('✅ [MAIN] Gestionnaire d\'annonces démarré globalement');
     } catch (e) {
-      debugPrint('❌ [MAIN] Erreur initialisation gestionnaire d\'annonces: $e');
+      // Continuer malgré l'erreur
     }
 
-    // Test supprimé - notifications locales fonctionnent
-  } catch (e, stackTrace) {
-    debugPrint('❌ [MAIN ERROR] Erreur lors de l\'initialisation: $e');
-    debugPrint('Stack trace: $stackTrace');
+  } catch (e) {
     // Continuer malgré l'erreur pour éviter le crash
   }
 
-  debugPrint('🎯 [MAIN] Lancement de l\'app...');
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -174,7 +78,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         AnnouncementManager().setContext(context);
-        debugPrint('📱 [MAIN] Contexte global défini pour AnnouncementManager');
       }
     });
   }
@@ -183,13 +86,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _setupAuthListener() {
     // Écouter les changements d'état d'authentification
     ref.listenManual(authProvider, (previous, next) {
-      debugPrint(
-          '🔐 [MAIN] Changement d\'authentification: ${next.isAuthenticated}');
-
       // Si l'utilisateur vient de se connecter et qu'on a une notification en attente
       if (next.isAuthenticated && _pendingNotification != null) {
-        debugPrint(
-            '✅ [MAIN] Utilisateur maintenant authentifié, navigation vers notification en attente');
 
         // Attendre un peu que HomePage soit prête
         Future.delayed(const Duration(seconds: 2), () {
@@ -211,7 +109,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   /// Écouter les clics sur les notifications quand l'app est ouverte
   void _setupNotificationListener() {
     NotificationService.notificationStream?.listen((notification) {
-      debugPrint('🔔 [MAIN] Notification cliquée: $notification');
       if (notification['type'] == 'tap' ||
           notification['type'] == 'local_tap') {
         _handleNotificationNavigation(notification);
@@ -221,37 +118,24 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   /// Vérifier si l'app a été ouverte via une notification (app fermée)
   Future<void> _checkInitialNotification() async {
-    debugPrint('🔍 [MAIN] Vérification notification initiale...');
-
     // Attendre que l'app soit complètement initialisée
     await Future.delayed(const Duration(seconds: 3));
 
     final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
 
     if (initialMessage == null) {
-      debugPrint('ℹ️ [MAIN] Aucune notification initiale');
       return;
     }
-
-    debugPrint(
-        '🔔 [MAIN] App ouverte via notification: ${initialMessage.notification?.title}');
-    debugPrint('📦 [MAIN] Données notification: ${initialMessage.data}');
 
     // Vérifier que l'utilisateur est authentifié avant de naviguer
     final authState = ref.read(authProvider);
-    debugPrint('🔐 [MAIN] État authentification: ${authState.isAuthenticated}');
 
     if (!authState.isAuthenticated) {
-      debugPrint(
-          '⚠️ [MAIN] Utilisateur non authentifié, mise en attente de la notification...');
       // Sauvegarder la notification pour navigation après connexion
       _pendingNotification = initialMessage;
-      debugPrint('💾 [MAIN] Notification sauvegardée en attente');
       return;
     }
 
-    debugPrint(
-        '✅ [MAIN] Utilisateur authentifié, navigation immédiate vers notifications');
     _handleNotificationNavigation({
       'type': 'tap',
       'notification_type':
@@ -264,13 +148,10 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   /// Gérer la navigation selon le type de notification
   void _handleNotificationNavigation(Map<String, dynamic> notification) {
-    debugPrint('🔔 [MAIN] Navigation vers notification: $notification');
-
     // Attendre que la navigation soit prête
     Future.delayed(const Duration(milliseconds: 500), () {
       final context = _navigatorKey.currentContext;
       if (context == null || !mounted) {
-        debugPrint('❌ [MAIN] Contexte de navigation non disponible');
         return;
       }
 
@@ -283,8 +164,6 @@ class _MyAppState extends ConsumerState<MyApp> {
         ),
         (route) => false,
       );
-
-      debugPrint('✅ [MAIN] Navigation vers onglet Notifications effectuée');
 
       // Ensuite, si on a un ID de notification, ouvrir le détail
       final data = notification['data'] as Map<String, dynamic>?;
@@ -314,9 +193,6 @@ class _MyAppState extends ConsumerState<MyApp> {
                 ),
               ),
             );
-
-            debugPrint(
-                '✅ [MAIN] Navigation vers détail de la notification effectuée');
           }
         });
       }
