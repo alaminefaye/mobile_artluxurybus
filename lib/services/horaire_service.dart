@@ -16,7 +16,7 @@ class HoraireService {
   // Méthode pour définir le token
   static void setToken(String? token) {
     _token = token;
-    print('🔑 HoraireService - Token défini: ${token != null ? "✅" : "❌"}');
+    debugPrint('🔑 HoraireService - Token défini: ${token != null ? "✅" : "❌"}');
   }
   
   // Headers pour les requêtes authentifiées
@@ -52,7 +52,7 @@ class HoraireService {
       }
       throw Exception('Échec du chargement des horaires');
     } catch (e) {
-      print('Erreur fetchAllHoraires: $e');
+      debugPrint('Erreur fetchAllHoraires: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -77,7 +77,7 @@ class HoraireService {
       }
       throw Exception('Échec du chargement des horaires');
     } catch (e) {
-      print('Erreur fetchHorairesByGare: $e');
+      debugPrint('Erreur fetchHorairesByGare: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -102,7 +102,7 @@ class HoraireService {
       }
       throw Exception('Échec du chargement des horaires');
     } catch (e) {
-      print('Erreur fetchHorairesByAppareil: $e');
+      debugPrint('Erreur fetchHorairesByAppareil: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -151,7 +151,7 @@ class HoraireService {
       }
       throw Exception('Échec du chargement des horaires');
     } catch (e) {
-      print('Erreur fetchTodayHoraires: $e');
+      debugPrint('Erreur fetchTodayHoraires: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -175,7 +175,7 @@ class HoraireService {
       }
       throw Exception('Échec du chargement de l\'horaire');
     } catch (e) {
-      print('Erreur fetchHoraireById: $e');
+      debugPrint('Erreur fetchHoraireById: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -213,7 +213,7 @@ class HoraireService {
       }
       throw Exception('Échec de la création de l\'horaire');
     } catch (e) {
-      print('Erreur createHoraire: $e');
+      debugPrint('Erreur createHoraire: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -253,7 +253,7 @@ class HoraireService {
       }
       throw Exception('Échec de la modification de l\'horaire');
     } catch (e) {
-      print('Erreur updateHoraire: $e');
+      debugPrint('Erreur updateHoraire: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -271,7 +271,7 @@ class HoraireService {
       }
       throw Exception('Échec de la suppression de l\'horaire');
     } catch (e) {
-      print('Erreur deleteHoraire: $e');
+      debugPrint('Erreur deleteHoraire: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }
@@ -324,7 +324,7 @@ class HoraireService {
       }
       throw Exception('Échec du chargement des trajets');
     } catch (e) {
-      print('Erreur fetchTrajets: $e');
+      debugPrint('Erreur fetchTrajets: $e');
       throw Exception('Erreur de connexion: $e');
     }
   }

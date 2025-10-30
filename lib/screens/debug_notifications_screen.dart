@@ -30,22 +30,28 @@ class _DebugNotificationsScreenState extends State<DebugNotificationsScreen> {
       setState(() {
         loading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
     }
   }
 
   Future<void> _testLocalNotification() async {
     try {
       await NotificationService.testNotification();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Notification locale envoyée')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification locale envoyée')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
     }
   }
 

@@ -153,14 +153,14 @@ class _VideoAdvertisementDetailScreenState
   Widget _buildStatusCard() {
     return Card(
       color: _video.isActive 
-          ? Colors.green.withOpacity(0.15) 
+          ? Colors.green.withValues(alpha: 0.15) 
           : Colors.grey[850],
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: _video.isActive 
-              ? Colors.green.withOpacity(0.3) 
+              ? Colors.green.withValues(alpha: 0.3) 
               : Colors.grey[700]!,
           width: 1,
         ),
@@ -173,7 +173,7 @@ class _VideoAdvertisementDetailScreenState
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: _video.isActive 
-                    ? Colors.green.withOpacity(0.2) 
+                    ? Colors.green.withValues(alpha: 0.2) 
                     : Colors.grey[800],
                 shape: BoxShape.circle,
               ),
@@ -211,8 +211,8 @@ class _VideoAdvertisementDetailScreenState
             Switch(
               value: _video.isActive,
               onChanged: _isLoading ? null : (_) => _toggleStatus(),
-              activeColor: Colors.green,
-              activeTrackColor: Colors.green.withOpacity(0.5),
+              activeThumbColor: Colors.green,
+              activeTrackColor: Colors.green.withValues(alpha: 0.5),
               inactiveThumbColor: Colors.grey[600],
               inactiveTrackColor: Colors.grey[800],
             ),
@@ -256,7 +256,7 @@ class _VideoAdvertisementDetailScreenState
                         end: Alignment.bottomRight,
                         colors: [
                           AppTheme.primaryBlue,
-                          AppTheme.primaryBlue.withOpacity(0.8),
+                          AppTheme.primaryBlue.withValues(alpha: 0.8),
                         ],
                       ),
                     ),

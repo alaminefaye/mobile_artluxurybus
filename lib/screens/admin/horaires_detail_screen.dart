@@ -17,7 +17,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
   
   List<Horaire> _allHoraires = [];
   List<Horaire> _filteredHoraires = [];
-  Map<String, List<Horaire>> _horairesByGare = {};
+  final Map<String, List<Horaire>> _horairesByGare = {};
   
   bool _isLoading = true;
   String? _selectedGareFilter;
@@ -26,7 +26,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
   String _selectedSortOption = 'heure'; // heure, gare, statut
   
   // Listes pour les filtres
-  List<String> _garesNames = [];
+  final List<String> _garesNames = [];
   List<String> _trajetsDestinations = [];
 
   @override
@@ -205,13 +205,13 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
           // Barre de recherche et filtres
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF1a1a2e),
-                  const Color(0xFF16213e),
+                  Color(0xFF1a1a2e),
+                  Color(0xFF16213e),
                 ],
               ),
             ),
@@ -262,7 +262,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     // Filtre par gare
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedGareFilter,
+                        initialValue: _selectedGareFilter,
                         dropdownColor: const Color(0xFF0f3460),
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
@@ -313,7 +313,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     // Filtre par statut
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedStatutFilter,
+                        initialValue: _selectedStatutFilter,
                         dropdownColor: const Color(0xFF0f3460),
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
@@ -374,7 +374,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     // Filtre par destination
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedTrajetFilter,
+                        initialValue: _selectedTrajetFilter,
                         dropdownColor: const Color(0xFF0f3460),
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
@@ -425,7 +425,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                     // Tri
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedSortOption,
+                        initialValue: _selectedSortOption,
                         dropdownColor: const Color(0xFF0f3460),
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
@@ -491,7 +491,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                             style: TextStyle(color: Colors.white70),
                           ),
                           style: TextButton.styleFrom(
-                            backgroundColor: Colors.white.withOpacity(0.1),
+                            backgroundColor: Colors.white.withValues(alpha: 0.1),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -581,23 +581,23 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
           // En-tête de la gare
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  const Color(0xFF1a1a2e),
-                  const Color(0xFF16213e),
+                  Color(0xFF1a1a2e),
+                  Color(0xFF16213e),
                 ],
               ),
-              borderRadius: const BorderRadius.only(
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.location_on, 
+                const Icon(Icons.location_on, 
                   color: Colors.white,
                   size: 24,
                 ),
@@ -663,7 +663,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
         width: 60,
         height: 60,
         decoration: BoxDecoration(
-          color: statutColor.withOpacity(0.1),
+          color: statutColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -715,7 +715,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: statutColor.withOpacity(0.1),
+              color: statutColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -794,7 +794,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: statutColor.withOpacity(0.1),
+                          color: statutColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -921,7 +921,7 @@ class _HorairesDetailScreenState extends State<HorairesDetailScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 20),

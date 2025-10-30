@@ -57,12 +57,13 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
     final loyaltyState = ref.watch(loyaltyProvider);
     final client = loyaltyState.client;
 
-    return WillPopScope(
-      onWillPop: () async {
-        // Toujours effacer la session lors du retour
-        debugPrint('🔵 [LoyaltyHomeScreen] WillPop - Clearing session and exiting');
-        ref.read(loyaltyProvider.notifier).reset();
-        return true;
+    return PopScope(
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) {
+          // Toujours effacer la session lors du retour
+          debugPrint('🔵 [LoyaltyHomeScreen] PopScope - Clearing session and exiting');
+          ref.read(loyaltyProvider.notifier).reset();
+        }
       },
       child: Scaffold(
         appBar: AppBar(

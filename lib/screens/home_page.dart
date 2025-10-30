@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin/horaires_list_screen.dart';
+import 'admin/video_advertisements_screen.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 import '../models/user.dart';
@@ -742,7 +742,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
+            const Text(
               'Tout ce dont vous avez besoin',
               style: TextStyle(
                 fontSize: 13,
@@ -988,6 +988,18 @@ class _HomePageState extends ConsumerState<HomePage> {
             color: const Color(0xFF6366F1),
             onTap: () {
               // TODO: Navigation vers paiement
+            },
+          ),
+          _buildServiceIcon(
+            icon: Icons.video_library_rounded,
+            label: 'Mes Vidéos',
+            color: const Color(0xFFE91E63),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const VideoAdvertisementsScreen(),
+                ),
+              );
             },
           ),
           _buildServiceIcon(

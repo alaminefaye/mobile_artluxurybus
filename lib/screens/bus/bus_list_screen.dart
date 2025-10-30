@@ -496,7 +496,7 @@ class _BusListScreenState extends ConsumerState<BusListScreen> {
         ref.read(busListProvider.notifier).setStatusFilter(newValue);
         Navigator.pop(context);
       },
-      activeColor: Colors.deepPurple,
+      fillColor: WidgetStateProperty.all(Colors.deepPurple),
       selected: isSelected,
     );
   }

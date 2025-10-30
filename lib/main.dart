@@ -13,6 +13,7 @@ import 'models/notification_model.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
+import 'services/video_advertisement_service.dart';
 import 'services/feedback_api_service.dart';
 import 'services/notification_api_service.dart';
 import 'services/ads_api_service.dart';
@@ -49,6 +50,7 @@ void main() async {
       NotificationApiService.setToken(token);
       AdsApiService.setToken(token);
       HoraireService.setToken(token);
+      VideoAdvertisementService.setToken(token);
     } else {
       debugPrint('⚠️ [MAIN] Aucun token d\'authentification trouvé');
     }

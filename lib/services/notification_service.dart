@@ -553,7 +553,7 @@ class NotificationService {
     
     try {
       // Simuler une notification d'annonce reçue
-      final fakeMessage = RemoteMessage(
+      final fakeMessage = const RemoteMessage(
         data: {
           'msg_type': 'annonce',
           'type': 'message_notification',
@@ -562,7 +562,7 @@ class NotificationService {
           'titre': 'Test Annonce',
           'contenu': 'Ceci est un test d\'annonce vocale pour vérifier le fonctionnement',
         },
-        notification: const RemoteNotification(
+        notification: RemoteNotification(
           title: 'Test Annonce',
           body: 'Ceci est un test d\'annonce vocale',
         ),

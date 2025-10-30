@@ -89,7 +89,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
                                 ),
                               ],
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.directions_bus_rounded,
                               size: 50,
                               color: AppTheme.primaryBlue,
@@ -281,7 +281,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
@@ -444,7 +444,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
                   color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.star_rounded,
                   color: AppTheme.primaryBlue,
                   size: 20,
@@ -518,7 +518,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.access_time_rounded,
                 color: AppTheme.primaryOrange,
                 size: 24,
@@ -560,7 +560,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
           ),
           child: Text(
             hours,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
               color: AppTheme.primaryOrange,

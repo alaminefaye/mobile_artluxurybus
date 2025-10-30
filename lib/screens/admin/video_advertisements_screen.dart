@@ -185,7 +185,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppTheme.primaryBlue),
+                        borderSide: const BorderSide(color: AppTheme.primaryBlue),
                       ),
                     ),
                   ),
@@ -205,7 +205,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppTheme.primaryBlue),
+                        borderSide: const BorderSide(color: AppTheme.primaryBlue),
                       ),
                     ),
                     maxLines: 3,
@@ -250,7 +250,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                         isActive = value;
                       });
                     },
-                    activeColor: Colors.green,
+                    activeThumbColor: Colors.green,
                     tileColor: Colors.grey[800],
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -290,9 +290,9 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                   showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (BuildContext dialogContext) => WillPopScope(
-                      onWillPop: () async => false,
-                      child: const Center(
+                    builder: (BuildContext dialogContext) => const PopScope(
+                      canPop: false,
+                      child: Center(
                         child: CircularProgressIndicator(),
                       ),
                     ),
@@ -389,7 +389,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppTheme.primaryBlue),
+                        borderSide: const BorderSide(color: AppTheme.primaryBlue),
                       ),
                     ),
                   ),
@@ -409,7 +409,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppTheme.primaryBlue),
+                        borderSide: const BorderSide(color: AppTheme.primaryBlue),
                       ),
                     ),
                     maxLines: 3,
@@ -454,7 +454,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                         isActive = value;
                       });
                     },
-                    activeColor: Colors.green,
+                    activeThumbColor: Colors.green,
                     tileColor: Colors.grey[800],
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -494,9 +494,9 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
                   showDialog(
                     context: context,
                     barrierDismissible: false,
-                    builder: (BuildContext dialogContext) => WillPopScope(
-                      onWillPop: () async => false,
-                      child: const Center(
+                    builder: (BuildContext dialogContext) => const PopScope(
+                      canPop: false,
+                      child: Center(
                         child: CircularProgressIndicator(),
                       ),
                     ),
@@ -574,7 +574,7 @@ class _VideoAdvertisementsScreenState extends State<VideoAdvertisementsScreen> {
               color: Colors.grey[900],
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),

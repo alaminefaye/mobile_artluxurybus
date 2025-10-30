@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/notification_model.dart';
 
@@ -72,38 +73,38 @@ class NotificationApiService {
   /// Marquer une notification comme lue
   static Future<Map<String, dynamic>> markAsRead(int notificationId) async {
     try {
-      print('🔔 [API] Marquage notification $notificationId comme lue');
-      print('🔑 [API] Token: ${_token != null ? "Défini (${_token!.substring(0, 10)}...)" : "NON DÉFINI"}');
+      debugPrint('🔔 [API] Marquage notification $notificationId comme lue');
+      debugPrint('🔑 [API] Token: ${_token != null ? "Défini (${_token!.substring(0, 10)}...)" : "NON DÉFINI"}');
       
       final url = '$baseUrl/notifications/$notificationId/read';
-      print('🌐 [API] URL: $url');
+      debugPrint('🌐 [API] URL: $url');
       
       final response = await http.post(
         Uri.parse(url),
         headers: _headers,
       );
       
-      print('📡 [API] Status: ${response.statusCode}');
-      print('📄 [API] Body: ${response.body}');
+      debugPrint('📡 [API] Status: ${response.statusCode}');
+      debugPrint('📄 [API] Body: ${response.body}');
       
       if (response.statusCode == 401) {
-        print('❌ [API] NON AUTORISÉ - Token invalide ou expiré');
+        debugPrint('❌ [API] NON AUTORISÉ - Token invalide ou expiré');
       }
       
       if (response.statusCode == 404) {
-        print('❌ [API] NOTIFICATION INTROUVABLE');
+        debugPrint('❌ [API] NOTIFICATION INTROUVABLE');
       }
       
       if (response.statusCode == 403) {
-        print('❌ [API] ACCÈS REFUSÉ - Notification d\'un autre utilisateur');
+        debugPrint('❌ [API] ACCÈS REFUSÉ - Notification d\'un autre utilisateur');
       }
 
       return jsonDecode(response.body);
     } on SocketException {
-      print('❌ [API] Pas de connexion internet');
+      debugPrint('❌ [API] Pas de connexion internet');
       return {'success': false, 'message': 'Pas de connexion internet'};
     } catch (e) {
-      print('❌ [API] Exception: $e');
+      debugPrint('❌ [API] Exception: $e');
       return {'success': false, 'message': 'Erreur: $e'};
     }
   }
@@ -111,23 +112,23 @@ class NotificationApiService {
   /// Marquer toutes les notifications comme lues
   static Future<Map<String, dynamic>> markAllAsRead() async {
     try {
-      print('🔔 [API] Marquage de TOUTES les notifications comme lues');
-      print('🔑 [API] Token: ${_token != null ? "Défini" : "NON DÉFINI"}');
+      debugPrint('🔔 [API] Marquage de TOUTES les notifications comme lues');
+      debugPrint('🔑 [API] Token: ${_token != null ? "Défini" : "NON DÉFINI"}');
       
       final response = await http.post(
         Uri.parse('$baseUrl/notifications/mark-all-read'),
         headers: _headers,
       );
       
-      print('📡 [API] Status: ${response.statusCode}');
-      print('📄 [API] Body: ${response.body}');
+      debugPrint('📡 [API] Status: ${response.statusCode}');
+      debugPrint('📄 [API] Body: ${response.body}');
 
       return jsonDecode(response.body);
     } on SocketException {
-      print('❌ [API] Pas de connexion internet');
+      debugPrint('❌ [API] Pas de connexion internet');
       return {'success': false, 'message': 'Pas de connexion internet'};
     } catch (e) {
-      print('❌ [API] Exception: $e');
+      debugPrint('❌ [API] Exception: $e');
       return {'success': false, 'message': 'Erreur: $e'};
     }
   }
@@ -135,23 +136,23 @@ class NotificationApiService {
   /// Supprimer une notification
   static Future<Map<String, dynamic>> deleteNotification(int notificationId) async {
     try {
-      print('🗑️ [API] Suppression notification $notificationId');
-      print('🔑 [API] Token: ${_token != null ? "Défini" : "NON DÉFINI"}');
+      debugPrint('🗑️ [API] Suppression notification $notificationId');
+      debugPrint('🔑 [API] Token: ${_token != null ? "Défini" : "NON DÉFINI"}');
       
       final response = await http.delete(
         Uri.parse('$baseUrl/notifications/$notificationId'),
         headers: _headers,
       );
       
-      print('📡 [API] Status: ${response.statusCode}');
-      print('📄 [API] Body: ${response.body}');
+      debugPrint('📡 [API] Status: ${response.statusCode}');
+      debugPrint('📄 [API] Body: ${response.body}');
 
       return jsonDecode(response.body);
     } on SocketException {
-      print('❌ [API] Pas de connexion internet');
+      debugPrint('❌ [API] Pas de connexion internet');
       return {'success': false, 'message': 'Pas de connexion internet'};
     } catch (e) {
-      print('❌ [API] Exception: $e');
+      debugPrint('❌ [API] Exception: $e');
       return {'success': false, 'message': 'Erreur: $e'};
     }
   }

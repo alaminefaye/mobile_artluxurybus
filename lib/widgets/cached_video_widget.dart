@@ -161,7 +161,7 @@ class _VideoPlayerControlsState extends State<VideoPlayerControls> {
           child: Icon(
             widget.controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
             size: 50,
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
       ),

@@ -68,7 +68,7 @@ class AnnouncementManager {
           .toList();
       
       if (kDebugMode && activeMessages.isNotEmpty) {
-        print('✅ [AnnouncementManager] ${activeMessages.length} annonce(s) active(s) trouvée(s)');
+        debugPrint('✅ [AnnouncementManager] ${activeMessages.length} annonce(s) active(s) trouvée(s)');
       }
       
       // Récupérer les IDs des messages actifs
@@ -78,7 +78,7 @@ class AnnouncementManager {
       final idsToStop = _processedMessageIds.where((id) => !activeIds.contains(id)).toList();
       for (final id in idsToStop) {
         if (kDebugMode) {
-          print('🛑 Arrêt de l\'annonce $id (plus active)');
+          debugPrint('🛑 Arrêt de l\'annonce $id (plus active)');
         }
         _voiceService.stopAnnouncement(id);
         _processedMessageIds.remove(id);
@@ -88,7 +88,7 @@ class AnnouncementManager {
       for (final message in activeMessages) {
         if (!_processedMessageIds.contains(message.id)) {
           if (kDebugMode) {
-            print('🎤 Nouvelle annonce détectée: ${message.titre} (ID: ${message.id})');
+            debugPrint('🎤 Nouvelle annonce détectée: ${message.titre} (ID: ${message.id})');
           }
           _processedMessageIds.add(message.id);
           _voiceService.startAnnouncement(message, _context);
@@ -96,7 +96,7 @@ class AnnouncementManager {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Erreur lors de la vérification des annonces: $e');
+        debugPrint('❌ Erreur lors de la vérification des annonces: $e');
       }
     }
   }

@@ -98,7 +98,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.photo_library, color: AppTheme.primaryBlue),
+                child: const Icon(Icons.photo_library, color: AppTheme.primaryBlue),
               ),
               title: const Text('Galerie'),
               onTap: () {
@@ -113,7 +113,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(Icons.camera_alt, color: AppTheme.primaryOrange),
+                child: const Icon(Icons.camera_alt, color: AppTheme.primaryOrange),
               ),
               title: const Text('Appareil photo'),
               onTap: () {
@@ -147,11 +147,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
+              content: const Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 12),
-                  const Expanded(
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       'Photo de profil mise à jour',
                       style: TextStyle(fontSize: 14),
@@ -328,7 +328,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         user?.name.isNotEmpty == true
                             ? user!.name[0].toUpperCase()
                             : 'U',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primaryBlue,
@@ -454,7 +454,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 label: const Text('Changer le mot de passe'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.primaryBlue,
-                  side: BorderSide(color: AppTheme.primaryBlue),
+                  side: const BorderSide(color: AppTheme.primaryBlue),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -492,7 +492,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+          borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

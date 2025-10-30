@@ -114,15 +114,15 @@ class ThemeSettingsScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
                     Icon(
                       Icons.info_outline,
                       color: AppTheme.primaryOrange,
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
+                    SizedBox(width: 8),
+                    Text(
                       'Aperçu',
                       style: TextStyle(
                         fontSize: 16,
@@ -226,7 +226,7 @@ class ThemeSettingsScreen extends ConsumerWidget {
             if (isSelected)
               Container(
                 padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppTheme.primaryOrange,
                   shape: BoxShape.circle,
                 ),
