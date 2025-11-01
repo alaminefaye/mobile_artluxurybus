@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import '../models/horaire_model.dart';
@@ -56,10 +57,10 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
   Future<bool> _isUserAdmin() async {
     try {
       final user = await _authService.getSavedUser();
-      print('👤 [HoraireProvider] Utilisateur connecté: ${user?.name} (role: ${user?.role})');
+      debugPrint('👤 [HoraireProvider] Utilisateur connecté: ${user?.name} (role: ${user?.role})');
       
       if (user == null) {
-        print('🔐 [HoraireProvider] Pas d\'utilisateur connecté');
+        debugPrint('🔐 [HoraireProvider] Pas d\'utilisateur connecté');
         return false;
       }
       
@@ -69,11 +70,11 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
                      user.role == 'chef agence' || 
                      (user.permissions?.contains('manage_horaires') ?? false);
       
-      print('🔐 [HoraireProvider] Résultat isUserAdmin(): $isAdmin');
+      debugPrint('🔐 [HoraireProvider] Résultat isUserAdmin(): $isAdmin');
       
       return isAdmin;
     } catch (e) {
-      print('❌ [HoraireProvider] Erreur détection admin: $e');
+      debugPrint('❌ [HoraireProvider] Erreur détection admin: $e');
       return false;
     }
   }
@@ -128,17 +129,17 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
     }
 
     try {
-      print('🔄 [HoraireProvider] Début récupération des horaires...');
+      debugPrint('🔄 [HoraireProvider] Début récupération des horaires...');
       
       // Vérifier si l'utilisateur est admin
       final isAdmin = await _isUserAdmin();
-      print('👤 [HoraireProvider] Utilisateur admin: $isAdmin');
+      debugPrint('👤 [HoraireProvider] Utilisateur admin: $isAdmin');
       
       if (isAdmin) {
-        print('✅ [HoraireProvider] Mode ADMIN - Récupération de TOUS les horaires');
+        debugPrint('✅ [HoraireProvider] Mode ADMIN - Récupération de TOUS les horaires');
         // ✅ ADMIN: Récupérer TOUS les horaires (sans filtre par device_id)
         final allHoraires = await _service.fetchAllHoraires();
-        print('📊 [HoraireProvider] Horaires récupérés (admin): ${allHoraires.length}');
+        debugPrint('📊 [HoraireProvider] Horaires récupérés (admin): ${allHoraires.length}');
         
         // Grouper par gare pour compatibilité
         Map<String, List<Horaire>> grouped = {};
@@ -157,10 +158,10 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
           error: null,
         );
       } else {
-        print('🔒 [HoraireProvider] Mode PUBLIC - Filtrage par device_id');
+        debugPrint('🔒 [HoraireProvider] Mode PUBLIC - Filtrage par device_id');
         // 🔒 UTILISATEUR PUBLIC: Filtrer par device_id comme avant
         final deviceId = await DeviceService.getDeviceId();
-        print('📱 [HoraireProvider] Device ID: $deviceId');
+        debugPrint('📱 [HoraireProvider] Device ID: $deviceId');
         final grouped = await _service.fetchTodayHoraires(deviceId: deviceId);
         
         // Aplatir pour avoir aussi une liste simple
@@ -168,7 +169,7 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
         grouped.forEach((gare, horaires) {
           allHoraires.addAll(horaires);
         });
-        print('📊 [HoraireProvider] Horaires récupérés (public): ${allHoraires.length}');
+        debugPrint('📊 [HoraireProvider] Horaires récupérés (public): ${allHoraires.length}');
 
         state = state.copyWith(
           horairesGrouped: grouped,
@@ -177,9 +178,9 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
           error: null,
         );
       }
-      print('✅ [HoraireProvider] Récupération terminée avec succès');
+      debugPrint('✅ [HoraireProvider] Récupération terminée avec succès');
     } catch (e) {
-      print('❌ [HoraireProvider] Erreur: $e');
+      debugPrint('❌ [HoraireProvider] Erreur: $e');
       if (!silent) {
         state = state.copyWith(
           isLoading: false,

@@ -49,6 +49,9 @@ dependencies:
   # Text-to-Speech
   flutter_tts: ^3.8.0
   
+  # Translation
+  translator: ^1.0.0
+  
   # State Management
   flutter_riverpod: ^2.6.1
   

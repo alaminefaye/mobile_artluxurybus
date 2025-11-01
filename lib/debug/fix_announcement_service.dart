@@ -311,8 +311,8 @@ class _FixAnnouncementScreenState extends State<FixAnnouncementScreen> {
                                   color: isForThisDevice ? primaryColor : Colors.grey,
                                 ),
                                 trailing: isForThisDevice
-                                  ? Icon(Icons.check_circle, color: Colors.green)
-                                  : Icon(Icons.cancel, color: Colors.red),
+                                  ? const Icon(Icons.check_circle, color: Colors.green)
+                                  : const Icon(Icons.cancel, color: Colors.red),
                               );
                             },
                           ),

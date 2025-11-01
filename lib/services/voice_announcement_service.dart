@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:translator/translator.dart'; // 🌍 Traduction automatique
 import '../models/message_model.dart';
 import '../screens/announcement_display_screen.dart';
 import 'audio_focus_manager.dart';
@@ -14,12 +15,14 @@ class VoiceAnnouncementService {
   VoiceAnnouncementService._internal();
 
   final FlutterTts _flutterTts = FlutterTts();
+  final GoogleTranslator _translator = GoogleTranslator(); // 🌍 Traducteur
   final Map<int, Timer> _activeTimers = {};
   final Map<int, MessageModel> _activeAnnouncements = {};
   final Map<int, OverlayEntry> _activeOverlays =
       {}; // Pour garder les overlays affichés
   final Map<int, bool> _shouldContinue =
       {}; // Pour contrôler si l'annonce doit continuer
+  final Map<int, int> _repeatCounters = {}; // 🌍 Compteur de répétitions pour alternance FR/EN
   final AudioFocusManager _audioFocusManager = AudioFocusManager();
 
   bool _isInitialized = false;
@@ -160,25 +163,26 @@ class VoiceAnnouncementService {
     // Arrêter l'annonce existante si elle existe
     await stopAnnouncement(message.id);
 
-    // Sauvegarder l'annonce
+    // Ajouter aux annonces actives
     _activeAnnouncements[message.id] = message;
     _shouldContinue[message.id] = true;
+    _repeatCounters[message.id] = 0; // Initialiser le compteur à 0
 
     debugPrint(
-        '🔊 [VoiceService] Démarrage annonce #${message.id}: "${message.titre}"');
+        ' [VoiceService] Démarrage annonce #${message.id}: "${message.titre}"');
 
-    // 🎨 Afficher la belle page d'annonce si un contexte est fourni
+    // Afficher la belle page d'annonce si un contexte est fourni
     if (context != null && context.mounted) {
       _showAnnouncementDisplay(context, message);
     }
 
-    // 🔇 Notifier AudioFocusManager pour mettre en pause les vidéos
+    // Notifier AudioFocusManager pour mettre en pause les vidéos
     _audioFocusManager.startVoiceAnnouncement();
 
     // Démarrer la boucle de lecture : lire → attendre fin → pause 5s → recommencer
     _startAnnouncementLoop(message);
 
-    debugPrint('✅ [VoiceService] Annonce programmée avec boucle continue');
+    debugPrint(' [VoiceService] Annonce programmée avec boucle continue');
   }
 
   /// Boucle de lecture d'annonce : lit tout le texte, pause 5s, recommence
@@ -186,18 +190,18 @@ class VoiceAnnouncementService {
     while (_shouldContinue[message.id] == true) {
       // Vérifier si les annonces vocales sont toujours activées
       if (!await isEnabled()) {
-        debugPrint('⏹️ [VoiceService] Annonces vocales désactivées, arrêt');
+        debugPrint(' [VoiceService] Annonces vocales désactivées, arrêt');
         await stopAnnouncement(message.id);
         break;
       }
 
-      // 🆕 Vérifier si l'annonce est encore active (pas expirée) avec vérification en temps réel
+      // Vérifier si l'annonce est encore active (pas expirée) avec vérification en temps réel
       final now = DateTime.now();
       final isExpired = message.dateFin != null && now.isAfter(message.dateFin!);
       final isNotStarted = message.dateDebut != null && now.isBefore(message.dateDebut!);
       
       if (!message.active || isExpired || isNotStarted) {
-        debugPrint('⏹️ [VoiceService] Annonce #${message.id} expirée ou inactive, arrêt automatique');
+        debugPrint(' [VoiceService] Annonce #${message.id} expirée ou inactive, arrêt automatique');
         debugPrint('   - active: ${message.active}');
         debugPrint('   - isExpired: $isExpired (dateFin: ${message.dateFin})');
         debugPrint('   - isNotStarted: $isNotStarted (dateDebut: ${message.dateDebut})');
@@ -206,16 +210,26 @@ class VoiceAnnouncementService {
         break;
       }
 
-      debugPrint('🔊 [VoiceService] Lecture COMPLÈTE de l\'annonce #${message.id}...');
+      debugPrint(' [VoiceService] Lecture COMPLÈTE de l\'annonce #${message.id}...');
 
-      // ⭐ Lire l'annonce COMPLÈTEMENT - speak() attend maintenant la fin grâce à awaitSpeakCompletion(true)
-      await _speakAnnouncement(message);
+      // Déterminer la langue selon le compteur de répétitions
+      int counter = _repeatCounters[message.id] ?? 0;
+      bool isFrench = (counter ~/ 2) % 2 == 0; // 0-1: FR, 2-3: EN, 4-5: FR, etc.
+      String language = isFrench ? 'fr-FR' : 'en-US';
       
-      debugPrint('✅ [VoiceService] Lecture TERMINÉE pour annonce #${message.id}');
+      debugPrint(' [VoiceService] Lecture COMPLÈTE #${counter + 1} en ${isFrench ? "français" : "anglais"}...');
+
+      // Lire l'annonce COMPLÈTEMENT dans la langue appropriée
+      await _speakAnnouncement(message, language);
+      
+      // Incrémenter le compteur
+      _repeatCounters[message.id] = counter + 1;
+      
+      debugPrint(' [VoiceService] Lecture TERMINÉE pour annonce #${message.id}');
 
       // Si on doit toujours continuer, pause de 5 secondes avant la prochaine répétition
       if (_shouldContinue[message.id] == true) {
-        debugPrint('⏸️ [VoiceService] Pause de 5 secondes avant répétition...');
+        debugPrint(' [VoiceService] Pause de 5 secondes avant répétition...');
         
         // Pause intelligente avec vérification d'expiration (1 seconde à la fois)
         for (int i = 0; i < 5; i++) {
@@ -227,7 +241,7 @@ class VoiceAnnouncementService {
           final isNotStarted = message.dateDebut != null && now.isBefore(message.dateDebut!);
           
           if (_shouldContinue[message.id] != true || !message.active || isExpired || isNotStarted) {
-            debugPrint('⏹️ [VoiceService] Annonce expirée pendant la pause, arrêt automatique');
+            debugPrint(' [VoiceService] Annonce expirée pendant la pause, arrêt automatique');
             debugPrint('   - active: ${message.active}');
             debugPrint('   - isExpired: $isExpired (dateFin: ${message.dateFin})');
             debugPrint('   - now: $now');
@@ -239,28 +253,80 @@ class VoiceAnnouncementService {
     }
   }
 
-  /// Lire une annonce vocale COMPLÈTEMENT jusqu'à la fin
-  Future<void> _speakAnnouncement(MessageModel message) async {
+  /// 🌍 Configurer la voix selon la langue (voix de qualité)
+  Future<void> _configureVoiceForLanguage(String language) async {
+    try {
+      await _flutterTts.setLanguage(language);
+      
+      if (language == 'en-US') {
+        // 🎙️ Configuration pour une BELLE VOIX ANGLAISE (naturelle et lente)
+        await _flutterTts.setVolume(0.85); // Volume réduit pour plus de douceur
+        await _flutterTts.setPitch(0.9); // Pitch légèrement plus bas pour voix plus grave et naturelle
+        await _flutterTts.setSpeechRate(0.38); // Vitesse RALENTIE pour meilleure compréhension
+        
+        // Essayer de sélectionner une voix féminine de qualité sur Android/iOS
+        // Sur Android: com.google.android.tts (Google Text-to-Speech)
+        // Sur iOS: com.apple.ttsbundle.Samantha-compact / com.apple.speech.synthesis.voice.samantha
+        debugPrint('🎙️ [VoiceService] Voix anglaise configurée (naturelle et lente)');
+      } else {
+        // 🎙️ Configuration pour le français (AMÉLIORÉE - plus naturelle)
+        await _flutterTts.setVolume(0.85); // Volume doux et agréable
+        await _flutterTts.setPitch(0.88); // Pitch plus bas pour voix masculine naturelle et chaleureuse
+        await _flutterTts.setSpeechRate(0.40); // Vitesse ralentie pour meilleure articulation
+        debugPrint('🎙️ [VoiceService] Voix française configurée (naturelle et fluide)');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [VoiceService] Erreur configuration voix: $e');
+    }
+  }
+
+  /// Lire une annonce vocale COMPLÈTEMENT jusqu'à la fin dans la langue spécifiée
+  Future<void> _speakAnnouncement(MessageModel message, String language) async {
     // Arrêter toute lecture en cours
     if (_isSpeaking) {
-      debugPrint('⏳ [VoiceService] Arrêt de l\'annonce en cours...');
+      debugPrint(' [VoiceService] Arrêt de l\'annonce en cours...');
       await _flutterTts.stop();
       await Future.delayed(const Duration(milliseconds: 500));
       _isSpeaking = false;
     }
 
     try {
+      // 🌍 Configurer la langue et la voix
+      await _configureVoiceForLanguage(language);
+      
+      // 🌍 Traduire le contenu si nécessaire
+      String titre = message.titre;
+      String contenu = message.contenu;
+      
+      if (language == 'en-US') {
+        // Traduire en anglais
+        try {
+          debugPrint('🌍 [VoiceService] Traduction en anglais...');
+          var titreTranslated = await _translator.translate(titre, from: 'fr', to: 'en');
+          var contenuTranslated = await _translator.translate(contenu, from: 'fr', to: 'en');
+          titre = titreTranslated.text;
+          contenu = contenuTranslated.text;
+          debugPrint('✅ [VoiceService] Traduction réussie');
+          debugPrint('   Titre EN: $titre');
+        } catch (e) {
+          debugPrint('⚠️ [VoiceService] Erreur traduction: $e - Utilisation texte original');
+        }
+      }
+      
       // Construire le texte à lire de manière plus naturelle
       String textToSpeak = '';
 
-      // Ajouter un préfixe court et naturel
-      textToSpeak += 'Attention, ';
+      // Ajouter un préfixe court et naturel selon la langue
+      if (language == 'fr-FR') {
+        textToSpeak += 'Attention, ';
+      } else {
+        textToSpeak += 'Attention, '; // "Attention" fonctionne en anglais aussi
+      }
 
-      // Ajouter le titre avec une pause
-      textToSpeak += '${message.titre}... ';
+      // Ajouter le titre traduit avec une pause
+      textToSpeak += '$titre... ';
 
       // Nettoyer le contenu pour le rendre plus naturel
-      String contenu = message.contenu;
       // Remplacer les sauts de ligne par des pauses
       contenu = contenu.replaceAll('\n', '... ');
       contenu = contenu.replaceAll('\r', '');
@@ -294,7 +360,7 @@ class VoiceAnnouncementService {
   /// Afficher la belle page d'annonce
   void _showAnnouncementDisplay(BuildContext context, MessageModel message) {
     try {
-      debugPrint('🎨 [VoiceService] Affichage de la page d\'annonce');
+      debugPrint(' [VoiceService] Affichage de la page d\'annonce');
 
       // Créer un overlay qui reste affiché tant que l'annonce est active
       final overlay = Overlay.of(context);
@@ -320,23 +386,23 @@ class VoiceAnnouncementService {
       overlay.insert(overlayEntry);
 
       debugPrint(
-          '✅ [VoiceService] Page d\'annonce affichée pour message #${message.id}');
+          ' [VoiceService] Page d\'annonce affichée pour message #${message.id}');
     } catch (e) {
-      debugPrint('❌ [VoiceService] Erreur affichage page annonce: $e');
+      debugPrint(' [VoiceService] Erreur affichage page annonce: $e');
     }
   }
 
   /// Arrêter une annonce spécifique
   Future<void> stopAnnouncement(int messageId) async {
-    debugPrint('🛑 [VoiceService] Demande d\'arrêt de l\'annonce #$messageId...');
+    debugPrint(' [VoiceService] Demande d\'arrêt de l\'annonce #$messageId...');
     
     // Marquer qu'on doit arrêter la boucle
     _shouldContinue[messageId] = false;
 
-    // ⭐ Si une annonce est en cours de lecture, attendre qu'elle termine
+    // Si une annonce est en cours de lecture, attendre qu'elle termine
     // avant d'arrêter complètement (respect de la demande utilisateur)
     if (_isSpeaking) {
-      debugPrint('⏳ [VoiceService] Attente de la fin de la lecture en cours...');
+      debugPrint(' [VoiceService] Attente de la fin de la lecture en cours...');
       // Attendre max 3 secondes que la lecture actuelle se termine
       int waitCounter = 0;
       while (_isSpeaking && waitCounter < 30) {
@@ -346,11 +412,11 @@ class VoiceAnnouncementService {
       
       // Si toujours en cours après 3s, forcer l'arrêt
       if (_isSpeaking) {
-        debugPrint('⚠️ [VoiceService] Timeout - Arrêt forcé de la lecture');
+        debugPrint(' [VoiceService] Timeout - Arrêt forcé de la lecture');
         await _flutterTts.stop();
         _isSpeaking = false;
       } else {
-        debugPrint('✅ [VoiceService] Lecture terminée proprement');
+        debugPrint(' [VoiceService] Lecture terminée proprement');
       }
     }
 
@@ -363,31 +429,38 @@ class VoiceAnnouncementService {
     // Retirer de la liste des annonces actives
     _activeAnnouncements.remove(messageId);
 
-    // 🔊 Si plus aucune annonce active, reprendre les vidéos
+    // Si plus aucune annonce active, reprendre les vidéos
     if (_activeAnnouncements.isEmpty) {
       _audioFocusManager.stopVoiceAnnouncement();
     }
 
-    // 🆕 TOUJOURS fermer l'overlay, même si il n'y avait pas de timer
+    // Fermer l'overlay, même si il n'y avait pas de timer
     if (_activeOverlays.containsKey(messageId)) {
       try {
         _activeOverlays[messageId]?.remove();
         _activeOverlays.remove(messageId);
-        debugPrint('🎨 [VoiceService] Overlay fermé pour message #$messageId');
+        debugPrint(' [VoiceService] Overlay fermé pour message #$messageId');
       } catch (e) {
-        debugPrint('⚠️ [VoiceService] Erreur fermeture overlay: $e');
+        debugPrint(' [VoiceService] Erreur fermeture overlay: $e');
         // Forcer le nettoyage même en cas d'erreur
         _activeOverlays.remove(messageId);
       }
     }
 
-    debugPrint('✅ [VoiceService] Annonce #$messageId complètement arrêtée');
+    // Nettoyer les données
+    _activeTimers.remove(messageId);
+    _activeAnnouncements.remove(messageId);
+    _activeOverlays.remove(messageId);
+    _shouldContinue.remove(messageId);
+    _repeatCounters.remove(messageId); // Nettoyer le compteur
+
+    debugPrint(' [VoiceService] Annonce #$messageId complètement arrêtée');
   }
 
   /// Arrêter toutes les annonces
   Future<void> stopAllAnnouncements() async {
     debugPrint(
-        '⏹️ [VoiceService] Arrêt de toutes les annonces (${_activeTimers.length})');
+        ' [VoiceService] Arrêt de toutes les annonces (${_activeTimers.length})');
 
     // Arrêter toutes les boucles
     for (var messageId in _shouldContinue.keys.toList()) {
@@ -403,7 +476,7 @@ class VoiceAnnouncementService {
       try {
         overlay.remove();
       } catch (e) {
-        debugPrint('⚠️ [VoiceService] Erreur fermeture overlay: $e');
+        debugPrint(' [VoiceService] Erreur fermeture overlay: $e');
       }
     }
 
@@ -411,11 +484,13 @@ class VoiceAnnouncementService {
     _activeAnnouncements.clear();
     _activeOverlays.clear();
     _shouldContinue.clear();
+    _repeatCounters.clear(); // Nettoyer tous les compteurs
 
     if (_isSpeaking) {
       await _flutterTts.stop();
     }
 
+    // Reprendre tous les audios
     // 🔊 Reprendre tous les audios
     _audioFocusManager.stopVoiceAnnouncement();
   }
