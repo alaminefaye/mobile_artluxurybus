@@ -78,7 +78,16 @@ class _MyAppState extends ConsumerState<MyApp> {
     // Définir le contexte global pour l'AnnouncementManager après le premier build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        AnnouncementManager().setContext(context);
+        // Utiliser le context du MaterialApp qui est toujours valide
+        final navigatorContext = _navigatorKey.currentContext;
+        if (navigatorContext != null) {
+          AnnouncementManager().setContext(navigatorContext);
+          debugPrint('✅ [Main] Contexte Navigator défini pour AnnouncementManager');
+        } else {
+          // Fallback au context actuel
+          AnnouncementManager().setContext(context);
+          debugPrint('⚠️ [Main] Contexte fallback utilisé pour AnnouncementManager');
+        }
       }
     });
   }

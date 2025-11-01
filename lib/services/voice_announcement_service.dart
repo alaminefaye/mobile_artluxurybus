@@ -18,8 +18,8 @@ class VoiceAnnouncementService {
   final GoogleTranslator _translator = GoogleTranslator(); // 🌍 Traducteur
   final Map<int, Timer> _activeTimers = {};
   final Map<int, MessageModel> _activeAnnouncements = {};
-  final Map<int, OverlayEntry> _activeOverlays =
-      {}; // Pour garder les overlays affichés
+  final Map<int, OverlayEntry?> _activeOverlays =
+      {}; // Pour garder les overlays/dialogues affichés (nullable car on utilise maintenant showDialog)
   final Map<int, bool> _shouldContinue =
       {}; // Pour contrôler si l'annonce doit continuer
   final Map<int, int> _repeatCounters = {}; // 🌍 Compteur de répétitions pour alternance FR/EN
@@ -172,8 +172,15 @@ class VoiceAnnouncementService {
         ' [VoiceService] Démarrage annonce #${message.id}: "${message.titre}"');
 
     // Afficher la belle page d'annonce si un contexte est fourni
-    if (context != null && context.mounted) {
-      _showAnnouncementDisplay(context, message);
+    if (context != null) {
+      if (context.mounted) {
+        debugPrint('✅ [VoiceService] Context disponible et monté - affichage overlay');
+        _showAnnouncementDisplay(context, message);
+      } else {
+        debugPrint('⚠️ [VoiceService] Context fourni mais NON monté - pas d\'overlay');
+      }
+    } else {
+      debugPrint('⚠️ [VoiceService] Aucun context fourni - AUDIO SEULEMENT (pas d\'overlay visuel)');
     }
 
     // Notifier AudioFocusManager pour mettre en pause les vidéos
@@ -357,38 +364,40 @@ class VoiceAnnouncementService {
     }
   }
 
-  /// Afficher la belle page d'annonce
+  /// Afficher la belle page d'annonce via Dialog (plus fiable qu'Overlay)
   void _showAnnouncementDisplay(BuildContext context, MessageModel message) {
     try {
-      debugPrint(' [VoiceService] Affichage de la page d\'annonce');
+      debugPrint('📱 [VoiceService] Tentative affichage dialogue pour annonce #${message.id}');
 
-      // Créer un overlay qui reste affiché tant que l'annonce est active
-      final overlay = Overlay.of(context);
-      OverlayEntry? overlayEntry;
-
-      overlayEntry = OverlayEntry(
-        builder: (context) => AnnouncementDisplayScreen(
-          message: message,
-          onClose: () {
-            // L'utilisateur ferme manuellement
-            overlayEntry?.remove();
-            _activeOverlays.remove(message.id);
-            // Arrêter aussi l'annonce vocale
-            stopAnnouncement(message.id);
-          },
+      // Utiliser showDialog au lieu d'Overlay (plus fiable)
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Ne peut pas être fermé en touchant dehors
+        builder: (dialogContext) => PopScope(
+          canPop: false, // Empêcher le retour arrière
+          child: AnnouncementDisplayScreen(
+            message: message,
+            onClose: () {
+              // L'utilisateur ferme manuellement
+              Navigator.of(dialogContext).pop();
+              // Arrêter aussi l'annonce vocale
+              stopAnnouncement(message.id);
+            },
+          ),
         ),
-      );
+      ).then((_) {
+        // Nettoyage quand le dialogue se ferme
+        _activeOverlays.remove(message.id);
+        debugPrint('🔴 [VoiceService] Dialogue fermé pour annonce #${message.id}');
+      });
 
-      // Sauvegarder la référence
-      _activeOverlays[message.id] = overlayEntry;
+      // Marquer comme affiché (pas besoin de OverlayEntry, juste un flag)
+      _activeOverlays[message.id] = null; // On utilise la map juste comme tracker
 
-      // Insérer l'overlay
-      overlay.insert(overlayEntry);
-
-      debugPrint(
-          ' [VoiceService] Page d\'annonce affichée pour message #${message.id}');
+      debugPrint('✅ [VoiceService] Dialogue affiché pour annonce #${message.id}');
     } catch (e) {
-      debugPrint(' [VoiceService] Erreur affichage page annonce: $e');
+      debugPrint('❌ [VoiceService] ERREUR affichage dialogue: $e');
+      debugPrint('   Stack trace: ${StackTrace.current}');
     }
   }
 
@@ -471,10 +480,10 @@ class VoiceAnnouncementService {
       timer.cancel();
     }
 
-    // Fermer tous les overlays
+    // Fermer tous les overlays/dialogues (les dialogues se ferment automatiquement)
     for (var overlay in _activeOverlays.values) {
       try {
-        overlay.remove();
+        overlay?.remove(); // Utiliser ?. car maintenant nullable (dialogues n'ont pas de OverlayEntry)
       } catch (e) {
         debugPrint(' [VoiceService] Erreur fermeture overlay: $e');
       }

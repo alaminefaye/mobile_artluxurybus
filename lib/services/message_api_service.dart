@@ -10,12 +10,17 @@ class MessageApiService {
   final AuthService _authService = AuthService();
 
   /// Récupérer tous les messages actifs pour l'application mobile
+  /// Fonctionne SANS authentification - utilise juste le device_id
   Future<List<MessageModel>> getActiveMessages({int? gareId}) async {
     try {
-      final token = await _authService.getToken();
+      // ✅ Essayer d'obtenir le token, mais continuer même s'il n'y en a pas
+      String? token = await _authService.getToken();
+      
+      // Si pas de token, on continue quand même avec device_id seulement
       if (token == null) {
-        debugPrint('❌ Token non disponible pour récupérer les messages');
-        return [];
+        debugPrint('⚠️ [MessageAPI] Pas de token - Mode public (device_id uniquement)');
+      } else {
+        debugPrint('✅ [MessageAPI] Token disponible - Mode authentifié');
       }
 
       List<MessageModel> allMessages = [];
@@ -28,6 +33,8 @@ class MessageApiService {
       try {
         final deviceInfoService = DeviceInfoService();
         final deviceId = await deviceInfoService.getDeviceId();
+        debugPrint('📱 [MessageAPI] Device ID: $deviceId');
+        
         if (deviceId.isNotEmpty && deviceId != 'mobile') {
           final deviceSpecificMessages = await _fetchMessagesForDevice(deviceId, gareId, token);
           allMessages.addAll(deviceSpecificMessages);
@@ -53,7 +60,8 @@ class MessageApiService {
   }
 
   /// Méthode privée pour récupérer les messages d'un appareil spécifique
-  Future<List<MessageModel>> _fetchMessagesForDevice(String appareil, int? gareId, String token) async {
+  /// Fonctionne avec ou sans token d'authentification
+  Future<List<MessageModel>> _fetchMessagesForDevice(String appareil, int? gareId, String? token) async {
     try {
       // Construire l'URL avec les filtres
       final queryParams = <String, String>{
@@ -70,14 +78,21 @@ class MessageApiService {
 
       debugPrint('🔍 Récupération des messages pour appareil "$appareil": $uri');
 
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      );
+      // Construire les headers - avec ou sans token
+      final headers = <String, String>{
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+      
+      // Ajouter le token seulement s'il existe
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+        debugPrint('🔐 [MessageAPI] Requête avec authentification');
+      } else {
+        debugPrint('🔓 [MessageAPI] Requête SANS authentification (mode public)');
+      }
+
+      final response = await http.get(uri, headers: headers);
 
       debugPrint('📡 Status Code pour "$appareil": ${response.statusCode}');
 
@@ -95,6 +110,9 @@ class MessageApiService {
 
         debugPrint('✅ ${messages.length} messages récupérés pour appareil "$appareil"');
         return messages;
+      } else if (response.statusCode == 401 && token == null) {
+        debugPrint('⚠️ [MessageAPI] API nécessite authentification pour appareil "$appareil"');
+        return [];
       } else {
         debugPrint('❌ Erreur API pour "$appareil": ${response.statusCode} - ${response.body}');
         return [];

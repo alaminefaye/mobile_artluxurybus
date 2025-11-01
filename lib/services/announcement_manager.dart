@@ -25,7 +25,7 @@ class AnnouncementManager {
   /// Définir le contexte pour l'affichage des annonces
   void setContext(BuildContext context) {
     _context = context;
-    debugPrint('📱 [AnnouncementManager] Contexte défini');
+    debugPrint('📱 [AnnouncementManager] ✅ Contexte défini et prêt pour overlays');
   }
 
   /// Démarre la surveillance des annonces
@@ -91,7 +91,15 @@ class AnnouncementManager {
             debugPrint('🎤 Nouvelle annonce détectée: ${message.titre} (ID: ${message.id})');
           }
           _processedMessageIds.add(message.id);
-          _voiceService.startAnnouncement(message, _context);
+          
+          // Vérifier si le context est disponible pour l'overlay
+          if (_context != null) {
+            debugPrint('✅ [AnnouncementManager] Démarrage avec overlay visuel (context OK)');
+            _voiceService.startAnnouncement(message, _context);
+          } else {
+            debugPrint('⚠️ [AnnouncementManager] Contexte non disponible - annonce AUDIO SEULEMENT');
+            _voiceService.startAnnouncement(message);
+          }
         }
       }
     } catch (e) {
@@ -203,7 +211,8 @@ class AnnouncementManager {
     return false;
   }
 
-  /// Vérifier si le message est destiné à cet appareil mobile
+  /// Vérifier si le message est destiné à cet appareil
+  /// RÈGLE: Les annonces sont filtrées UNIQUEMENT par device_id exact (pas par "mobile")
   bool _isForThisDevice(MessageModel message) {
     final appareil = message.appareil?.trim();
     final gareAppareil = message.gare?.appareil?.trim();
@@ -221,17 +230,20 @@ class AnnouncementManager {
       if (gareAppareil != null && gareAppareil.isNotEmpty && gareAppareil.toLowerCase() != 'tous') {
         return _checkDeviceMatch(gareAppareil, message.id, 'gare.appareil');
       }
+      debugPrint('✅ [AnnouncementManager] Message #${message.id} pour TOUS les appareils');
       return true;
     }
     
-    // Ne pas traiter automatiquement les annonces 'mobile' pour tous les appareils
-    // Si c'est une annonce, elle doit être spécifiquement pour cet appareil
-    if (appareil.toLowerCase() == 'mobile' && message.isAnnonce) {
-      debugPrint('⚠️ [AnnouncementManager] Annonce #${message.id} de type "mobile" - ignorée car doit cibler un appareil spécifique');
+    // ✅ RÈGLE PRINCIPALE: Pour les ANNONCES, ignorer "mobile" et utiliser SEULEMENT le device_id
+    if (message.isAnnonce && appareil.toLowerCase() == 'mobile') {
+      debugPrint('❌ [AnnouncementManager] Annonce #${message.id} avec appareil="mobile" - IGNORÉE');
+      debugPrint('   ℹ️ Les annonces doivent cibler un device_id SPÉCIFIQUE (ex: DAKAR-TOTEM-01)');
       return false;
     }
-    // Si c'est une notification normale (pas une annonce), on accepte la catégorie 'mobile'
-    else if (appareil.toLowerCase() == 'mobile' && !message.isAnnonce) {
+    
+    // Pour les notifications normales (pas annonces), accepter "mobile"
+    if (!message.isAnnonce && appareil.toLowerCase() == 'mobile') {
+      debugPrint('✅ [AnnouncementManager] Notification #${message.id} pour catégorie "mobile"');
       return true;
     }
     
@@ -242,16 +254,18 @@ class AnnouncementManager {
     
     // Vérifier aussi l'appareil de la gare si le message.appareil ne correspond pas
     if (gareAppareil != null && gareAppareil.isNotEmpty) {
+
       if (_checkDeviceMatch(gareAppareil, message.id, 'gare.appareil')) {
         return true;
       }
     }
     
-    // Sinon (ecran_tv, ecran_led, ou autre device_id), ne pas traiter sur mobile
-    debugPrint('⚠️ [AnnouncementManager] Annonce #${message.id} non destinée à cet appareil');
+    // Aucun match trouvé - cette annonce n'est pas pour cet appareil
+    debugPrint('❌ [AnnouncementManager] Annonce #${message.id} NON destinée à cet appareil');
     debugPrint('   - message.appareil: $appareil');
     debugPrint('   - gare.appareil: $gareAppareil');
     debugPrint('   - device_id local: $_deviceId');
+    debugPrint('   ℹ️ Pour cibler cet appareil, utilisez le device_id exact dans l\'admin');
     return false;
   }
 
@@ -278,7 +292,16 @@ class AnnouncementManager {
     }
 
     debugPrint('🆕 [AnnouncementManager] Nouvelle annonce reçue #${message.id}');
-    await _voiceService.startAnnouncement(message);
+    
+    // Vérifier si le context est disponible pour l'overlay
+    if (_context != null) {
+      debugPrint('✅ [AnnouncementManager] Démarrage avec overlay visuel');
+      await _voiceService.startAnnouncement(message, _context);
+    } else {
+      debugPrint('⚠️ [AnnouncementManager] Contexte non disponible - annonce AUDIO SEULEMENT (pas d\'overlay)');
+      await _voiceService.startAnnouncement(message);
+    }
+    
     _processedMessageIds.add(message.id);
   }
 
