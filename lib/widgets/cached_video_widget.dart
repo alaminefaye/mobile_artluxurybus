@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import '../services/audio_focus_manager.dart';
 
 class CachedVideoWidget extends StatefulWidget {
   final String videoUrl;
@@ -28,11 +30,14 @@ class _CachedVideoWidgetState extends State<CachedVideoWidget> {
   VideoPlayerController? _controller;
   bool _isLoading = true;
   bool _hasError = false;
+  bool _pausedByVoiceAnnouncement = false; // 🔇 Flag pour suivre la pause par annonce
+  StreamSubscription<bool>? _audioFocusSubscription; // 🔇 Listener audio focus
 
   @override
   void initState() {
     super.initState();
     _initializeVideo();
+    _setupAudioFocusListener(); // 🔇 Écouter les événements audio
   }
 
   Future<void> _initializeVideo() async {
@@ -65,8 +70,55 @@ class _CachedVideoWidgetState extends State<CachedVideoWidget> {
     }
   }
 
+  /// 🔇 Configurer le listener pour les annonces vocales
+  void _setupAudioFocusListener() {
+    final audioFocus = AudioFocusManager();
+    
+    // Écouter les changements d'état des annonces vocales
+    _audioFocusSubscription = audioFocus.voiceAnnouncementActiveStream.listen((isActive) {
+      if (!mounted) return;
+      
+      if (isActive) {
+        // Annonce vocale démarrée - mettre en pause la vidéo
+        debugPrint('🔇 [CachedVideo] Annonce vocale activée - Pause vidéo');
+        _pauseForVoiceAnnouncement();
+      } else {
+        // Annonce vocale terminée - reprendre la vidéo si elle était en lecture
+        debugPrint('🔊 [CachedVideo] Annonce vocale terminée - Reprise vidéo');
+        _resumeFromVoiceAnnouncement();
+      }
+    });
+  }
+
+  /// 🔇 Mettre en pause la vidéo pour l'annonce vocale
+  void _pauseForVoiceAnnouncement() {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    
+    // Si la vidéo était en lecture, la mettre en pause
+    if (ctrl.value.isPlaying) {
+      _pausedByVoiceAnnouncement = true;
+      ctrl.pause();
+      debugPrint('✅ [CachedVideo] Vidéo mise en pause pour annonce vocale');
+    }
+  }
+
+  /// 🔊 Reprendre la vidéo après l'annonce vocale
+  void _resumeFromVoiceAnnouncement() {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    
+    // Reprendre seulement si la pause était due à l'annonce vocale ET si autoPlay est activé
+    if (_pausedByVoiceAnnouncement && widget.autoPlay) {
+      _pausedByVoiceAnnouncement = false;
+      ctrl.play();
+      debugPrint('✅ [CachedVideo] Vidéo reprise après annonce vocale');
+    }
+  }
+
   @override
   void dispose() {
+    _audioFocusSubscription?.cancel(); // 🔇 Nettoyer le listener
     _controller?.dispose();
     super.dispose();
   }

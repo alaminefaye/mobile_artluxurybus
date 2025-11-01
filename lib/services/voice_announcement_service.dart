@@ -4,6 +4,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/message_model.dart';
 import '../screens/announcement_display_screen.dart';
+import 'audio_focus_manager.dart';
 
 /// Service pour gérer les annonces vocales répétées
 class VoiceAnnouncementService {
@@ -19,6 +20,7 @@ class VoiceAnnouncementService {
       {}; // Pour garder les overlays affichés
   final Map<int, bool> _shouldContinue =
       {}; // Pour contrôler si l'annonce doit continuer
+  final AudioFocusManager _audioFocusManager = AudioFocusManager();
 
   bool _isInitialized = false;
   bool _isSpeaking = false;
@@ -169,6 +171,9 @@ class VoiceAnnouncementService {
     if (context != null && context.mounted) {
       _showAnnouncementDisplay(context, message);
     }
+
+    // 🔇 Notifier AudioFocusManager pour mettre en pause les vidéos
+    _audioFocusManager.startVoiceAnnouncement();
 
     // Démarrer la boucle de lecture : lire → attendre fin → pause 5s → recommencer
     _startAnnouncementLoop(message);
@@ -358,6 +363,11 @@ class VoiceAnnouncementService {
     // Retirer de la liste des annonces actives
     _activeAnnouncements.remove(messageId);
 
+    // 🔊 Si plus aucune annonce active, reprendre les vidéos
+    if (_activeAnnouncements.isEmpty) {
+      _audioFocusManager.stopVoiceAnnouncement();
+    }
+
     // 🆕 TOUJOURS fermer l'overlay, même si il n'y avait pas de timer
     if (_activeOverlays.containsKey(messageId)) {
       try {
@@ -405,6 +415,9 @@ class VoiceAnnouncementService {
     if (_isSpeaking) {
       await _flutterTts.stop();
     }
+
+    // 🔊 Reprendre tous les audios
+    _audioFocusManager.stopVoiceAnnouncement();
   }
 
   /// Obtenir la liste des annonces actives

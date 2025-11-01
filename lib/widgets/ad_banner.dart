@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/ad_model.dart';
 import '../services/ads_api_service.dart';
+import '../services/audio_focus_manager.dart';
 
 class AdBanner extends StatefulWidget {
   final double height;
@@ -26,13 +27,16 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
   bool _isSwitching = false;
   bool _muted = true;
   bool _paused = false;
+  bool _pausedByVoiceAnnouncement = false; // 🔇 Nouveau flag pour suivre la pause par annonce
   VoidCallback? _activeListener;
+  StreamSubscription<bool>? _audioFocusSubscription; // 🔇 Listener audio focus
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadAds();
+    _setupAudioFocusListener(); // 🔇 Écouter les événements audio
   }
 
   Future<void> _loadAds() async {
@@ -142,9 +146,71 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
     }
   }
 
+  /// 🔇 Configurer le listener pour les annonces vocales
+  void _setupAudioFocusListener() {
+    final audioFocus = AudioFocusManager();
+    
+    // Écouter les changements d'état des annonces vocales
+    _audioFocusSubscription = audioFocus.voiceAnnouncementActiveStream.listen((isActive) {
+      if (!mounted) return;
+      
+      if (isActive) {
+        // Annonce vocale démarrée - mettre en pause la vidéo
+        debugPrint('🔇 [AdBanner] Annonce vocale activée - Pause vidéo');
+        _pauseForVoiceAnnouncement();
+      } else {
+        // Annonce vocale terminée - reprendre la vidéo si elle était en lecture
+        debugPrint('🔊 [AdBanner] Annonce vocale terminée - Reprise vidéo');
+        _resumeFromVoiceAnnouncement();
+      }
+    });
+  }
+
+  /// 🔇 Mettre en pause la vidéo pour l'annonce vocale
+  void _pauseForVoiceAnnouncement() {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    
+    // Si la vidéo était en lecture, la mettre en pause
+    if (ctrl.value.isPlaying && !_paused) {
+      _pausedByVoiceAnnouncement = true;
+      ctrl.pause();
+      _rotationTimer?.cancel();
+      debugPrint('✅ [AdBanner] Vidéo mise en pause pour annonce vocale');
+    }
+  }
+
+  /// 🔊 Reprendre la vidéo après l'annonce vocale
+  void _resumeFromVoiceAnnouncement() {
+    final ctrl = _controller;
+    if (ctrl == null || !ctrl.value.isInitialized) return;
+    
+    // Reprendre seulement si la pause était due à l'annonce vocale
+    if (_pausedByVoiceAnnouncement && !_paused) {
+      _pausedByVoiceAnnouncement = false;
+      ctrl.play();
+      debugPrint('✅ [AdBanner] Vidéo reprise après annonce vocale');
+      
+      // Redémarrer le timer de rotation si nécessaire
+      if (ctrl.value.duration.inMilliseconds == 0) {
+        final seconds = _ads.isNotEmpty && _currentIndex < _ads.length
+            ? (_ads[_currentIndex].displaySeconds ?? 8)
+            : 8;
+        _rotationTimer = Timer(Duration(seconds: seconds), () {
+          if (!mounted) return;
+          if (!_isSwitching && !_paused && !_pausedByVoiceAnnouncement) {
+            _isSwitching = true;
+            _goNext();
+          }
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _audioFocusSubscription?.cancel(); // 🔇 Nettoyer le listener
     _rotationTimer?.cancel();
     _controller?.dispose();
     super.dispose();
