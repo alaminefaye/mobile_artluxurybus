@@ -113,16 +113,19 @@ class MessageModel {
 class GareInfo {
   final int id;
   final String nom;
+  final String? appareil;
 
   GareInfo({
     required this.id,
     required this.nom,
+    this.appareil,
   });
 
   factory GareInfo.fromJson(Map<String, dynamic> json) {
     return GareInfo(
       id: json['id'] as int,
       nom: json['nom'] as String,
+      appareil: json['appareil'] as String?,
     );
   }
 
@@ -130,6 +133,7 @@ class GareInfo {
     return {
       'id': id,
       'nom': nom,
+      'appareil': appareil,
     };
   }
 }

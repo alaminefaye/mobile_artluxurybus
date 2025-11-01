@@ -364,6 +364,12 @@ class NotificationService {
     });
   }
 
+  /// Normaliser un device ID pour la comparaison (insensible à la casse)
+  static String? _normalizeDeviceId(String? deviceId) {
+    if (deviceId == null || deviceId.isEmpty) return null;
+    return deviceId.trim().toUpperCase();
+  }
+
   /// 🔊 Gérer les annonces vocales
   static Future<void> _handleAnnouncementMessage(RemoteMessage message) async {
     try {
@@ -371,6 +377,10 @@ class NotificationService {
 
       // Vérifier si l'annonce est destinée à cet appareil
       final appareil = message.data['appareil']?.toString().trim();
+      
+      debugPrint('🔍 [NotificationService] Vérification annonce:');
+      debugPrint('   - appareil dans message: "$appareil"');
+      debugPrint('   - device ID local: "$_deviceId"');
 
       // Si pas d'appareil spécifié ou 'tous', traiter l'annonce
       if (appareil == null ||
@@ -378,23 +388,49 @@ class NotificationService {
           appareil.toLowerCase() == 'tous') {
         debugPrint('✅ [NotificationService] Annonce pour tous les appareils');
       }
-      // Si c'est la catégorie 'mobile', traiter l'annonce
+      // Si c'est la catégorie 'mobile', vérifier le type de message
       else if (appareil.toLowerCase() == 'mobile') {
-        debugPrint('✅ [NotificationService] Annonce pour catégorie mobile');
+        // Vérifier si c'est une annonce vocale (type="annonce")
+        final type = message.data['type']?.toString().trim();
+        
+        // Si c'est une annonce vocale, elle doit être spécifiquement pour cet appareil
+        if (type?.toLowerCase() == 'annonce') {
+          debugPrint('⚠️ [NotificationService] Annonce vocale de type "mobile" - ignorée car doit cibler un appareil spécifique');
+          return;
+        }
+        // Si c'est une notification normale, on accepte la catégorie 'mobile'
+        else {
+          debugPrint('✅ [NotificationService] Notification pour catégorie mobile');
+        }
       }
-      // Vérifier si c'est l'identifiant unique de CET appareil
-      else if (_deviceId != null && appareil == _deviceId) {
-        debugPrint(
-          '✅ [NotificationService] Annonce pour cet appareil spécifique',
-        );
+      // Vérifier si c'est l'identifiant unique de CET appareil (comparaison insensible à la casse)
+      else if (_deviceId != null) {
+        final normalizedAppareil = _normalizeDeviceId(appareil);
+        final normalizedDeviceId = _normalizeDeviceId(_deviceId);
+        
+        if (normalizedAppareil == normalizedDeviceId) {
+          debugPrint(
+            '✅ [NotificationService] Annonce pour cet appareil spécifique',
+          );
+          debugPrint('   - Match trouvé: "$normalizedAppareil" == "$normalizedDeviceId"');
+        } else {
+          debugPrint(
+            '⚠️ [NotificationService] Annonce non destinée à cet appareil',
+          );
+          debugPrint('   - Pas de match: "$normalizedAppareil" != "$normalizedDeviceId"');
+          return;
+        }
       }
-      // Vérifier si l'identifiant est dans une liste séparée par des virgules
+      // Vérifier si l'identifiant est dans une liste séparée par des virgules (comparaison insensible à la casse)
       else if (appareil.contains(',')) {
-        final deviceIds = appareil.split(',').map((e) => e.trim()).toList();
-        if (_deviceId != null && deviceIds.contains(_deviceId)) {
+        final deviceIds = appareil.split(',').map((e) => _normalizeDeviceId(e)).toList();
+        final normalizedDeviceId = _normalizeDeviceId(_deviceId);
+        
+        if (normalizedDeviceId != null && deviceIds.contains(normalizedDeviceId)) {
           debugPrint(
             '✅ [NotificationService] Annonce pour cet appareil (liste multiple)',
           );
+          debugPrint('   - Match trouvé dans liste: $deviceIds');
         } else {
           debugPrint(
             '⚠️ [NotificationService] Annonce non destinée à cet appareil (liste: $appareil, device_id: $_deviceId)',

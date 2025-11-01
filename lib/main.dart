@@ -18,6 +18,7 @@ import 'services/notification_api_service.dart';
 import 'services/ads_api_service.dart';
 import 'services/horaire_service.dart';
 import 'services/announcement_manager.dart';
+import 'debug/debug_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -226,6 +227,9 @@ class _MyAppState extends ConsumerState<MyApp> {
       ],
       locale: const Locale('fr', 'FR'), // Langue par défaut
       home: const SplashScreen(),
+      routes: {
+        '/debug': (context) => const DebugScreen(),
+      },
     );
   }
 }

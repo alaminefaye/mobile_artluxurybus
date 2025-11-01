@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin/horaires_list_screen.dart';
 import 'admin/video_advertisements_screen.dart';
@@ -2390,6 +2391,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                           );
                         },
                       ),
+                      // Outils de débogage (visible uniquement en mode debug)
+                      if (kDebugMode)
+                        _buildModernProfileOption(
+                          icon: Icons.bug_report,
+                          title: 'Outils de débogage',
+                          subtitle: 'Tester les notifications et annonces',
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.orange 
+                              : Colors.blue,
+                          onTap: () {
+                            Navigator.pushNamed(context, '/debug');
+                          },
+                        ),
                     ],
                   ),
 

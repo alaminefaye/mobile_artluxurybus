@@ -172,37 +172,86 @@ class AnnouncementManager {
     await _processActiveAnnouncements();
   }
 
+  /// Normaliser un device ID pour la comparaison (insensible à la casse)
+  String? _normalizeDeviceId(String? deviceId) {
+    if (deviceId == null || deviceId.isEmpty) return null;
+    return deviceId.trim().toUpperCase();
+  }
+
+  /// Vérifier si un device ID correspond à l'appareil local
+  bool _checkDeviceMatch(String appareil, int messageId, String source) {
+    final normalizedAppareil = _normalizeDeviceId(appareil);
+    final normalizedDeviceId = _normalizeDeviceId(_deviceId);
+    
+    // Vérifier correspondance directe
+    if (normalizedDeviceId != null && normalizedAppareil != null && normalizedAppareil == normalizedDeviceId) {
+      debugPrint('✅ [AnnouncementManager] Message #$messageId: Match trouvé via $source');
+      debugPrint('   - "$normalizedAppareil" == "$normalizedDeviceId"');
+      return true;
+    }
+    
+    // Vérifier liste séparée par virgules
+    if (appareil.contains(',')) {
+      final deviceIds = appareil.split(',').map((e) => _normalizeDeviceId(e)).toList();
+      if (normalizedDeviceId != null && deviceIds.contains(normalizedDeviceId)) {
+        debugPrint('✅ [AnnouncementManager] Message #$messageId: Match trouvé dans liste via $source');
+        debugPrint('   - Liste: $deviceIds');
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   /// Vérifier si le message est destiné à cet appareil mobile
   bool _isForThisDevice(MessageModel message) {
     final appareil = message.appareil?.trim();
+    final gareAppareil = message.gare?.appareil?.trim();
+    
+    debugPrint('🔍 [AnnouncementManager] Vérification message #${message.id}:');
+    debugPrint('   - appareil dans message: "$appareil"');
+    debugPrint('   - appareil de la gare: "$gareAppareil"');
+    debugPrint('   - device ID local: "$_deviceId"');
+    debugPrint('   - type: ${message.type}');
+    debugPrint('   - isAnnonce: ${message.isAnnonce}');
     
     // Si pas d'appareil spécifié ou 'tous', l'annonce concerne tout le monde
     if (appareil == null || appareil.isEmpty || appareil.toLowerCase() == 'tous') {
+      // Vérifier aussi l'appareil de la gare
+      if (gareAppareil != null && gareAppareil.isNotEmpty && gareAppareil.toLowerCase() != 'tous') {
+        return _checkDeviceMatch(gareAppareil, message.id, 'gare.appareil');
+      }
       return true;
     }
     
-    // Vérifier si c'est la catégorie 'mobile'
-    if (appareil.toLowerCase() == 'mobile') {
+    // Ne pas traiter automatiquement les annonces 'mobile' pour tous les appareils
+    // Si c'est une annonce, elle doit être spécifiquement pour cet appareil
+    if (appareil.toLowerCase() == 'mobile' && message.isAnnonce) {
+      debugPrint('⚠️ [AnnouncementManager] Annonce #${message.id} de type "mobile" - ignorée car doit cibler un appareil spécifique');
+      return false;
+    }
+    // Si c'est une notification normale (pas une annonce), on accepte la catégorie 'mobile'
+    else if (appareil.toLowerCase() == 'mobile' && !message.isAnnonce) {
       return true;
     }
     
-    // Vérifier si c'est l'identifiant unique de CET appareil
-    if (_deviceId != null && appareil == _deviceId) {
-      debugPrint('✅ [AnnouncementManager] Annonce #${message.id} destinée à cet appareil spécifique');
+    // Vérifier si c'est l'identifiant unique de CET appareil (comparaison insensible à la casse)
+    if (_checkDeviceMatch(appareil, message.id, 'message.appareil')) {
       return true;
     }
     
-    // Vérifier si l'identifiant est dans une liste séparée par des virgules
-    if (appareil.contains(',')) {
-      final deviceIds = appareil.split(',').map((e) => e.trim()).toList();
-      if (_deviceId != null && deviceIds.contains(_deviceId)) {
-        debugPrint('✅ [AnnouncementManager] Annonce #${message.id} destinée à cet appareil (liste multiple)');
+    // Vérifier aussi l'appareil de la gare si le message.appareil ne correspond pas
+    if (gareAppareil != null && gareAppareil.isNotEmpty) {
+      if (_checkDeviceMatch(gareAppareil, message.id, 'gare.appareil')) {
         return true;
       }
     }
     
     // Sinon (ecran_tv, ecran_led, ou autre device_id), ne pas traiter sur mobile
-    debugPrint('⚠️ [AnnouncementManager] Annonce #${message.id} non destinée à cet appareil (appareil: $appareil, device_id: $_deviceId)');
+    debugPrint('⚠️ [AnnouncementManager] Annonce #${message.id} non destinée à cet appareil');
+    debugPrint('   - message.appareil: $appareil');
+    debugPrint('   - gare.appareil: $gareAppareil');
+    debugPrint('   - device_id local: $_deviceId');
     return false;
   }
 

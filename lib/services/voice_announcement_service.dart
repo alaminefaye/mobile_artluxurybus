@@ -55,6 +55,9 @@ class VoiceAnnouncementService {
       await _flutterTts.setVolume(volume);
       await _flutterTts.setPitch(pitch);
       await _flutterTts.setSpeechRate(rate);
+      
+      // ⭐ CRITICAL: Activer l'attente synchrone de la fin de lecture
+      await _flutterTts.awaitSpeakCompletion(true);
 
       // Callbacks
       _flutterTts.setStartHandler(() {
@@ -198,24 +201,12 @@ class VoiceAnnouncementService {
         break;
       }
 
-      debugPrint('🔊 [VoiceService] Lecture de l\'annonce #${message.id}');
+      debugPrint('🔊 [VoiceService] Lecture COMPLÈTE de l\'annonce #${message.id}...');
 
-      // Lire l'annonce complète
+      // ⭐ Lire l'annonce COMPLÈTEMENT - speak() attend maintenant la fin grâce à awaitSpeakCompletion(true)
       await _speakAnnouncement(message);
-
-      // Attendre que la lecture soit terminée (avec timeout de sécurité)
-      int timeoutCounter = 0;
-      while (_isSpeaking && _shouldContinue[message.id] == true && timeoutCounter < 300) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        timeoutCounter++;
-      }
-
-      // Si on a atteint le timeout, forcer l'arrêt
-      if (timeoutCounter >= 300) {
-        debugPrint('⚠️ [VoiceService] Timeout de lecture, arrêt forcé');
-        await _flutterTts.stop();
-        _isSpeaking = false;
-      }
+      
+      debugPrint('✅ [VoiceService] Lecture TERMINÉE pour annonce #${message.id}');
 
       // Si on doit toujours continuer, pause de 5 secondes avant la prochaine répétition
       if (_shouldContinue[message.id] == true) {
@@ -243,13 +234,14 @@ class VoiceAnnouncementService {
     }
   }
 
-  /// Lire une annonce vocale
+  /// Lire une annonce vocale COMPLÈTEMENT jusqu'à la fin
   Future<void> _speakAnnouncement(MessageModel message) async {
     // Arrêter toute lecture en cours
     if (_isSpeaking) {
       debugPrint('⏳ [VoiceService] Arrêt de l\'annonce en cours...');
       await _flutterTts.stop();
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 500));
+      _isSpeaking = false;
     }
 
     try {
@@ -274,16 +266,19 @@ class VoiceAnnouncementService {
 
       textToSpeak += contenu;
 
-      debugPrint('🔊 [VoiceService] Lecture: "$textToSpeak"');
+      debugPrint('🔊 [VoiceService] Début lecture: "$textToSpeak"');
+      debugPrint('📏 [VoiceService] Longueur texte: ${textToSpeak.length} caractères');
 
-      // S'assurer que l'état est correct avant de commencer
-      _isSpeaking = false;
-      await Future.delayed(const Duration(milliseconds: 100));
+      // Marquer le début de la lecture
+      _isSpeaking = true;
 
+      // ⭐ CRITICAL: Cette ligne attend maintenant COMPLÈTEMENT la fin de la lecture
+      // grâce à awaitSpeakCompletion(true) configuré dans initialize()
       await _flutterTts.speak(textToSpeak);
       
-      // Attendre un peu pour s'assurer que la lecture a commencé
-      await Future.delayed(const Duration(milliseconds: 200));
+      // La lecture est maintenant COMPLÈTEMENT terminée
+      _isSpeaking = false;
+      debugPrint('✅ [VoiceService] Lecture terminée avec succès');
       
     } catch (e) {
       _isSpeaking = false;
@@ -328,15 +323,30 @@ class VoiceAnnouncementService {
 
   /// Arrêter une annonce spécifique
   Future<void> stopAnnouncement(int messageId) async {
-    debugPrint('🛑 [VoiceService] Arrêt de l\'annonce #$messageId...');
+    debugPrint('🛑 [VoiceService] Demande d\'arrêt de l\'annonce #$messageId...');
     
     // Marquer qu'on doit arrêter la boucle
     _shouldContinue[messageId] = false;
 
-    // Arrêter la lecture vocale si c'est cette annonce qui parle
+    // ⭐ Si une annonce est en cours de lecture, attendre qu'elle termine
+    // avant d'arrêter complètement (respect de la demande utilisateur)
     if (_isSpeaking) {
-      await _flutterTts.stop();
-      _isSpeaking = false;
+      debugPrint('⏳ [VoiceService] Attente de la fin de la lecture en cours...');
+      // Attendre max 3 secondes que la lecture actuelle se termine
+      int waitCounter = 0;
+      while (_isSpeaking && waitCounter < 30) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        waitCounter++;
+      }
+      
+      // Si toujours en cours après 3s, forcer l'arrêt
+      if (_isSpeaking) {
+        debugPrint('⚠️ [VoiceService] Timeout - Arrêt forcé de la lecture');
+        await _flutterTts.stop();
+        _isSpeaking = false;
+      } else {
+        debugPrint('✅ [VoiceService] Lecture terminée proprement');
+      }
     }
 
     // Nettoyer les timers
