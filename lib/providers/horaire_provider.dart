@@ -12,8 +12,8 @@ class HoraireProvider with ChangeNotifier {
   String? _error;
   Timer? _autoRefreshTimer;
   
-  // Durée de rafraîchissement automatique (30 secondes)
-  static const Duration autoRefreshDuration = Duration(seconds: 30);
+  // Durée de rafraîchissement automatique (90 secondes pour éviter le rate limiting)
+  static const Duration autoRefreshDuration = Duration(seconds: 90);
 
   List<Horaire> get horaires => _horaires;
   Map<String, List<Horaire>> get horairesGrouped => _horairesGrouped;

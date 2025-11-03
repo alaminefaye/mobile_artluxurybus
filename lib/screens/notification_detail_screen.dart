@@ -6,6 +6,9 @@ import '../theme/app_theme.dart';
 import '../providers/notification_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'home_page.dart';
+import 'my_trips_screen.dart';
+import 'loyalty_home_screen.dart';
 
 class NotificationDetailScreen extends ConsumerStatefulWidget {
   final NotificationModel notification;
@@ -66,6 +69,11 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
             // Informations supplémentaires
             if (widget.notification.data != null && widget.notification.data!.isNotEmpty)
               _buildAdditionalInfo(),
+            
+            const SizedBox(height: 24),
+            
+            // Bouton d'action selon le type de notification
+            _buildActionButton(),
             
             const SizedBox(height: 24),
             
@@ -214,6 +222,83 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildActionButton() {
+    // Bouton pour les notifications de ticket
+    if (widget.notification.type == 'new_ticket') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _navigateToTickets,
+          icon: const Icon(Icons.confirmation_number, color: Colors.white),
+          label: const Text(
+            'Voir le ticket',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryBlue,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+      );
+    }
+    
+    // Bouton pour les notifications de points de fidélité
+    if (widget.notification.type == 'loyalty_point') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _navigateToLoyalty,
+          icon: const Icon(Icons.card_giftcard, color: Colors.white),
+          label: const Text(
+            'Voir mes points',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.amber.shade700,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+      );
+    }
+    
+    // Pas de bouton pour les autres types
+    return const SizedBox.shrink();
+  }
+
+  void _navigateToTickets() {
+    // Naviguer directement vers l'écran Mes Trajets
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const MyTripsScreen(),
+      ),
+    );
+  }
+
+  void _navigateToLoyalty() {
+    // Navigation vers l'écran de fidélité
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const LoyaltyHomeScreen(),
+      ),
     );
   }
 
@@ -492,6 +577,10 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
 
   String _getTypeLabel() {
     switch (widget.notification.type.toLowerCase()) {
+      case 'new_ticket':
+        return 'Nouveau ticket';
+      case 'loyalty_point':
+        return 'Point de fidélité';
       case 'new_feedback':
         return 'Nouvelle suggestion';
       case 'feedback_status':
@@ -515,6 +604,27 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
 
   String _formatDataKey(String key) {
     switch (key.toLowerCase()) {
+      // Tickets
+      case 'ticket_id':
+        return 'Ticket Id';
+      case 'depart_id':
+        return 'Depart Id';
+      case 'seat_number':
+        return 'Numéro siège';
+      case 'embarquement':
+        return 'Embarquement';
+      case 'destination':
+        return 'Destination';
+      // Loyalty
+      case 'points_earned':
+        return 'Points gagnés';
+      case 'total_points':
+        return 'Total points';
+      case 'client_profile_id':
+        return 'Client ID';
+      case 'description':
+        return 'Description';
+      // Feedback
       case 'feedback_id':
         return 'ID Suggestion';
       case 'customer_name':
@@ -547,12 +657,6 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         return 'Heure départ';
       case 'route':
         return 'Trajet';
-      case 'seat_number':
-        return 'Numéro siège';
-      case 'points_earned':
-        return 'Points gagnés';
-      case 'total_points':
-        return 'Total points';
       case 'maintenance_start':
         return 'Début maintenance';
       case 'maintenance_end':

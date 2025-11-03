@@ -182,6 +182,14 @@ class NotificationService {
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
       debugPrint('✅ [NotificationService] Canal Android créé: ${channel.id}');
+      
+      // Demander la permission pour Android 13+ (notifications locales)
+      final bool? permissionGranted = await androidPlugin.requestNotificationsPermission();
+      if (permissionGranted == true) {
+        debugPrint('✅ [NotificationService] Permission notifications locales accordée');
+      } else {
+        debugPrint('⚠️ [NotificationService] Permission notifications locales refusée ou non disponible');
+      }
     } else {
       debugPrint(
         '❌ [NotificationService] Impossible de créer le canal Android',
@@ -522,7 +530,6 @@ class NotificationService {
           playSound: true,
           enableVibration: true,
           enableLights: true,
-          // color: Color(0xFF1976D2), // Bleu Art Luxury Bus
         );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =

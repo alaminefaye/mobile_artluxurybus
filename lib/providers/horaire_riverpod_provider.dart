@@ -83,7 +83,7 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
   void startAutoRefresh() {
     _autoRefreshTimer?.cancel();
     _autoRefreshTimer = Timer.periodic(
-      const Duration(seconds: 30),
+      const Duration(seconds: 90), // Augmenté de 30s à 90s pour éviter le rate limiting
       (_) => fetchTodayHoraires(silent: true),
     );
   }

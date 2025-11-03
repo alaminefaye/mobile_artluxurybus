@@ -30,7 +30,12 @@ import 'theme_settings_screen.dart';
 import 'company_info_screen.dart';
 import 'edit_profile_screen.dart';
 import 'security_screen.dart';
+import 'my_trips_screen.dart';
 import '../services/announcement_manager.dart';
+import '../services/trip_service.dart';
+import 'reservation_screen.dart';
+import '../services/depart_service.dart';
+import '../services/reservation_service.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -61,6 +66,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           AdsApiService.setToken(token);
           HoraireService.setToken(token);
           VideoAdvertisementService.setToken(token);
+          TripService.setToken(token);
+          DepartService.setToken(token);
+          ReservationService.setToken(token);
 
           // Charger les notifications pour tous les utilisateurs
           // Le filtrage des notifications de feedback se fera côté affichage
@@ -620,15 +628,35 @@ class _HomePageState extends ConsumerState<HomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           if (!_hasAttendanceRole(user)) ...[
-            _buildQuickActionItem(
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReservationScreen(),
+                  ),
+                );
+              },
+              child: _buildQuickActionItem(
               icon: Icons.confirmation_number_rounded,
               label: 'Réserver',
               color: AppTheme.primaryBlue,
             ),
-            _buildQuickActionItem(
+            ),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MyTripsScreen(),
+                  ),
+                );
+              },
+              child: _buildQuickActionItem(
               icon: Icons.history_rounded,
               label: 'Mes trajets',
               color: AppTheme.primaryOrange,
+              ),
             ),
             GestureDetector(
               onTap: () {
@@ -802,9 +830,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Réserver',
             color: AppTheme.primaryBlue,
             onTap: () {
-              // Navigation vers réservation (à venir)
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Réservation - En développement')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReservationScreen(),
+                ),
               );
             },
           ),

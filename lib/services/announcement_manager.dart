@@ -21,6 +21,8 @@ class AnnouncementManager {
   String? _deviceId;
   BuildContext? _context;
   Timer? _checkTimer; // Timer pour vérifier régulièrement les annonces
+  DateTime? _lastApiCall; // Dernière requête API pour éviter le rate limiting
+  int _backoffSeconds = 60; // Intervalle entre vérifications (commence à 60s)
 
   /// Définir le contexte pour l'affichage des annonces
   void setContext(BuildContext context) {
@@ -41,8 +43,8 @@ class AnnouncementManager {
     
     await refresh();
     
-    // Vérifier toutes les 10 secondes si les annonces sont toujours actives
-    _checkTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+    // Vérifier toutes les 60 secondes (au lieu de 10s) pour éviter le rate limiting
+    _checkTimer = Timer.periodic(Duration(seconds: _backoffSeconds), (timer) async {
       await _checkActiveAnnouncements();
     });
   }
@@ -51,13 +53,32 @@ class AnnouncementManager {
   Future<void> _checkActiveAnnouncements() async {
     if (!_isRunning || _deviceId == null) return;
     
+    // Vérifier si on doit attendre avant la prochaine requête (throttling)
+    if (_lastApiCall != null) {
+      final timeSinceLastCall = DateTime.now().difference(_lastApiCall!);
+      if (timeSinceLastCall.inSeconds < 30) {
+        if (kDebugMode) {
+          debugPrint('⏸️ [AnnouncementManager] Throttling - dernière requête il y a ${timeSinceLastCall.inSeconds}s');
+        }
+        return;
+      }
+    }
+    
     try {
       if (kDebugMode) {
         print('🔄 [AnnouncementManager] Vérification des annonces...');
       }
       
+      _lastApiCall = DateTime.now(); // Enregistrer l'heure de la requête
+      
       // Utiliser getActiveMessages qui récupère les messages pour mobile ET pour ce device
       final messages = await _messageService.getActiveMessages();
+      
+      // Réinitialiser le backoff en cas de succès
+      if (_backoffSeconds > 60) {
+        _backoffSeconds = 60;
+        _restartTimerWithNewInterval();
+      }
       
       final activeMessages = messages
           .where((m) => 
@@ -106,6 +127,24 @@ class AnnouncementManager {
       if (kDebugMode) {
         debugPrint('❌ Erreur lors de la vérification des annonces: $e');
       }
+      
+      // En cas d'erreur (probablement 429), augmenter le backoff
+      if (e.toString().contains('429') || e.toString().contains('Too Many')) {
+        _backoffSeconds = (_backoffSeconds * 2).clamp(60, 300); // Max 5 minutes
+        debugPrint('⚠️ [AnnouncementManager] Rate limit atteint - backoff à ${_backoffSeconds}s');
+        _restartTimerWithNewInterval();
+      }
+    }
+  }
+  
+  /// Redémarre le timer avec un nouvel intervalle
+  void _restartTimerWithNewInterval() {
+    _checkTimer?.cancel();
+    if (_isRunning) {
+      _checkTimer = Timer.periodic(Duration(seconds: _backoffSeconds), (timer) async {
+        await _checkActiveAnnouncements();
+      });
+      debugPrint('🔄 [AnnouncementManager] Timer redémarré avec intervalle de ${_backoffSeconds}s');
     }
   }
 

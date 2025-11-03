@@ -8,6 +8,8 @@ import 'screens/auth/login_screen.dart';
 import 'screens/home_page.dart';
 import 'screens/splash_screen.dart';
 import 'screens/notification_detail_screen.dart';
+import 'screens/my_trips_screen.dart';
+import 'screens/loyalty_home_screen.dart';
 import 'models/notification_model.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
@@ -45,7 +47,6 @@ void main() async {
     } catch (e) {
       // Continuer malgré l'erreur
     }
-
   } catch (e) {
     // Continuer malgré l'erreur pour éviter le crash
   }
@@ -82,11 +83,13 @@ class _MyAppState extends ConsumerState<MyApp> {
         final navigatorContext = _navigatorKey.currentContext;
         if (navigatorContext != null) {
           AnnouncementManager().setContext(navigatorContext);
-          debugPrint('✅ [Main] Contexte Navigator défini pour AnnouncementManager');
+          debugPrint(
+              '✅ [Main] Contexte Navigator défini pour AnnouncementManager');
         } else {
           // Fallback au context actuel
           AnnouncementManager().setContext(context);
-          debugPrint('⚠️ [Main] Contexte fallback utilisé pour AnnouncementManager');
+          debugPrint(
+              '⚠️ [Main] Contexte fallback utilisé pour AnnouncementManager');
         }
       }
     });
@@ -98,7 +101,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     ref.listenManual(authProvider, (previous, next) {
       // Si l'utilisateur vient de se connecter et qu'on a une notification en attente
       if (next.isAuthenticated && _pendingNotification != null) {
-
         // Attendre un peu que HomePage soit prête
         Future.delayed(const Duration(seconds: 2), () {
           if (_pendingNotification != null) {
@@ -165,7 +167,37 @@ class _MyAppState extends ConsumerState<MyApp> {
         return;
       }
 
-      // D'abord naviguer vers HomePage avec l'onglet Notifications
+      final data = notification['data'] as Map<String, dynamic>?;
+      final notificationType = data?['type']?.toString() ?? '';
+      final action = data?['action']?.toString() ?? '';
+
+      debugPrint('🔔 Navigation notification: type=$notificationType, action=$action');
+
+      // NOUVEAU: Gérer les notifications de tickets
+      if (notificationType == 'new_ticket' && action == 'view_trips') {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const MyTripsScreen(),
+          ),
+        );
+        debugPrint('✅ Navigation vers Mes Trajets (nouveau ticket)');
+        return;
+      }
+
+      // NOUVEAU: Gérer les notifications de points de fidélité
+      if (notificationType == 'loyalty_point' && action == 'view_loyalty') {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const LoyaltyHomeScreen(),
+          ),
+        );
+        debugPrint('✅ Navigation vers Programme Fidélité (nouveau point)');
+        return;
+      }
+
+      // Navigation par défaut vers l'onglet Notifications
       // ignore: use_build_context_synchronously
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
@@ -176,7 +208,6 @@ class _MyAppState extends ConsumerState<MyApp> {
       );
 
       // Ensuite, si on a un ID de notification, ouvrir le détail
-      final data = notification['data'] as Map<String, dynamic>?;
       if (data != null && data['notification_id'] != null) {
         // Attendre que HomePage soit montée
         Future.delayed(const Duration(milliseconds: 1000), () {

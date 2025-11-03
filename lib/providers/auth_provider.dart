@@ -2,6 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/simple_auth_models.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/feedback_api_service.dart';
+import '../services/notification_api_service.dart';
+import '../services/ads_api_service.dart';
+import '../services/horaire_service.dart';
+import '../services/video_advertisement_service.dart';
+import '../services/trip_service.dart';
+import '../services/depart_service.dart';
+import '../services/reservation_service.dart';
 
 // Service provider
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -56,6 +64,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isAuthenticated: user != null,
           isLoading: false,
         );
+        
+        // Définir les tokens pour les services si connecté
+        if (user != null) {
+          await _setTokensForAllServices();
+        }
       } else {
         state = state.copyWith(
           isAuthenticated: false,
@@ -68,6 +81,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
         isAuthenticated: false,
       );
+    }
+  }
+
+  // Définir le token pour tous les services API
+  Future<void> _setTokensForAllServices() async {
+    try {
+      final token = await _authService.getToken();
+      if (token != null) {
+        FeedbackApiService.setToken(token);
+        NotificationApiService.setToken(token);
+        AdsApiService.setToken(token);
+        HoraireService.setToken(token);
+        VideoAdvertisementService.setToken(token);
+        TripService.setToken(token);
+        DepartService.setToken(token);
+        ReservationService.setToken(token);
+      }
+    } catch (e) {
+      // Erreur silencieuse, pas critique
     }
   }
 
@@ -85,6 +117,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isAuthenticated: true,
           isLoading: false,
         );
+        
+        // ✅ IMPORTANT: Définir le token IMMÉDIATEMENT pour tous les services API
+        await _setTokensForAllServices();
+        
         return true;
       } else {
         state = state.copyWith(
@@ -117,6 +153,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
           isAuthenticated: true,
           isLoading: false,
         );
+        
+        // ✅ IMPORTANT: Définir le token IMMÉDIATEMENT pour tous les services API
+        await _setTokensForAllServices();
+        
         return true;
       } else {
         state = state.copyWith(

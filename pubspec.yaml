@@ -91,6 +91,14 @@ dependencies:
   # Video Player
   video_player: ^2.9.2
 
+  # QR Code
+  qr_flutter: ^4.1.0
+  
+  # Share & Screenshot
+  share_plus: ^7.2.1
+  screenshot: ^3.0.0
+  path_provider: ^2.1.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
