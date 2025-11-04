@@ -82,6 +82,9 @@ dependencies:
   # File Picker
   file_picker: ^8.0.0+1
   
+  # Signature
+  signature: ^5.5.0
+  
   # Cache management
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1

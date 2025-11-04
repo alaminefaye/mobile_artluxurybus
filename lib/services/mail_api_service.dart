@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import '../models/mail_model.dart';
 import 'package:http_parser/http_parser.dart';
@@ -273,6 +274,56 @@ class MailApiService {
       } else {
         final errorData = json.decode(response.body);
         throw Exception(errorData['message'] ?? 'Erreur lors du marquage');
+      }
+    } catch (e) {
+      throw Exception('Erreur: $e');
+    }
+  }
+
+  /// Marquer un courrier comme collecté avec détails (nom, téléphone, pièce, signature)
+  static Future<MailModel> markAsCollectedWithDetails(
+    int id, {
+    required String collectorName,
+    required String collectorPhone,
+    required String collectorIdCard,
+    required Uint8List? signatureBytes,
+  }) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/mails/$id/collect'),
+      );
+
+      // Ajouter les headers
+      if (_token != null) {
+        request.headers['Authorization'] = 'Bearer $_token';
+      }
+      request.headers['Accept'] = 'application/json';
+
+      // Ajouter les champs
+      request.fields['collector_name'] = collectorName;
+      request.fields['collector_phone'] = collectorPhone;
+      request.fields['collector_id_card'] = collectorIdCard;
+
+      // Ajouter la signature si présente
+      if (signatureBytes != null) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'collector_signature',
+          signatureBytes,
+          filename: 'signature.png',
+          contentType: MediaType('image', 'png'),
+        ));
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return MailModel.fromJson(data['data']);
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Erreur lors de la collection');
       }
     } catch (e) {
       throw Exception('Erreur: $e');

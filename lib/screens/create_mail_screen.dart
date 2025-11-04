@@ -599,18 +599,6 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                         padding: const EdgeInsets.all(16),
                       ),
                     ),
-                  const SizedBox(height: 24),
-                  SwitchListTile(
-                    title: const Text('Programme de fidélité'),
-                    subtitle: const Text(
-                        'Ajouter des points fidélité pour ce courrier'),
-                    value: _isLoyaltyMail,
-                    onChanged: (value) {
-                      setState(() {
-                        _isLoyaltyMail = value;
-                      });
-                    },
-                  ),
                   const SizedBox(height: 32),
                   ElevatedButton.icon(
                     onPressed: _submit,

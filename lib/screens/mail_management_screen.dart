@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/mail_model.dart';
 import '../services/mail_api_service.dart';
+import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
 import 'mail_detail_screen.dart';
 import 'create_mail_screen.dart';
 import 'package:intl/intl.dart';
 
-class MailManagementScreen extends StatefulWidget {
+class MailManagementScreen extends ConsumerStatefulWidget {
   const MailManagementScreen({super.key});
 
   @override
-  State<MailManagementScreen> createState() => _MailManagementScreenState();
+  ConsumerState<MailManagementScreen> createState() => _MailManagementScreenState();
 }
 
-class _MailManagementScreenState extends State<MailManagementScreen>
+class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   MailDashboard? _dashboard;
@@ -61,6 +64,7 @@ class _MailManagementScreenState extends State<MailManagementScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _buildDrawer(context),
       appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
@@ -74,20 +78,23 @@ class _MailManagementScreenState extends State<MailManagementScreen>
         ),
         bottom: TabBar(
           controller: _tabController,
-          isScrollable: true,
+          isScrollable: false,
           indicatorColor: Colors.white,
           indicatorWeight: 3,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           labelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 14,
+            fontSize: 13,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 12,
           ),
           tabs: const [
-            Tab(icon: Icon(Icons.dashboard, size: 24), text: 'Dashboard'),
-            Tab(icon: Icon(Icons.pending_actions, size: 24), text: 'En attente'),
-            Tab(icon: Icon(Icons.check_circle, size: 24), text: 'Collectés'),
-            Tab(icon: Icon(Icons.list, size: 24), text: 'Tous'),
+            Tab(icon: Icon(Icons.dashboard, size: 22), text: 'Stats'),
+            Tab(icon: Icon(Icons.pending_actions, size: 22), text: 'Attente'),
+            Tab(icon: Icon(Icons.check_circle, size: 22), text: 'Collectés'),
+            Tab(icon: Icon(Icons.list, size: 22), text: 'Tous'),
           ],
         ),
       ),
@@ -95,9 +102,9 @@ class _MailManagementScreenState extends State<MailManagementScreen>
         controller: _tabController,
         children: [
           _buildDashboardTab(),
-          _buildMailListTab(isCollected: false),
-          _buildMailListTab(isCollected: true),
-          _buildMailListTab(),
+          _buildMailListTab(isCollected: false, tabController: _tabController),
+          _buildMailListTab(isCollected: true, tabController: _tabController),
+          _buildMailListTab(tabController: _tabController),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -123,6 +130,290 @@ class _MailManagementScreenState extends State<MailManagementScreen>
             fontWeight: FontWeight.bold,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          UserAccountsDrawerHeader(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue.shade700, Colors.blue.shade900],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                user?.name?.isNotEmpty == true
+                    ? user!.name.substring(0, 1).toUpperCase()
+                    : 'U',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade700,
+                ),
+              ),
+            ),
+            accountName: Text(
+              user?.name ?? 'Utilisateur',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            accountEmail: Text(
+              user?.email ?? '',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+          ListTile(
+            leading: Icon(Icons.person, color: Colors.blue.shade700),
+            title: const Text(
+              'Mon Profil',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _showProfileDialog(context);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.lock, color: Colors.orange.shade700),
+            title: const Text(
+              'Changer mot de passe',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _showChangePasswordDialog(context);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text(
+              'Se déconnecter',
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.red,
+              ),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _showLogoutDialog(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProfileDialog(BuildContext context) {
+    final user = ref.read(authProvider).user;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Mon Profil'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildProfileItem('Nom', user?.name ?? 'N/A'),
+            const SizedBox(height: 12),
+            _buildProfileItem('Email', user?.email ?? 'N/A'),
+            const SizedBox(height: 12),
+            _buildProfileItem('Téléphone', user?.phoneNumber ?? 'N/A'),
+            const SizedBox(height: 12),
+            _buildProfileItem('Rôle', user?.role ?? 'Agent'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Changer le mot de passe'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Mot de passe actuel',
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: newPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Nouveau mot de passe',
+                  prefixIcon: Icon(Icons.lock),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: confirmPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Confirmer le mot de passe',
+                  prefixIcon: Icon(Icons.lock),
+                ),
+                obscureText: true,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      if (newPasswordController.text !=
+                          confirmPasswordController.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Les mots de passe ne correspondent pas'),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+
+                      setState(() => isLoading = true);
+
+                      try {
+                        final authService = AuthService();
+                        final result = await authService.changePassword(
+                          currentPassword: currentPasswordController.text,
+                          newPassword: newPasswordController.text,
+                          newPasswordConfirmation: confirmPasswordController.text,
+                        );
+                        
+                        if (context.mounted) {
+                          if (result['success'] == true) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(result['message'] ?? 'Mot de passe changé avec succès'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(result['message'] ?? 'Erreur lors du changement'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Erreur: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } finally {
+                        setState(() => isLoading = false);
+                      }
+                    },
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Changer'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Se déconnecter'),
+          ),
+        ],
       ),
     );
   }
@@ -372,10 +663,11 @@ class _MailManagementScreenState extends State<MailManagementScreen>
     );
   }
 
-  Widget _buildMailListTab({bool? isCollected}) {
+  Widget _buildMailListTab({bool? isCollected, TabController? tabController}) {
     return MailListView(
       isCollected: isCollected,
       onRefresh: _loadDashboard,
+      tabController: tabController,
     );
   }
 
@@ -417,8 +709,14 @@ class _MailManagementScreenState extends State<MailManagementScreen>
               builder: (context) => MailDetailScreen(mail: mail),
             ),
           );
-          if (result == true) {
-            _loadDashboard();
+          if (result != null) {
+            if (result is Map && result['goToCollected'] == true) {
+              // Recharger et aller à l'onglet Collectés (index 2)
+              _loadDashboard();
+              _tabController.animateTo(2);
+            } else if (result == true) {
+              _loadDashboard();
+            }
           }
         },
       ),
@@ -429,11 +727,13 @@ class _MailManagementScreenState extends State<MailManagementScreen>
 class MailListView extends StatefulWidget {
   final bool? isCollected;
   final VoidCallback? onRefresh;
+  final TabController? tabController;
 
   const MailListView({
     super.key,
     this.isCollected,
     this.onRefresh,
+    this.tabController,
   });
 
   @override
@@ -705,6 +1005,13 @@ class _MailListViewState extends State<MailListView> {
               builder: (context) => MailDetailScreen(mail: mail),
             ),
           );
+          if (result != null) {
+            if (result is Map && result['goToCollected'] == true) {
+              // Aller à l'onglet Collectés (index 2)
+              widget.tabController?.animateTo(2);
+            }
+            setState(() {});
+          }
           if (result == true) {
             _loadMails();
             widget.onRefresh?.call();

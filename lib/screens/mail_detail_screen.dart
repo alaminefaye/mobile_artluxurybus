@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/mail_model.dart';
-import '../services/mail_api_service.dart';
 import 'package:intl/intl.dart';
+import 'collection_form_screen.dart';
 
 class MailDetailScreen extends StatefulWidget {
   final MailModel mail;
@@ -23,90 +23,19 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
   }
 
   Future<void> _toggleCollection() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
 
-    try {
-      final updatedMail = _mail.isCollected
-          ? await MailApiService.markAsUncollected(_mail.id)
-          : await MailApiService.markAsCollected(_mail.id);
-
-      setState(() {
-        _mail = updatedMail;
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _mail.isCollected
-                  ? 'Courrier marqué comme collecté'
-                  : 'Collection annulée',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _deleteMail() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Supprimer le courrier'),
-        content:
-            const Text('Voulez-vous vraiment supprimer ce courrier ? Cette action est irréversible.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
+    // Ouvrir le formulaire de collection
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CollectionFormScreen(mail: _mail),
       ),
     );
 
-    if (confirm != true) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      await MailApiService.deleteMail(_mail.id);
-
-      if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Courrier supprimé avec succès'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    // Si la collection a réussi, retourner avec indication de redirection vers Collectés
+    if (result == true && mounted) {
+      Navigator.pop(context, {'success': true, 'goToCollected': true});
     }
   }
 
@@ -115,12 +44,6 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Détails du Courrier'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: _isLoading ? null : _deleteMail,
-          ),
-        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -194,30 +117,24 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       ),
                     ]),
                   ],
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _mail.isCollected
-                            ? Colors.orange
-                            : Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onPressed: _isLoading ? null : _toggleCollection,
-                      icon: Icon(
-                        _mail.isCollected
-                            ? Icons.cancel
-                            : Icons.check_circle,
-                      ),
-                      label: Text(
-                        _mail.isCollected
-                            ? 'Annuler la collection'
-                            : 'Marquer comme collecté',
-                        style: const TextStyle(fontSize: 16),
+                  if (!_mail.isCollected) ...[
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        onPressed: _isLoading ? null : _toggleCollection,
+                        icon: const Icon(Icons.check_circle),
+                        label: const Text(
+                          'Marquer comme collecté',
+                          style: TextStyle(fontSize: 16),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
