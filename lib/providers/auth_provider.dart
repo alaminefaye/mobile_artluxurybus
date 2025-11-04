@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/simple_auth_models.dart';
 import '../models/user.dart';
@@ -10,6 +11,7 @@ import '../services/video_advertisement_service.dart';
 import '../services/trip_service.dart';
 import '../services/depart_service.dart';
 import '../services/reservation_service.dart';
+import '../services/mail_api_service.dart';
 
 // Service provider
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -97,6 +99,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         TripService.setToken(token);
         DepartService.setToken(token);
         ReservationService.setToken(token);
+        MailApiService.setToken(token);
       }
     } catch (e) {
       // Erreur silencieuse, pas critique
@@ -112,11 +115,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final response = await _authService.login(loginRequest);
 
       if (response.success && response.data != null) {
+        debugPrint('🔍 [AuthProvider] Données utilisateur reçues: ${response.data!.user.toJson()}');
+        debugPrint('🔍 [AuthProvider] Rôle de l\'utilisateur: "${response.data!.user.role}"');
+        
         state = state.copyWith(
           user: response.data!.user,
           isAuthenticated: true,
           isLoading: false,
         );
+        
+        debugPrint('🔍 [AuthProvider] État mis à jour - Rôle dans state: "${state.user?.role}"');
         
         // ✅ IMPORTANT: Définir le token IMMÉDIATEMENT pour tous les services API
         await _setTokensForAllServices();

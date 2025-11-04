@@ -1,0 +1,716 @@
+import 'package:flutter/material.dart';
+import '../models/mail_model.dart';
+import '../services/mail_api_service.dart';
+import 'mail_detail_screen.dart';
+import 'create_mail_screen.dart';
+import 'package:intl/intl.dart';
+
+class MailManagementScreen extends StatefulWidget {
+  const MailManagementScreen({super.key});
+
+  @override
+  State<MailManagementScreen> createState() => _MailManagementScreenState();
+}
+
+class _MailManagementScreenState extends State<MailManagementScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  MailDashboard? _dashboard;
+  bool _isLoadingDashboard = true;
+  String? _dashboardError;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _loadDashboard();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadDashboard() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoadingDashboard = true;
+      _dashboardError = null;
+    });
+
+    try {
+      final dashboard = await MailApiService.getDashboard();
+      if (!mounted) return;
+      
+      setState(() {
+        _dashboard = dashboard;
+        _isLoadingDashboard = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _dashboardError = e.toString();
+        _isLoadingDashboard = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        title: const Text(
+          'Gestion des Courriers',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+          tabs: const [
+            Tab(icon: Icon(Icons.dashboard, size: 24), text: 'Dashboard'),
+            Tab(icon: Icon(Icons.pending_actions, size: 24), text: 'En attente'),
+            Tab(icon: Icon(Icons.check_circle, size: 24), text: 'Collectés'),
+            Tab(icon: Icon(Icons.list, size: 24), text: 'Tous'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildDashboardTab(),
+          _buildMailListTab(isCollected: false),
+          _buildMailListTab(isCollected: true),
+          _buildMailListTab(),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateMailScreen(),
+            ),
+          );
+          if (result == true) {
+            _loadDashboard();
+          }
+        },
+        backgroundColor: Colors.green.shade600,
+        foregroundColor: Colors.white,
+        elevation: 6,
+        icon: const Icon(Icons.add, size: 28),
+        label: const Text(
+          'Nouveau Courrier',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardTab() {
+    if (_isLoadingDashboard) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_dashboardError != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_dashboardError!),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadDashboard,
+              child: const Text('Réessayer'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_dashboard == null) {
+      return const Center(child: Text('Aucune donnée disponible'));
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadDashboard,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildStatsPeriodCard('Aujourd\'hui', _dashboard!.today),
+          const SizedBox(height: 16),
+          _buildStatsPeriodCard('Cette semaine', _dashboard!.week),
+          const SizedBox(height: 16),
+          _buildStatsPeriodCard('Ce mois', _dashboard!.month),
+          const SizedBox(height: 24),
+          _buildTopDestinations(),
+          const SizedBox(height: 24),
+          _buildPendingMailsSection(),
+          const SizedBox(height: 24),
+          _buildRecentCollectionsSection(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsPeriodCard(String title, DashboardPeriod period) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade50, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade700,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem(
+                  Icons.mail,
+                  'Total',
+                  period.total.toString(),
+                  Colors.blue,
+                ),
+                _buildStatItem(
+                  Icons.check_circle,
+                  'Collectés',
+                  period.collected.toString(),
+                  Colors.green,
+                ),
+                _buildStatItem(
+                  Icons.pending,
+                  'En attente',
+                  period.pending.toString(),
+                  Colors.orange,
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.account_balance_wallet, color: Colors.green, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  '${NumberFormat('#,###', 'fr_FR').format(period.revenue)} FCFA',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+      IconData icon, String label, String value, Color color) {
+    return Column(
+      children: [
+        Icon(icon, size: 32, color: color),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopDestinations() {
+    if (_dashboard!.topDestinations.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Top Destinations',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ..._dashboard!.topDestinations.map((dest) {
+              return ListTile(
+                leading: const Icon(Icons.location_on, color: Colors.blue),
+                title: Text(dest.destination),
+                trailing: Chip(
+                  label: Text('${dest.count}'),
+                  backgroundColor: Colors.blue.shade100,
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingMailsSection() {
+    if (_dashboard!.pendingMails.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            'Courriers en attente',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ..._dashboard!.pendingMails.take(5).map((mail) {
+          return _buildMailCard(mail);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildRecentCollectionsSection() {
+    if (_dashboard!.recentCollections.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            'Collectés récemment',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        ..._dashboard!.recentCollections.take(5).map((mail) {
+          return _buildMailCard(mail);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildMailListTab({bool? isCollected}) {
+    return MailListView(
+      isCollected: isCollected,
+      onRefresh: _loadDashboard,
+    );
+  }
+
+  Widget _buildMailCard(MailModel mail) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor:
+              mail.isCollected ? Colors.green.shade100 : Colors.orange.shade100,
+          child: Icon(
+            mail.isCollected ? Icons.check_circle : Icons.pending,
+            color: mail.isCollected ? Colors.green : Colors.orange,
+          ),
+        ),
+        title: Text(
+          mail.mailNumber,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Expéditeur: ${mail.senderName}'),
+            Text('Destination: ${mail.destination}'),
+          ],
+        ),
+        trailing: Text(
+          NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
+              .format(mail.amount),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.green,
+          ),
+        ),
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MailDetailScreen(mail: mail),
+            ),
+          );
+          if (result == true) {
+            _loadDashboard();
+          }
+        },
+      ),
+    );
+  }
+}
+
+class MailListView extends StatefulWidget {
+  final bool? isCollected;
+  final VoidCallback? onRefresh;
+
+  const MailListView({
+    super.key,
+    this.isCollected,
+    this.onRefresh,
+  });
+
+  @override
+  State<MailListView> createState() => _MailListViewState();
+}
+
+class _MailListViewState extends State<MailListView> {
+  List<MailModel> _mails = [];
+  bool _isLoading = false;
+  String? _error;
+  int _currentPage = 1;
+  bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  String? _searchQuery;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMails();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && _hasMore) {
+        _loadMore();
+      }
+    }
+  }
+
+  Future<void> _loadMails() async {
+    if (_isLoading) return;
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _currentPage = 1;
+      _mails = [];
+    });
+
+    try {
+      final response = await MailApiService.getMails(
+        page: _currentPage,
+        isCollected: widget.isCollected,
+        search: _searchQuery,
+      );
+
+      if (!mounted) return;
+
+      final List mailsData = response['data']['data'] ?? [];
+      final List<MailModel> newMails =
+          mailsData.map((e) => MailModel.fromJson(e)).toList();
+
+      setState(() {
+        _mails = newMails;
+        _hasMore = response['data']['next_page_url'] != null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore) return;
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _currentPage++;
+    });
+
+    try {
+      final response = await MailApiService.getMails(
+        page: _currentPage,
+        isCollected: widget.isCollected,
+        search: _searchQuery,
+      );
+
+      if (!mounted) return;
+
+      final List mailsData = response['data']['data'] ?? [];
+      final List<MailModel> newMails =
+          mailsData.map((e) => MailModel.fromJson(e)).toList();
+
+      setState(() {
+        _mails.addAll(newMails);
+        _hasMore = response['data']['next_page_url'] != null;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _isLoading = false;
+        _currentPage--;
+      });
+    }
+  }
+
+  void _performSearch(String query) {
+    setState(() {
+      _searchQuery = query.isEmpty ? null : query;
+    });
+    _loadMails();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Rechercher un courrier...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        _performSearch('');
+                      },
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onSubmitted: _performSearch,
+          ),
+        ),
+        Expanded(
+          child: _buildContent(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading && _mails.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null && _mails.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_error!),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadMails,
+              child: const Text('Réessayer'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_mails.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              'Aucun courrier',
+              style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await _loadMails();
+        widget.onRefresh?.call();
+      },
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(8),
+        itemCount: _mails.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _mails.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          final mail = _mails[index];
+          return _buildMailCard(mail);
+        },
+      ),
+    );
+  }
+
+  Widget _buildMailCard(MailModel mail) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor:
+              mail.isCollected ? Colors.green.shade100 : Colors.orange.shade100,
+          child: Icon(
+            mail.isCollected ? Icons.check_circle : Icons.pending,
+            color: mail.isCollected ? Colors.green : Colors.orange,
+          ),
+        ),
+        title: Text(
+          mail.mailNumber,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Expéditeur: ${mail.senderName}'),
+            Text('Téléphone: ${mail.senderPhone}'),
+            Text('Destination: ${mail.destination}'),
+            Text('Type: ${mail.packageType}'),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
+                  .format(mail.amount),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+            Text(
+              DateFormat('dd/MM/yy').format(mail.createdAt),
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MailDetailScreen(mail: mail),
+            ),
+          );
+          if (result == true) {
+            _loadMails();
+            widget.onRefresh?.call();
+          }
+        },
+      ),
+    );
+  }
+}

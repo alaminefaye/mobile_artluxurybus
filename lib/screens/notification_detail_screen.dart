@@ -6,7 +6,6 @@ import '../theme/app_theme.dart';
 import '../providers/notification_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'home_page.dart';
 import 'my_trips_screen.dart';
 import 'loyalty_home_screen.dart';
 

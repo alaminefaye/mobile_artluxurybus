@@ -14,13 +14,15 @@ import 'models/notification_model.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
-import 'services/video_advertisement_service.dart';
 import 'services/feedback_api_service.dart';
 import 'services/notification_api_service.dart';
-import 'services/ads_api_service.dart';
-import 'services/horaire_service.dart';
 import 'services/announcement_manager.dart';
+import 'services/trip_service.dart';
+import 'services/depart_service.dart';
+import 'services/reservation_service.dart';
+import 'services/mail_api_service.dart';
 import 'debug/debug_screen.dart';
+import 'screens/mail_management_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,9 +38,10 @@ void main() async {
       debugPrint('✅ [Main] Token d\'authentification trouvé');
       FeedbackApiService.setToken(token);
       NotificationApiService.setToken(token);
-      AdsApiService.setToken(token);
-      HoraireService.setToken(token);
-      VideoAdvertisementService.setToken(token);
+      TripService.setToken(token);
+      DepartService.setToken(token);
+      ReservationService.setToken(token);
+      MailApiService.setToken(token);
     } else {
       debugPrint('⚠️ [Main] Aucun token d\'authentification');
     }
@@ -317,8 +320,25 @@ class AuthWrapper extends ConsumerWidget {
       );
     }
 
-    // Rediriger selon le statut d'authentification
+    // Rediriger selon le statut d'authentification et le rôle/permissions
     if (authState.isAuthenticated) {
+      final userRole = authState.user?.role?.trim().toLowerCase();
+      final permissions = authState.user?.permissions ?? [];
+      
+      debugPrint('🔍 [AuthWrapper] Rôle utilisateur: "$userRole"');
+      debugPrint('🔍 [AuthWrapper] Permissions: $permissions');
+      
+      // Vérifier si l'utilisateur a les permissions de gestion du courrier
+      final hasMailPermissions = permissions.any((p) => 
+        p.contains('mail') || p.contains('bagage') || p.contains('lost_item')
+      );
+      
+      if (userRole == 'courrier' || hasMailPermissions) {
+        debugPrint('✅ [AuthWrapper] Redirection vers MailManagementScreen (courrier)');
+        return const MailManagementScreen();
+      }
+      
+      debugPrint('➡️ [AuthWrapper] Redirection vers HomePage (rôle: "$userRole")');
       return const HomePage();
     } else {
       return const LoginScreen();

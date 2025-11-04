@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 
 /// Widget qui initialise FCM au démarrage de l'application
 class FCMInitializer extends StatefulWidget {
