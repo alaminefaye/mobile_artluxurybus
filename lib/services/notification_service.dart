@@ -14,7 +14,9 @@ import '../firebase_options.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Vérifier si Firebase est déjà initialisé pour éviter l'erreur duplicate-app
   try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
     if (e.toString().contains('duplicate-app')) {
       debugPrint('ℹ️ [Background Handler] Firebase déjà initialisé');
@@ -22,7 +24,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       debugPrint('⚠️ [Background Handler] Erreur Firebase: $e');
     }
   }
-  
+
   // Traiter la notification en arrière-plan
   await NotificationService._handleBackgroundMessage(message);
 }
@@ -66,6 +68,15 @@ class NotificationService {
       try {
         _deviceId = await DeviceInfoService().getDeviceId();
         debugPrint('📱 [NotificationService] Device ID: $_deviceId');
+
+        // 💾 Sauvegarder le device_id pour réutilisation
+        if (_deviceId != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('device_id', _deviceId!);
+          debugPrint(
+            '💾 [NotificationService] Device ID sauvegardé localement',
+          );
+        }
       } catch (e) {
         debugPrint(
           '⚠️ [NotificationService] Erreur récupération Device ID: $e',
@@ -120,11 +131,13 @@ class NotificationService {
         }
       }
 
-      // Obtenir et enregistrer le token FCM
+      // Obtenir le token FCM (SANS l'enregistrer automatiquement)
       if (_messaging != null) {
         try {
-          await _getAndRegisterToken();
-          debugPrint('✅ [NotificationService] Token FCM obtenu');
+          await _getToken();
+          debugPrint(
+            '✅ [NotificationService] Token FCM obtenu (non enregistré)',
+          );
         } catch (e) {
           debugPrint('⚠️ [NotificationService] Token FCM non obtenu: $e');
         }
@@ -182,13 +195,18 @@ class NotificationService {
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
       debugPrint('✅ [NotificationService] Canal Android créé: ${channel.id}');
-      
+
       // Demander la permission pour Android 13+ (notifications locales)
-      final bool? permissionGranted = await androidPlugin.requestNotificationsPermission();
+      final bool? permissionGranted = await androidPlugin
+          .requestNotificationsPermission();
       if (permissionGranted == true) {
-        debugPrint('✅ [NotificationService] Permission notifications locales accordée');
+        debugPrint(
+          '✅ [NotificationService] Permission notifications locales accordée',
+        );
       } else {
-        debugPrint('⚠️ [NotificationService] Permission notifications locales refusée ou non disponible');
+        debugPrint(
+          '⚠️ [NotificationService] Permission notifications locales refusée ou non disponible',
+        );
       }
     } else {
       debugPrint(
@@ -242,44 +260,98 @@ class NotificationService {
     }
   }
 
-  /// Obtenir et enregistrer le token FCM
-  static Future<String?> _getAndRegisterToken() async {
+  /// Obtenir le token FCM (SANS l'enregistrer)
+  static Future<String?> _getToken() async {
     if (_messaging == null) return null;
 
     try {
       String? token = await _messaging!.getToken();
       if (token != null) {
-        // Token FCM obtenu avec succès
-
-        // Sauvegarder localement
+        // Token FCM obtenu avec succès - Sauvegarder localement
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', token);
-
-        // Enregistrer sur le serveur
-        await _registerTokenWithServer(token);
+        debugPrint('💾 [NotificationService] Token FCM sauvegardé localement');
 
         // Écouter les changements de token
-        _messaging!.onTokenRefresh.listen((newToken) {
-          // Nouveau token FCM reçu - mise à jour automatique
-          _registerTokenWithServer(newToken);
+        _messaging!.onTokenRefresh.listen((newToken) async {
+          // Nouveau token FCM reçu - Sauvegarder et enregistrer si connecté
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('fcm_token', newToken);
+
+          // Tenter d'enregistrer sur le serveur (échouera si non connecté)
+          await registerTokenOnServer(newToken);
         });
 
         return token;
       }
     } catch (e) {
-      // Erreur lors de l'obtention du token FCM
+      debugPrint('❌ [NotificationService] Erreur obtention token: $e');
     }
     return null;
+  }
+
+  /// Enregistrer le token sur le serveur (APPELÉE APRÈS CONNEXION)
+  static Future<bool> registerTokenOnServer([String? token]) async {
+    try {
+      // Récupérer le token stocké si non fourni
+      String? fcmToken = token;
+      if (fcmToken == null) {
+        final prefs = await SharedPreferences.getInstance();
+        fcmToken = prefs.getString('fcm_token');
+      }
+
+      if (fcmToken == null) {
+        debugPrint('⚠️ [NotificationService] Aucun token FCM à enregistrer');
+        return false;
+      }
+
+      await _registerTokenWithServer(fcmToken);
+      return true;
+    } catch (e) {
+      debugPrint('❌ [NotificationService] Erreur enregistrement token: $e');
+      return false;
+    }
   }
 
   /// Enregistrer le token sur le serveur
   static Future<void> _registerTokenWithServer(String token) async {
     try {
+      // 🔑 IMPORTANT: Récupérer le token d'authentification et le définir dans FeedbackApiService
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('auth_token');
+
+      if (authToken != null) {
+        debugPrint(
+          '🔑 [NotificationService] Token auth récupéré, configuration FeedbackApiService...',
+        );
+        FeedbackApiService.setToken(authToken);
+      } else {
+        debugPrint(
+          '⚠️ [NotificationService] Aucun token d\'authentification trouvé',
+        );
+        // Ne pas continuer si pas authentifié
+        return;
+      }
+
       final deviceInfoService = DeviceInfoService();
 
       // Obtenir les informations réelles de l'appareil
       final deviceType = await deviceInfoService.getDeviceType();
-      final deviceId = await deviceInfoService.getDeviceId();
+      
+      // 💾 Récupérer le device_id depuis SharedPreferences en priorité
+      String? deviceId = prefs.getString('device_id');
+      
+      // Si pas dans SharedPreferences, récupérer via DeviceInfoService
+      if (deviceId == null) {
+        debugPrint(
+          '📱 [NotificationService] Device ID non trouvé en cache, récupération...',
+        );
+        deviceId = await deviceInfoService.getDeviceId();
+      } else {
+        debugPrint(
+          '💾 [NotificationService] Device ID récupéré du cache: $deviceId',
+        );
+      }
 
       debugPrint('📱 Enregistrement FCM Token avec device_id: $deviceId');
       debugPrint('📱 Type d\'appareil: $deviceType');
@@ -341,27 +413,25 @@ class NotificationService {
     }
 
     // Déterminer le titre et le corps de la notification
-    String title = message.notification?.title ?? 
-                   message.data['titre'] ?? 
-                   message.data['title'] ?? 
-                   'Art Luxury Bus';
-    
-    String body = message.notification?.body ?? 
-                  message.data['contenu'] ?? 
-                  message.data['body'] ?? 
-                  message.data['message'] ?? 
-                  'Nouvelle notification';
+    String title =
+        message.notification?.title ??
+        message.data['titre'] ??
+        message.data['title'] ??
+        'Art Luxury Bus';
+
+    String body =
+        message.notification?.body ??
+        message.data['contenu'] ??
+        message.data['body'] ??
+        message.data['message'] ??
+        'Nouvelle notification';
 
     debugPrint('📱 [NotificationService] Affichage notification locale:');
     debugPrint('   - Titre: $title');
     debugPrint('   - Corps: $body');
 
     // Afficher une notification locale pour TOUTES les notifications
-    _showLocalNotification(
-      title: title,
-      body: body,
-      data: message.data,
-    );
+    _showLocalNotification(title: title, body: body, data: message.data);
 
     // Envoyer via le stream pour TOUTES les notifications
     _notificationStreamController?.add({
@@ -385,7 +455,7 @@ class NotificationService {
 
       // Vérifier si l'annonce est destinée à cet appareil
       final appareil = message.data['appareil']?.toString().trim();
-      
+
       debugPrint('🔍 [NotificationService] Vérification annonce:');
       debugPrint('   - appareil dans message: "$appareil"');
       debugPrint('   - device ID local: "$_deviceId"');
@@ -400,41 +470,53 @@ class NotificationService {
       else if (appareil.toLowerCase() == 'mobile') {
         // Vérifier si c'est une annonce vocale (type="annonce")
         final type = message.data['type']?.toString().trim();
-        
+
         // Si c'est une annonce vocale, elle doit être spécifiquement pour cet appareil
         if (type?.toLowerCase() == 'annonce') {
-          debugPrint('⚠️ [NotificationService] Annonce vocale de type "mobile" - ignorée car doit cibler un appareil spécifique');
+          debugPrint(
+            '⚠️ [NotificationService] Annonce vocale de type "mobile" - ignorée car doit cibler un appareil spécifique',
+          );
           return;
         }
         // Si c'est une notification normale, on accepte la catégorie 'mobile'
         else {
-          debugPrint('✅ [NotificationService] Notification pour catégorie mobile');
+          debugPrint(
+            '✅ [NotificationService] Notification pour catégorie mobile',
+          );
         }
       }
       // Vérifier si c'est l'identifiant unique de CET appareil (comparaison insensible à la casse)
       else if (_deviceId != null) {
         final normalizedAppareil = _normalizeDeviceId(appareil);
         final normalizedDeviceId = _normalizeDeviceId(_deviceId);
-        
+
         if (normalizedAppareil == normalizedDeviceId) {
           debugPrint(
             '✅ [NotificationService] Annonce pour cet appareil spécifique',
           );
-          debugPrint('   - Match trouvé: "$normalizedAppareil" == "$normalizedDeviceId"');
+          debugPrint(
+            '   - Match trouvé: "$normalizedAppareil" == "$normalizedDeviceId"',
+          );
         } else {
           debugPrint(
             '⚠️ [NotificationService] Annonce non destinée à cet appareil',
           );
-          debugPrint('   - Pas de match: "$normalizedAppareil" != "$normalizedDeviceId"');
+          debugPrint(
+            '   - Pas de match: "$normalizedAppareil" != "$normalizedDeviceId"',
+          );
           return;
         }
       }
       // Vérifier si l'identifiant est dans une liste séparée par des virgules (comparaison insensible à la casse)
       else if (appareil.contains(',')) {
-        final deviceIds = appareil.split(',').map((e) => _normalizeDeviceId(e)).toList();
+        final deviceIds = appareil
+            .split(',')
+            .map((e) => _normalizeDeviceId(e))
+            .toList();
         final normalizedDeviceId = _normalizeDeviceId(_deviceId);
-        
-        if (normalizedDeviceId != null && deviceIds.contains(normalizedDeviceId)) {
+
+        if (normalizedDeviceId != null &&
+            deviceIds.contains(normalizedDeviceId)) {
           debugPrint(
             '✅ [NotificationService] Annonce pour cet appareil (liste multiple)',
           );
@@ -460,13 +542,17 @@ class NotificationService {
         debugPrint(
           '📢 [NotificationService] Déclenchement immédiat annonce #$messageId',
         );
-        
+
         // Déclencher le rafraîchissement immédiat de l'AnnouncementManager
         try {
           await AnnouncementManager().refresh();
-          debugPrint('✅ [NotificationService] AnnouncementManager rafraîchi immédiatement');
+          debugPrint(
+            '✅ [NotificationService] AnnouncementManager rafraîchi immédiatement',
+          );
         } catch (e) {
-          debugPrint('⚠️ [NotificationService] Impossible de rafraîchir AnnouncementManager: $e');
+          debugPrint(
+            '⚠️ [NotificationService] Impossible de rafraîchir AnnouncementManager: $e',
+          );
         }
       }
     } catch (e) {
@@ -604,7 +690,7 @@ class NotificationService {
         body: 'Ceci est un test des notifications push Art Luxury Bus 🔔',
         data: {'type': 'test'},
       );
-      
+
       debugPrint('✅ [NotificationService] TEST - Notification locale envoyée');
     } catch (e) {
       debugPrint('❌ [NotificationService] TEST - Erreur: $e');
@@ -613,8 +699,10 @@ class NotificationService {
 
   /// Tester les annonces vocales
   static Future<void> testAnnouncementPush() async {
-    debugPrint('🎤 [NotificationService] TEST - Simulation notification d\'annonce...');
-    
+    debugPrint(
+      '🎤 [NotificationService] TEST - Simulation notification d\'annonce...',
+    );
+
     try {
       // Simuler une notification d'annonce reçue
       const fakeMessage = RemoteMessage(
@@ -624,18 +712,21 @@ class NotificationService {
           'message_id': '999',
           'appareil': 'mobile',
           'titre': 'Test Annonce',
-          'contenu': 'Ceci est un test d\'annonce vocale pour vérifier le fonctionnement',
+          'contenu':
+              'Ceci est un test d\'annonce vocale pour vérifier le fonctionnement',
         },
         notification: RemoteNotification(
           title: 'Test Annonce',
           body: 'Ceci est un test d\'annonce vocale',
         ),
       );
-      
+
       // Déclencher le traitement comme si c'était une vraie notification
       await _handleAnnouncementMessage(fakeMessage);
-      
-      debugPrint('✅ [NotificationService] TEST - Notification d\'annonce simulée');
+
+      debugPrint(
+        '✅ [NotificationService] TEST - Notification d\'annonce simulée',
+      );
     } catch (e) {
       debugPrint('❌ [NotificationService] TEST - Erreur simulation: $e');
     }

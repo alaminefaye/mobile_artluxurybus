@@ -4,7 +4,7 @@ import '../services/auth_service.dart';
 /// Widget qui initialise FCM au démarrage de l'application
 class FCMInitializer extends StatefulWidget {
   final Widget child;
-  
+
   const FCMInitializer({
     super.key,
     required this.child,
@@ -16,7 +16,7 @@ class FCMInitializer extends StatefulWidget {
 
 class _FCMInitializerState extends State<FCMInitializer> {
   bool _isInitialized = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -25,14 +25,8 @@ class _FCMInitializerState extends State<FCMInitializer> {
 
   Future<void> _initializeFCM() async {
     try {
-      final authService = AuthService();
-      final isLoggedIn = await authService.isLoggedIn();
-      
-      if (isLoggedIn) {
-        // Vérifier et réparer FCM si nécessaire
-        await authService.ensureFCMIsValid();
-      }
-      
+      // L'enregistrement FCM est géré automatiquement dans AuthService.login()
+      // Aucune action supplémentaire nécessaire ici
     } catch (e) {
       // Erreur ignorée en production
     } finally {
@@ -66,7 +60,7 @@ class _FCMInitializerState extends State<FCMInitializer> {
         ),
       );
     }
-    
+
     // Une fois initialisé, afficher l'app normale
     return widget.child;
   }

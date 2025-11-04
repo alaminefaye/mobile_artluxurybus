@@ -11,10 +11,10 @@ class FeedbackApiService {
   }
 
   static Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    if (_token != null) 'Authorization': 'Bearer $_token',
-  };
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
 
   /// Créer une suggestion/préoccupation (endpoint public)
   static Future<Map<String, dynamic>> createFeedback({
@@ -48,16 +48,18 @@ class FeedbackApiService {
       );
 
       final data = jsonDecode(response.body);
-      
+
       if (response.statusCode == 201) {
         return data;
       } else {
         // Extraire un message d'erreur convivial
-        String errorMessage = _extractUserFriendlyError(data, response.statusCode);
+        String errorMessage =
+            _extractUserFriendlyError(data, response.statusCode);
         throw Exception(errorMessage);
       }
     } on SocketException {
-      throw Exception('Pas de connexion internet. Veuillez vérifier votre connexion.');
+      throw Exception(
+          'Pas de connexion internet. Veuillez vérifier votre connexion.');
     } on FormatException {
       throw Exception('Erreur de format des données. Veuillez réessayer.');
     } catch (e) {
@@ -67,17 +69,20 @@ class FeedbackApiService {
         errorMsg = errorMsg.substring(11);
       }
       // Éviter d'afficher les erreurs SQL brutes
-      if (errorMsg.contains('SQLSTATE') || errorMsg.contains('Integrity constraint')) {
-        errorMsg = 'Une erreur s\'est produite. Veuillez vérifier vos informations et réessayer.';
+      if (errorMsg.contains('SQLSTATE') ||
+          errorMsg.contains('Integrity constraint')) {
+        errorMsg =
+            'Une erreur s\'est produite. Veuillez vérifier vos informations et réessayer.';
       }
       throw Exception(errorMsg);
     }
   }
 
   /// Extraire un message d'erreur convivial depuis la réponse API
-  static String _extractUserFriendlyError(Map<String, dynamic> data, int statusCode) {
+  static String _extractUserFriendlyError(
+      Map<String, dynamic> data, int statusCode) {
     // Vérifier les différents formats de messages d'erreur
-    
+
     // 1. Message direct
     if (data['message'] != null && data['message'] is String) {
       String msg = data['message'];
@@ -86,7 +91,7 @@ class FeedbackApiService {
         return msg;
       }
     }
-    
+
     // 2. Erreurs de validation Laravel
     if (data['errors'] != null && data['errors'] is Map) {
       final errors = data['errors'] as Map;
@@ -99,12 +104,12 @@ class FeedbackApiService {
         return firstError.toString();
       }
     }
-    
+
     // 3. Erreur dans data.error
     if (data['error'] != null) {
       return data['error'].toString();
     }
-    
+
     // 4. Messages par défaut selon le code HTTP
     switch (statusCode) {
       case 400:
@@ -139,7 +144,7 @@ class FeedbackApiService {
       );
 
       final data = jsonDecode(response.body);
-      
+
       if (response.statusCode == 200) {
         return data;
       } else {
@@ -177,7 +182,7 @@ class FeedbackApiService {
 
       final response = await http.get(uri, headers: _headers);
       final data = jsonDecode(response.body);
-      
+
       if (response.statusCode == 200) {
         return data;
       } else {
@@ -207,7 +212,7 @@ class FeedbackApiService {
       );
 
       final data = jsonDecode(response.body);
-      
+
       if (response.statusCode == 200) {
         return data;
       } else {
@@ -226,11 +231,20 @@ class FeedbackApiService {
     String? deviceType,
     String? deviceId,
   }) async {
+    // Débugger le token d'authentification
+    print(
+        '🔑 [FeedbackApiService] Token auth: ${_token != null ? _token!.substring(0, 20) + "..." : "NULL"}');
+
     if (_token == null) {
+      print('❌ [FeedbackApiService] PAS DE TOKEN D\'AUTHENTIFICATION !');
       throw Exception('Token d\'authentification requis');
     }
 
     try {
+      print('📤 [FeedbackApiService] Envoi requête FCM...');
+      print('📤 URL: $baseUrl/fcm/register-token');
+      print('📤 Headers: $_headers');
+
       final response = await http.post(
         Uri.parse('$baseUrl/fcm/register-token'),
         headers: _headers,
@@ -242,15 +256,23 @@ class FeedbackApiService {
       );
 
       final data = jsonDecode(response.body);
-      
+
+      print('📥 [FeedbackApiService] Réponse: ${response.statusCode}');
+      print('📥 Body: $data');
+
       if (response.statusCode == 200) {
+        print('✅ [FeedbackApiService] Token FCM enregistré !');
         return data;
       } else {
+        print(
+            '❌ [FeedbackApiService] Erreur ${response.statusCode}: ${data['message']}');
         throw Exception(data['message'] ?? 'Erreur lors de l\'enregistrement');
       }
     } on SocketException {
+      print('❌ [FeedbackApiService] Pas de connexion internet');
       throw Exception('Pas de connexion internet');
     } catch (e) {
+      print('❌ [FeedbackApiService] Exception: $e');
       throw Exception('Erreur: ${e.toString()}');
     }
   }
@@ -268,7 +290,7 @@ class FeedbackApiService {
       );
 
       final data = jsonDecode(response.body);
-      
+
       if (response.statusCode == 200) {
         return data;
       } else {

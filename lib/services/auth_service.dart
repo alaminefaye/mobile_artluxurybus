@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/simple_auth_models.dart';
 // LoginRequest maintenant dans simple_auth_models.dart
 import '../models/user.dart';
 import '../utils/api_config.dart';
-import 'fcm_service.dart';
+import 'notification_service.dart';
+import 'feedback_api_service.dart';
 
 class AuthService {
   static const String tokenKey = 'auth_token';
@@ -70,8 +72,24 @@ class AuthService {
         // Sauvegarder le token et les données utilisateur
         await _saveAuthData(authResponse.data!);
 
-        // 🔥 NOUVEAU: Initialiser FCM pour le nouvel utilisateur
-        await _initializeFCMForUser(authResponse.data!);
+        // 🔑 IMPORTANT: Définir le token dans FeedbackApiService pour les appels API
+        FeedbackApiService.setToken(authResponse.data!.token);
+
+        // 🔥 NOUVEAU: Enregistrer le token FCM sur le serveur APRÈS connexion
+        try {
+          debugPrint(
+              '🔔 [AuthService] Enregistrement token FCM après connexion...');
+          final registered = await NotificationService.registerTokenOnServer();
+          if (registered) {
+            debugPrint('✅ [AuthService] Token FCM enregistré avec succès');
+          } else {
+            debugPrint(
+                '⚠️ [AuthService] Token FCM non enregistré (normal si pas encore généré)');
+          }
+        } catch (e) {
+          debugPrint('❌ [AuthService] Erreur enregistrement FCM: $e');
+          // Continuer même en cas d'erreur FCM
+        }
       }
 
       return authResponse;
@@ -111,14 +129,8 @@ class AuthService {
   Future<bool> logout() async {
     try {
       final token = await getToken();
-      final user = await getSavedUser();
 
       if (token != null) {
-        // 🔥 NOUVEAU: Nettoyer FCM avant la déconnexion
-        if (user != null) {
-          await _cleanupFCMForUser(user, token);
-        }
-
         await http.post(
           Uri.parse(ApiConfig.logoutEndpoint.fullUrl),
           headers: await _authHeaders,
@@ -130,8 +142,6 @@ class AuthService {
     } catch (e) {
       // Même en cas d'erreur, on supprime les données locales
       await _clearAuthData();
-      // Nettoyage FCM de sécurité
-      await FCMService.cleanupAllTokens();
       return false;
     }
   }
@@ -232,59 +242,6 @@ class AuthService {
   Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null;
-  }
-
-  // 🔥 NOUVEAU: Initialiser FCM pour un utilisateur
-  Future<void> _initializeFCMForUser(AuthData authData) async {
-    try {
-      // Nettoyer d'abord tous les anciens tokens (sécurité)
-      await FCMService.cleanupAllTokens();
-
-      // Initialiser FCM pour le nouvel utilisateur
-      await FCMService.initializeFCMForUser(
-        authData.user.id.toString(),
-        authData.token,
-      );
-    } catch (e) {
-      // Erreur ignorée en production
-    }
-  }
-
-  // 🔥 NOUVEAU: Nettoyer FCM pour un utilisateur
-  Future<void> _cleanupFCMForUser(User user, String token) async {
-    try {
-      await FCMService.cleanupFCMForUser(
-        user.id.toString(),
-        token,
-      );
-    } catch (e) {
-      // En cas d'erreur, nettoyage de sécurité
-      await FCMService.cleanupAllTokens();
-    }
-  }
-
-  // 🔥 NOUVEAU: Vérifier et réparer FCM si nécessaire
-  Future<void> ensureFCMIsValid() async {
-    try {
-      final user = await getSavedUser();
-      final token = await getToken();
-
-      if (user != null && token != null) {
-        // Vérifier si l'utilisateur a un token valide
-        bool hasValidToken =
-            await FCMService.hasValidTokenForUser(user.id.toString());
-
-        if (!hasValidToken) {
-          await _initializeFCMForUser(AuthData(
-            user: user,
-            token: token,
-            tokenType: 'Bearer',
-          ));
-        }
-      }
-    } catch (e) {
-      // Erreur ignorée en production
-    }
   }
 
   // Mise à jour du profil utilisateur

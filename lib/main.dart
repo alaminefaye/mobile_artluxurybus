@@ -26,28 +26,47 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    debugPrint('🚀 [Main] Initialisation de l\'application...');
+
     // Initialiser l'authentification AVANT les notifications
     final authService = AuthService();
     final token = await authService.getToken();
 
     if (token != null) {
+      debugPrint('✅ [Main] Token d\'authentification trouvé');
       FeedbackApiService.setToken(token);
       NotificationApiService.setToken(token);
       AdsApiService.setToken(token);
       HoraireService.setToken(token);
       VideoAdvertisementService.setToken(token);
+    } else {
+      debugPrint('⚠️ [Main] Aucun token d\'authentification');
     }
 
     // Initialiser les notifications Firebase APRÈS l'auth
-    await NotificationService.initialize();
+    debugPrint('🔔 [Main] Initialisation Firebase Messaging...');
+    await NotificationService.initialize().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        debugPrint('⚠️ [Main] Timeout Firebase - continue quand même');
+      },
+    );
+    debugPrint('✅ [Main] Firebase Messaging initialisé');
 
     // Initialiser le gestionnaire d'annonces GLOBALEMENT
     try {
+      debugPrint('📢 [Main] Démarrage AnnouncementManager...');
       await AnnouncementManager().start();
+      debugPrint('✅ [Main] AnnouncementManager démarré');
     } catch (e) {
+      debugPrint('⚠️ [Main] Erreur AnnouncementManager: $e');
       // Continuer malgré l'erreur
     }
-  } catch (e) {
+
+    debugPrint('✅ [Main] Initialisation terminée - Lancement de l\'app');
+  } catch (e, stackTrace) {
+    debugPrint('❌ [Main] ERREUR lors de l\'initialisation: $e');
+    debugPrint('Stack trace: $stackTrace');
     // Continuer malgré l'erreur pour éviter le crash
   }
 
@@ -171,7 +190,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       final notificationType = data?['type']?.toString() ?? '';
       final action = data?['action']?.toString() ?? '';
 
-      debugPrint('🔔 Navigation notification: type=$notificationType, action=$action');
+      debugPrint(
+          '🔔 Navigation notification: type=$notificationType, action=$action');
 
       // NOUVEAU: Gérer les notifications de tickets
       if (notificationType == 'new_ticket' && action == 'view_trips') {
