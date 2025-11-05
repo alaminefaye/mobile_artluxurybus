@@ -31,6 +31,7 @@ import 'company_info_screen.dart';
 import 'edit_profile_screen.dart';
 import 'security_screen.dart';
 import 'my_trips_screen.dart';
+import 'my_mails_screen.dart';
 import '../services/announcement_manager.dart';
 import '../services/trip_service.dart';
 import 'reservation_screen.dart';
@@ -978,7 +979,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: 'Courrier',
             color: AppTheme.primaryOrange,
             onTap: () {
-              // TODO: Navigation vers courrier
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const MyMailsScreen(),
+                ),
+              );
             },
           ),
           _buildServiceIcon(
@@ -2012,9 +2017,15 @@ class _HomePageState extends ConsumerState<HomePage> {
         {
           'icon': Icons.local_shipping_rounded,
           'title': 'Courrier',
-          'subtitle': 'Envoyer un colis',
+          'subtitle': 'Mes courriers',
           'color': AppTheme.primaryOrange,
-          'onTap': () {}, // TODO: Navigation
+          'onTap': () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const MyMailsScreen(),
+              ),
+            );
+          },
         },
         {
           'icon': Icons.location_on_rounded,

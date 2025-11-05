@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/mail_model.dart';
 import 'package:http_parser/http_parser.dart';
@@ -79,7 +80,8 @@ class MailApiService {
         if (search != null) 'search': search,
       };
 
-      final uri = Uri.parse('$baseUrl/mails').replace(queryParameters: queryParams);
+      final uri =
+          Uri.parse('$baseUrl/mails').replace(queryParameters: queryParams);
       final response = await http.get(uri, headers: _getHeaders());
 
       if (response.statusCode == 200) {
@@ -154,7 +156,8 @@ class MailApiService {
       if (description != null) request.fields['description'] = description;
       request.fields['is_loyalty_mail'] = isLoyaltyMail ? '1' : '0';
       if (loyaltyNotes != null) request.fields['loyalty_notes'] = loyaltyNotes;
-      if (clientProfileId != null) request.fields['client_profile_id'] = clientProfileId.toString();
+      if (clientProfileId != null)
+        request.fields['client_profile_id'] = clientProfileId.toString();
 
       // Ajouter la photo si présente
       if (photo != null) {
@@ -211,12 +214,15 @@ class MailApiService {
       if (destination != null) request.fields['destination'] = destination;
       if (senderName != null) request.fields['sender_name'] = senderName;
       if (senderPhone != null) request.fields['sender_phone'] = senderPhone;
-      if (recipientName != null) request.fields['recipient_name'] = recipientName;
-      if (recipientPhone != null) request.fields['recipient_phone'] = recipientPhone;
+      if (recipientName != null)
+        request.fields['recipient_name'] = recipientName;
+      if (recipientPhone != null)
+        request.fields['recipient_phone'] = recipientPhone;
       if (amount != null) request.fields['amount'] = amount.toString();
       if (packageValue != null) request.fields['package_value'] = packageValue;
       if (packageType != null) request.fields['package_type'] = packageType;
-      if (receivingAgency != null) request.fields['receiving_agency'] = receivingAgency;
+      if (receivingAgency != null)
+        request.fields['receiving_agency'] = receivingAgency;
       if (description != null) request.fields['description'] = description;
 
       // Ajouter la nouvelle photo si présente
@@ -236,7 +242,8 @@ class MailApiService {
         return MailModel.fromJson(data['data']);
       } else {
         final errorData = json.decode(response.body);
-        throw Exception(errorData['message'] ?? 'Erreur lors de la mise à jour');
+        throw Exception(
+            errorData['message'] ?? 'Erreur lors de la mise à jour');
       }
     } catch (e) {
       throw Exception('Erreur: $e');
@@ -253,7 +260,8 @@ class MailApiService {
 
       if (response.statusCode != 200) {
         final errorData = json.decode(response.body);
-        throw Exception(errorData['message'] ?? 'Erreur lors de la suppression');
+        throw Exception(
+            errorData['message'] ?? 'Erreur lors de la suppression');
       }
     } catch (e) {
       throw Exception('Erreur: $e');
@@ -351,7 +359,8 @@ class MailApiService {
   }
 
   /// Vérifier les points de fidélité d'un client par téléphone
-  static Future<Map<String, dynamic>> checkLoyaltyPoints(String telephone) async {
+  static Future<Map<String, dynamic>> checkLoyaltyPoints(
+      String telephone) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/mails/check-loyalty-points'),
@@ -388,6 +397,55 @@ class MailApiService {
       }
     } catch (e) {
       throw Exception('Erreur: $e');
+    }
+  }
+
+  /// Récupérer les courriers du client connecté (expédiés et reçus)
+  static Future<MailsResponse> getMyMails() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/mails/my-mails'),
+        headers: _getHeaders(),
+      );
+
+      debugPrint('📡 MailApiService - GET /mails/my-mails');
+      debugPrint('📡 Status: ${response.statusCode}');
+      debugPrint('📡 Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          // Si pas de courriers, retourner une réponse vide mais valide
+          if (data['count'] == 0 ||
+              (data['mails'] == null || data['mails'].isEmpty)) {
+            debugPrint('📡 Aucun courrier trouvé');
+            return MailsResponse(
+              count: 0,
+              sentCount: data['sent_count'] ?? 0,
+              receivedCount: data['received_count'] ?? 0,
+              mails: [],
+            );
+          }
+          return MailsResponse.fromJson(data);
+        } else {
+          throw Exception(data['message'] ??
+              'Erreur lors de la récupération des courriers');
+        }
+      } else if (response.statusCode == 401) {
+        throw Exception('Session expirée. Veuillez vous reconnecter.');
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ??
+            'Erreur lors de la récupération des courriers');
+      }
+    } catch (e) {
+      debugPrint('❌ MailApiService - Erreur getMyMails: $e');
+      if (e is http.ClientException ||
+          e.toString().contains('SocketException')) {
+        throw Exception(
+            'Problème de connexion. Vérifiez votre connexion internet.');
+      }
+      rethrow;
     }
   }
 

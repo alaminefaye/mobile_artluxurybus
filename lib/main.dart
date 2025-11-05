@@ -9,6 +9,7 @@ import 'screens/home_page.dart';
 import 'screens/splash_screen.dart';
 import 'screens/notification_detail_screen.dart';
 import 'screens/my_trips_screen.dart';
+import 'screens/my_mails_screen.dart';
 import 'screens/loyalty_home_screen.dart';
 import 'models/notification_model.dart';
 import 'theme/app_theme.dart';
@@ -219,6 +220,21 @@ class _MyAppState extends ConsumerState<MyApp> {
           ),
         );
         debugPrint('✅ Navigation vers Programme Fidélité (nouveau point)');
+        return;
+      }
+
+      // NOUVEAU: Gérer les notifications de courriers
+      if ((notificationType == 'new_mail_sent' ||
+              notificationType == 'new_mail_received' ||
+              notificationType == 'mail_collected') &&
+          action == 'view_mails') {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const MyMailsScreen(),
+          ),
+        );
+        debugPrint('✅ Navigation vers Mes Courriers (notification courrier)');
         return;
       }
 

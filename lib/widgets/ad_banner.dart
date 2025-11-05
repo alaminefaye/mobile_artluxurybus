@@ -63,7 +63,7 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
   }
 
   Future<void> _playIndex(int index) async {
-    if (_ads.isEmpty) return;
+    if (_ads.isEmpty || !mounted) return;
     _rotationTimer?.cancel();
     _isSwitching = false;
     _currentIndex = index;
@@ -73,47 +73,71 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
       try {
         _controller!.removeListener(_activeListener ?? () {});
       } catch (_) {}
-      await _controller!.dispose();
+      try {
+        await _controller!.dispose();
+      } catch (e) {
+        debugPrint('⚠️ [AdBanner] Erreur lors de la libération du controller: $e');
+      }
       _controller = null;
     }
 
     final ad = _ads[index];
-    if (ad.videoUrl == null || ad.videoUrl!.isEmpty) return;
+    if (ad.videoUrl == null || ad.videoUrl!.isEmpty) {
+      if (mounted) setState(() {});
+      return;
+    }
 
-    final ctrl = VideoPlayerController.networkUrl(Uri.parse(ad.videoUrl!));
-    await ctrl.initialize();
-    await ctrl.setLooping(false);
-    await ctrl.setVolume(_muted ? 0 : 1);
-    _paused = false;
-    await ctrl.play();
-    _controller = ctrl;
-    if (mounted) setState(() {});
-
-    // Listener for completion
-    _activeListener = () {
-      if (!mounted) return;
-      final v = ctrl.value;
-      if (v.isInitialized) {
-        final dur = v.duration;
-        final pos = v.position;
-        if (!_paused && !_isSwitching && !v.isPlaying && dur.inMilliseconds > 0 && pos >= dur) {
-          _isSwitching = true;
-          _goNext();
-        }
+    try {
+      final ctrl = VideoPlayerController.networkUrl(Uri.parse(ad.videoUrl!));
+      await ctrl.initialize();
+      
+      // Vérifier que le widget est toujours monté après l'initialisation
+      if (!mounted) {
+        await ctrl.dispose();
+        return;
       }
-    };
-    ctrl.addListener(_activeListener!);
+      
+      await ctrl.setLooping(false);
+      await ctrl.setVolume(_muted ? 0 : 1);
+      _paused = false;
+      await ctrl.play();
+      _controller = ctrl;
+      if (mounted) setState(() {});
 
-    // Fallback timer if duration unavailable
-    final seconds = _ads.length > index ? (_ads[index].displaySeconds ?? 8) : 8;
-    if (ctrl.value.duration.inMilliseconds == 0) {
-      _rotationTimer = Timer(Duration(seconds: seconds), () {
-        if (!mounted) return;
-        if (_currentIndex == index && !_isSwitching && !_paused) {
-          _isSwitching = true;
-          _goNext();
+      // Listener for completion
+      _activeListener = () {
+        if (!mounted || _controller == null) return;
+        final v = _controller!.value;
+        if (v.isInitialized) {
+          final dur = v.duration;
+          final pos = v.position;
+          if (!_paused && !_isSwitching && !v.isPlaying && dur.inMilliseconds > 0 && pos >= dur) {
+            _isSwitching = true;
+            _goNext();
+          }
         }
-      });
+      };
+      _controller?.addListener(_activeListener!);
+
+      // Fallback timer if duration unavailable
+      final seconds = _ads.length > index ? (_ads[index].displaySeconds ?? 8) : 8;
+      if (_controller != null && _controller!.value.duration.inMilliseconds == 0) {
+        _rotationTimer = Timer(Duration(seconds: seconds), () {
+          if (!mounted) return;
+          if (_currentIndex == index && !_isSwitching && !_paused) {
+            _isSwitching = true;
+            _goNext();
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ [AdBanner] Erreur lors de l\'initialisation de la vidéo: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'Erreur lors du chargement de la vidéo';
+        });
+      }
+      return;
     }
   }
 
@@ -228,20 +252,28 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
     if (!controller.value.isInitialized) {
       return const SizedBox.shrink();
     }
-    final size = controller.value.size;
-    return Container(
-      color: Colors.black, // side bars/background
-      child: Center(
-        child: FittedBox(
-          fit: BoxFit.contain,
-          child: SizedBox(
-            width: size.width,
-            height: size.height,
-            child: VideoPlayer(controller),
+    
+    // Vérifier que le controller est toujours valide avant de l'utiliser
+    try {
+      final size = controller.value.size;
+      return Container(
+        color: Colors.black, // side bars/background
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: size.width,
+              height: size.height,
+              child: VideoPlayer(controller),
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      // Si le controller n'est plus valide, retourner un widget vide
+      debugPrint('⚠️ [AdBanner] Erreur VideoPlayer: $e');
+      return const SizedBox.shrink();
+    }
   }
 
   @override
@@ -257,6 +289,12 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
     }
 
     final controller = _controller!;
+    
+    // Vérifier que le controller est toujours valide
+    if (!controller.value.isInitialized) {
+      return _skeleton();
+    }
+    
     final ad = _ads[_currentIndex];
 
     return ClipRRect(

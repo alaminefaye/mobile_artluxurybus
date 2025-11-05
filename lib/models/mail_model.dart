@@ -30,6 +30,10 @@ class MailModel {
   final UserInfo? collectedByUser;
   final UserInfo? createdByUser;
   final ClientProfile? clientProfile;
+  
+  // Indicateurs pour savoir si c'est expédié ou reçu (ajouté par l'API)
+  final bool? isSent;
+  final bool? isReceived;
 
   MailModel({
     required this.id,
@@ -61,6 +65,8 @@ class MailModel {
     this.collectedByUser,
     this.createdByUser,
     this.clientProfile,
+    this.isSent,
+    this.isReceived,
   });
 
   factory MailModel.fromJson(Map<String, dynamic> json) {
@@ -107,6 +113,8 @@ class MailModel {
       clientProfile: json['client_profile'] != null
           ? ClientProfile.fromJson(json['client_profile'])
           : null,
+      isSent: json['is_sent'] == true || json['is_sent'] == 1,
+      isReceived: json['is_received'] == true || json['is_received'] == 1,
     );
   }
 
@@ -171,6 +179,8 @@ class MailModel {
     UserInfo? collectedByUser,
     UserInfo? createdByUser,
     ClientProfile? clientProfile,
+    bool? isSent,
+    bool? isReceived,
   }) {
     return MailModel(
       id: id ?? this.id,
@@ -202,6 +212,8 @@ class MailModel {
       collectedByUser: collectedByUser ?? this.collectedByUser,
       createdByUser: createdByUser ?? this.createdByUser,
       clientProfile: clientProfile ?? this.clientProfile,
+      isSent: isSent ?? this.isSent,
+      isReceived: isReceived ?? this.isReceived,
     );
   }
 }
@@ -362,6 +374,31 @@ class DestinationStat {
     return DestinationStat(
       destination: json['destination'] ?? '',
       count: json['count'] ?? 0,
+    );
+  }
+}
+
+/// Modèle de réponse pour les courriers du client connecté
+class MailsResponse {
+  final int count;
+  final int sentCount;
+  final int receivedCount;
+  final List<MailModel> mails;
+
+  MailsResponse({
+    required this.count,
+    required this.sentCount,
+    required this.receivedCount,
+    required this.mails,
+  });
+
+  factory MailsResponse.fromJson(Map<String, dynamic> json) {
+    final List mailsData = json['mails'] ?? [];
+    return MailsResponse(
+      count: json['count'] ?? 0,
+      sentCount: json['sent_count'] ?? 0,
+      receivedCount: json['received_count'] ?? 0,
+      mails: mailsData.map((e) => MailModel.fromJson(e)).toList(),
     );
   }
 }
