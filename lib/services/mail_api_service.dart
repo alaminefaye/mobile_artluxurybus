@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/mail_model.dart';
 import 'package:http_parser/http_parser.dart';
+import 'auth_service.dart';
 
 class MailApiService {
   static const String baseUrl = 'https://skf-artluxurybus.com/api';
@@ -12,13 +13,31 @@ class MailApiService {
 
   static void setToken(String token) {
     _token = token;
+    debugPrint('🔑 MailApiService - Token défini: ✅');
   }
 
-  static Map<String, String> _getHeaders() {
+  // Récupérer le token dynamiquement depuis AuthService (toujours à jour)
+  static Future<String?> _getAuthToken() async {
+    // Toujours récupérer le token depuis AuthService pour garantir qu'il est à jour
+    final authService = AuthService();
+    final token = await authService.getToken();
+    if (token != null) {
+      _token = token; // Mettre à jour le token statique
+      debugPrint('🔑 MailApiService - Token récupéré depuis AuthService: ✅');
+    } else {
+      debugPrint(
+          '🔑 MailApiService - Token récupéré depuis AuthService: ❌ (null)');
+    }
+    return token ??
+        _token; // Fallback sur le token statique si AuthService retourne null
+  }
+
+  static Future<Map<String, String>> _getHeaders() async {
+    final token = await _getAuthToken();
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      if (_token != null) 'Authorization': 'Bearer $_token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -27,7 +46,7 @@ class MailApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/mails/dashboard'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -82,7 +101,7 @@ class MailApiService {
 
       final uri =
           Uri.parse('$baseUrl/mails').replace(queryParameters: queryParams);
-      final response = await http.get(uri, headers: _getHeaders());
+      final response = await http.get(uri, headers: await _getHeaders());
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -100,7 +119,7 @@ class MailApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/mails/$id'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -138,8 +157,9 @@ class MailApiService {
       );
 
       // Ajouter les headers
-      if (_token != null) {
-        request.headers['Authorization'] = 'Bearer $_token';
+      final token = await _getAuthToken();
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
       }
       request.headers['Accept'] = 'application/json';
 
@@ -205,8 +225,9 @@ class MailApiService {
       );
 
       // Ajouter les headers
-      if (_token != null) {
-        request.headers['Authorization'] = 'Bearer $_token';
+      final token = await _getAuthToken();
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
       }
       request.headers['Accept'] = 'application/json';
 
@@ -255,7 +276,7 @@ class MailApiService {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl/mails/$id'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode != 200) {
@@ -273,7 +294,7 @@ class MailApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/mails/$id/collect'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -303,8 +324,9 @@ class MailApiService {
       );
 
       // Ajouter les headers
-      if (_token != null) {
-        request.headers['Authorization'] = 'Bearer $_token';
+      final token = await _getAuthToken();
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
       }
       request.headers['Accept'] = 'application/json';
 
@@ -343,7 +365,7 @@ class MailApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/mails/$id/uncollect'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -364,7 +386,7 @@ class MailApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/mails/check-loyalty-points'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
         body: json.encode({'telephone': telephone}),
       );
 
@@ -384,7 +406,7 @@ class MailApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/mails/search-by-phone'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
         body: json.encode({'phone': phone}),
       );
 
@@ -405,7 +427,7 @@ class MailApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/mails/my-mails'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       debugPrint('📡 MailApiService - GET /mails/my-mails');
@@ -454,7 +476,7 @@ class MailApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/mails/stats'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {

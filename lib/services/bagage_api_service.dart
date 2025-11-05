@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/bagage_model.dart';
+import 'auth_service.dart';
 
 class BagageApiService {
   static const String baseUrl = 'https://skf-artluxurybus.com/api';
@@ -8,13 +10,29 @@ class BagageApiService {
 
   static void setToken(String token) {
     _token = token;
+    debugPrint('🔑 BagageApiService - Token défini: ✅');
   }
 
-  static Map<String, String> _getHeaders() {
+  // Récupérer le token dynamiquement depuis AuthService (toujours à jour)
+  static Future<String?> _getAuthToken() async {
+    // Toujours récupérer le token depuis AuthService pour garantir qu'il est à jour
+    final authService = AuthService();
+    final token = await authService.getToken();
+    if (token != null) {
+      _token = token; // Mettre à jour le token statique
+      debugPrint('🔑 BagageApiService - Token récupéré depuis AuthService: ✅');
+    } else {
+      debugPrint('🔑 BagageApiService - Token récupéré depuis AuthService: ❌ (null)');
+    }
+    return token ?? _token; // Fallback sur le token statique si AuthService retourne null
+  }
+
+  static Future<Map<String, String>> _getHeaders() async {
+    final token = await _getAuthToken();
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      if (_token != null) 'Authorization': 'Bearer $_token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -23,7 +41,7 @@ class BagageApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/bagages/dashboard'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -74,7 +92,7 @@ class BagageApiService {
 
       final uri =
           Uri.parse('$baseUrl/bagages').replace(queryParameters: queryParams);
-      final response = await http.get(uri, headers: _getHeaders());
+      final response = await http.get(uri, headers: await _getHeaders());
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -92,7 +110,7 @@ class BagageApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/bagages/$id'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -135,7 +153,7 @@ class BagageApiService {
 
       final response = await http.post(
         Uri.parse('$baseUrl/bagages'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
         body: json.encode(body),
       );
 
@@ -180,7 +198,7 @@ class BagageApiService {
 
       final response = await http.put(
         Uri.parse('$baseUrl/bagages/$id'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
         body: json.encode(body),
       );
 
@@ -202,7 +220,7 @@ class BagageApiService {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl/bagages/$id'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode != 200) {
@@ -220,7 +238,7 @@ class BagageApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/bagages/search-by-phone'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
         body: json.encode({'phone': phone}),
       );
 
@@ -242,7 +260,7 @@ class BagageApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/bagages/stats?period=$period'),
-        headers: _getHeaders(),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
