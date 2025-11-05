@@ -35,6 +35,18 @@ class MailModel {
   final bool? isSent;
   final bool? isReceived;
 
+  // Getter pour obtenir l'URL complète de la photo
+  String? get photoUrl {
+    if (photo == null || photo!.isEmpty) return null;
+    if (photo!.startsWith('http')) return photo;
+    // Si le chemin commence par "images/mails/", c'est un chemin direct dans public
+    if (photo!.startsWith('images/mails/')) {
+      return 'https://skf-artluxurybus.com/$photo';
+    }
+    // Sinon, c'est peut-être un chemin dans storage (ancien système)
+    return 'https://skf-artluxurybus.com/storage/$photo';
+  }
+
   MailModel({
     required this.id,
     required this.mailNumber,
