@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import 'mail_detail_screen.dart';
 import 'create_mail_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MailManagementScreen extends ConsumerStatefulWidget {
   const MailManagementScreen({super.key});
@@ -63,9 +64,14 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: _buildDrawer(context),
-      appBar: AppBar(
+    return GestureDetector(
+      onTap: () {
+        // Fermer le clavier quand on tape en dehors des champs
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        drawer: _buildDrawer(context),
+        appBar: AppBar(
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 4,
@@ -131,6 +137,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -153,7 +160,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
               child: Text(
-                user?.name?.isNotEmpty == true
+                (user?.name ?? '').isNotEmpty
                     ? user!.name.substring(0, 1).toUpperCase()
                     : 'U',
                 style: TextStyle(
@@ -694,13 +701,33 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
             Text('Destination: ${mail.destination}'),
           ],
         ),
-        trailing: Text(
-          NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
-              .format(mail.amount),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.green,
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
+                      .format(mail.amount),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.chat, color: Color(0xFF25D366), size: 22),
+              tooltip: 'Envoyer sur WhatsApp',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => _sendTrackingLinkViaWhatsApp(mail),
+            ),
+          ],
         ),
         onTap: () async {
           final result = await Navigator.push(
@@ -721,6 +748,57 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
         },
       ),
     );
+  }
+
+  Future<void> _sendTrackingLinkViaWhatsApp(MailModel mail) async {
+    try {
+      // Formater le numéro de téléphone pour WhatsApp
+      String phone = mail.recipientPhone;
+      
+      // Ajouter l'indicatif +225 (Côte d'Ivoire) si nécessaire
+      if (!phone.startsWith('+')) {
+        phone = '+225$phone';
+      }
+      
+      // Nettoyer le numéro (supprimer les espaces et caractères non numériques sauf +)
+      phone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      
+      // Construire l'URL de suivi
+      final trackingUrl = 'https://skf-artluxurybus.com/track/mail/${mail.id}';
+      
+      // Créer le message
+      final message = 'Bonjour, voici le lien pour suivre votre courrier ${mail.mailNumber}: $trackingUrl';
+      
+      // Encoder le message pour l'URL
+      final encodedMessage = Uri.encodeComponent(message);
+      
+      // Construire l'URL WhatsApp
+      final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
+      
+      // Ouvrir WhatsApp
+      final uri = Uri.parse(whatsappUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'ouvrir WhatsApp'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -980,21 +1058,35 @@ class _MailListViewState extends State<MailListView> {
             Text('Type: ${mail.packageType}'),
           ],
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
-                  .format(mail.amount),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
+                      .format(mail.amount),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  DateFormat('dd/MM/yy').format(mail.createdAt),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ],
             ),
-            Text(
-              DateFormat('dd/MM/yy').format(mail.createdAt),
-              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.chat, color: Color(0xFF25D366), size: 22),
+              tooltip: 'Envoyer sur WhatsApp',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: () => _sendTrackingLinkViaWhatsApp(mail),
             ),
           ],
         ),
@@ -1019,5 +1111,56 @@ class _MailListViewState extends State<MailListView> {
         },
       ),
     );
+  }
+
+  Future<void> _sendTrackingLinkViaWhatsApp(MailModel mail) async {
+    try {
+      // Formater le numéro de téléphone pour WhatsApp
+      String phone = mail.recipientPhone;
+      
+      // Ajouter l'indicatif +225 (Côte d'Ivoire) si nécessaire
+      if (!phone.startsWith('+')) {
+        phone = '+225$phone';
+      }
+      
+      // Nettoyer le numéro (supprimer les espaces et caractères non numériques sauf +)
+      phone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      
+      // Construire l'URL de suivi
+      final trackingUrl = 'https://skf-artluxurybus.com/track/mail/${mail.id}';
+      
+      // Créer le message
+      final message = 'Bonjour, voici le lien pour suivre votre courrier ${mail.mailNumber}: $trackingUrl';
+      
+      // Encoder le message pour l'URL
+      final encodedMessage = Uri.encodeComponent(message);
+      
+      // Construire l'URL WhatsApp
+      final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
+      
+      // Ouvrir WhatsApp
+      final uri = Uri.parse(whatsappUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'ouvrir WhatsApp'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

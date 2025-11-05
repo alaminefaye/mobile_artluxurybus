@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/mail_model.dart';
 import 'package:intl/intl.dart';
 import 'collection_form_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MailDetailScreen extends StatefulWidget {
   final MailModel mail;
@@ -36,6 +37,57 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
     // Si la collection a réussi, retourner avec indication de redirection vers Collectés
     if (result == true && mounted) {
       Navigator.pop(context, {'success': true, 'goToCollected': true});
+    }
+  }
+
+  Future<void> _sendTrackingLinkViaWhatsApp() async {
+    try {
+      // Formater le numéro de téléphone pour WhatsApp
+      String phone = _mail.recipientPhone;
+      
+      // Ajouter l'indicatif +225 (Côte d'Ivoire) si nécessaire
+      if (!phone.startsWith('+')) {
+        phone = '+225$phone';
+      }
+      
+      // Nettoyer le numéro (supprimer les espaces et caractères non numériques sauf +)
+      phone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+      
+      // Construire l'URL de suivi
+      final trackingUrl = 'https://skf-artluxurybus.com/track/mail/${_mail.id}';
+      
+      // Créer le message
+      final message = 'Bonjour, voici le lien pour suivre votre courrier ${_mail.mailNumber}: $trackingUrl';
+      
+      // Encoder le message pour l'URL
+      final encodedMessage = Uri.encodeComponent(message);
+      
+      // Construire l'URL WhatsApp
+      final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
+      
+      // Ouvrir WhatsApp
+      final uri = Uri.parse(whatsappUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible d\'ouvrir WhatsApp'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -100,9 +152,37 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       ),
                       if (_mail.collectedByUser != null)
                         _buildInfoRow(
-                            'Collecté par', _mail.collectedByUser!.name),
+                            'Agent', _mail.collectedByUser!.name),
                     ],
                   ]),
+                  if (_mail.isCollected &&
+                      (_mail.collectorName != null ||
+                          _mail.collectorPhone != null ||
+                          _mail.collectorIdCard != null ||
+                          _mail.collectorSignature != null)) ...[
+                    const SizedBox(height: 24),
+                    _buildInfoSection('Informations du collecteur', [
+                      if (_mail.collectorName != null)
+                        _buildInfoRow('Nom complet', _mail.collectorName!),
+                      if (_mail.collectorPhone != null)
+                        _buildInfoRow('Téléphone', _mail.collectorPhone!),
+                      if (_mail.collectorIdCard != null)
+                        _buildInfoRow(
+                            'Numéro de pièce', _mail.collectorIdCard!),
+                      if (_mail.collectorSignature != null) ...[
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Signature',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildSignatureImage(_mail.collectorSignature!),
+                      ],
+                    ]),
+                  ],
                   if (_mail.clientProfile != null) ...[
                     const SizedBox(height: 24),
                     _buildInfoSection('Fidélité', [
@@ -117,8 +197,29 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       ),
                     ]),
                   ],
+                  const SizedBox(height: 32),
+                  
+                  // Bouton WhatsApp pour envoyer le lien de suivi
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366), // Couleur WhatsApp
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 2,
+                      ),
+                      onPressed: _isLoading ? null : _sendTrackingLinkViaWhatsApp,
+                      icon: const Icon(Icons.chat, size: 20),
+                      label: const Text(
+                        'Envoyer lien de suivi sur WhatsApp',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  
                   if (!_mail.isCollected) ...[
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
@@ -236,6 +337,63 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSignatureImage(String signaturePath) {
+    // Construire l'URL complète de la signature
+    String imageUrl = signaturePath;
+    if (!signaturePath.startsWith('http')) {
+      // Si le chemin est relatif, ajouter l'URL de base
+      imageUrl = 'https://skf-artluxurybus.com/$signaturePath';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.grey.shade50,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network(
+          imageUrl,
+          height: 120,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 120,
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.image_not_supported,
+                      color: Colors.grey.shade400, size: 40),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Signature non disponible',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                ],
+              ),
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              height: 120,
+              alignment: Alignment.center,
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            );
+          },
+        ),
       ),
     );
   }

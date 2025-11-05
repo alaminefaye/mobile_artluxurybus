@@ -21,8 +21,9 @@ import 'services/trip_service.dart';
 import 'services/depart_service.dart';
 import 'services/reservation_service.dart';
 import 'services/mail_api_service.dart';
+import 'services/bagage_api_service.dart';
 import 'debug/debug_screen.dart';
-import 'screens/mail_management_screen.dart';
+import 'screens/management_hub_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +43,7 @@ void main() async {
       DepartService.setToken(token);
       ReservationService.setToken(token);
       MailApiService.setToken(token);
+      BagageApiService.setToken(token);
     } else {
       debugPrint('⚠️ [Main] Aucun token d\'authentification');
     }
@@ -324,21 +326,21 @@ class AuthWrapper extends ConsumerWidget {
     if (authState.isAuthenticated) {
       final userRole = authState.user?.role?.trim().toLowerCase();
       final permissions = authState.user?.permissions ?? [];
-      
+
       debugPrint('🔍 [AuthWrapper] Rôle utilisateur: "$userRole"');
       debugPrint('🔍 [AuthWrapper] Permissions: $permissions');
-      
-      // Vérifier si l'utilisateur a les permissions de gestion du courrier
-      final hasMailPermissions = permissions.any((p) => 
-        p.contains('mail') || p.contains('bagage') || p.contains('lost_item')
-      );
-      
-      if (userRole == 'courrier' || hasMailPermissions) {
-        debugPrint('✅ [AuthWrapper] Redirection vers MailManagementScreen (courrier)');
-        return const MailManagementScreen();
+
+      // Rediriger vers ManagementHubScreen UNIQUEMENT si l'utilisateur a le rôle "courrier"
+      // Les permissions seules ne suffisent pas pour rediriger vers ManagementHubScreen
+      if (userRole == 'courrier') {
+        debugPrint(
+            '✅ [AuthWrapper] Redirection vers ManagementHubScreen (rôle: courrier)');
+        return const ManagementHubScreen();
       }
-      
-      debugPrint('➡️ [AuthWrapper] Redirection vers HomePage (rôle: "$userRole")');
+
+      // Tous les autres utilisateurs authentifiés vont vers HomePage
+      debugPrint(
+          '➡️ [AuthWrapper] Redirection vers HomePage (rôle: "$userRole")');
       return const HomePage();
     } else {
       return const LoginScreen();

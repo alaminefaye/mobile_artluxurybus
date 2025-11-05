@@ -195,6 +195,10 @@ class NotificationService {
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
       debugPrint('✅ [NotificationService] Canal Android créé: ${channel.id}');
+      debugPrint('   - Importance: ${channel.importance}');
+      debugPrint('   - Son activé: ${channel.playSound}');
+      debugPrint('   - Vibration activée: ${channel.enableVibration}');
+      debugPrint('   - Badge activé: ${channel.showBadge}');
 
       // Demander la permission pour Android 13+ (notifications locales)
       final bool? permissionGranted = await androidPlugin
@@ -406,6 +410,8 @@ class NotificationService {
     debugPrint('   - Titre: ${message.notification?.title}');
     debugPrint('   - Corps: ${message.notification?.body}');
     debugPrint('   - Données: ${message.data}');
+    debugPrint('   - Message ID: ${message.messageId}');
+    debugPrint('   - Type: ${message.data['type']}');
 
     // 🔊 Vérifier si c'est une annonce vocale UNIQUEMENT
     if (message.data['msg_type'] == 'annonce') {
@@ -562,10 +568,41 @@ class NotificationService {
 
   /// Gérer les notifications en arrière-plan
   static Future<void> _handleBackgroundMessage(RemoteMessage message) async {
-    // Message en arrière-plan reçu et traité
-
-    // Traitement spécifique en arrière-plan si nécessaire
-    // Par exemple, sauvegarder en local, mettre à jour un compteur, etc.
+    debugPrint('📱 [NotificationService] Message reçu en arrière-plan:');
+    debugPrint('   - Titre: ${message.notification?.title}');
+    debugPrint('   - Corps: ${message.notification?.body}');
+    debugPrint('   - Données: ${message.data}');
+    
+    // Les notifications avec 'notification' dans le payload sont affichées automatiquement par Firebase
+    // Mais on peut aussi afficher une notification locale pour garantir l'affichage
+    
+    // Si la notification n'a pas de title/body dans notification, essayer de l'afficher manuellement
+    if (message.notification == null || 
+        message.notification?.title == null ||
+        message.notification?.body == null) {
+      // Essayer d'afficher une notification locale avec les données disponibles
+      final title = message.data['title'] ?? 
+                    message.data['titre'] ?? 
+                    'Art Luxury Bus';
+      final body = message.data['body'] ?? 
+                   message.data['message'] ?? 
+                   message.data['contenu'] ?? 
+                   'Nouvelle notification';
+      
+      // Initialiser les notifications locales si nécessaire
+      if (_localNotifications == null) {
+        _localNotifications = FlutterLocalNotificationsPlugin();
+        await _initializeLocalNotifications();
+      }
+      
+      await _showLocalNotification(
+        title: title,
+        body: body,
+        data: message.data,
+      );
+      
+      debugPrint('✅ [NotificationService] Notification locale affichée en arrière-plan');
+    }
   }
 
   /// Gérer le tap sur une notification

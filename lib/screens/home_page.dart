@@ -61,9 +61,6 @@ class _HomePageState extends ConsumerState<HomePage> {
         final authService = AuthService();
         final token = await authService.getToken();
         if (token != null) {
-          debugPrint(
-              '✅ [HomePage] Token d\'authentification: ${token.substring(0, 20)}...');
-
           FeedbackApiService.setToken(token);
           NotificationApiService.setToken(token);
           AdsApiService.setToken(token);
@@ -78,48 +75,24 @@ class _HomePageState extends ConsumerState<HomePage> {
           ref
               .read(notificationProvider.notifier)
               .loadNotifications(refresh: true);
-        } else {
-          debugPrint('❌ [HomePage] Token d\'authentification est NULL !');
-          return; // Ne pas continuer si pas de token
         }
 
         // Obtenir et enregistrer le token FCM pour tous les utilisateurs
         // Tous peuvent recevoir des notifications (sauf feedback pour pointage)
         try {
-          debugPrint('🔔 [HomePage] Récupération du token FCM...');
-
-          // Attendre un peu pour être sûr que le token est bien défini
-          await Future.delayed(const Duration(milliseconds: 500));
-
           final fcmToken = await NotificationService.getCurrentToken();
-
           if (fcmToken != null) {
-            debugPrint(
-                '✅ [HomePage] Token FCM obtenu: ${fcmToken.substring(0, 30)}...');
-            debugPrint('📤 [HomePage] Envoi du token au serveur...');
-
-            // Token FCM obtenu, tentative d'enregistrement avec timeout
-            final result = await FeedbackApiService.registerFcmToken(fcmToken)
-                .timeout(
-              const Duration(seconds: 10),
-              onTimeout: () {
-                debugPrint('⏱️ [HomePage] TIMEOUT - La requête a pris trop de temps');
-                return {'success': false, 'message': 'Timeout'};
-              },
-            );
+            // Token FCM obtenu, tentative d'enregistrement
+            final result = await FeedbackApiService.registerFcmToken(fcmToken);
 
             if (result['success'] == true) {
-              debugPrint('✅ [HomePage] Token FCM enregistré avec succès !');
+              // Token FCM enregistré avec succès sur le serveur
             } else {
-              debugPrint(
-                  '❌ [HomePage] Échec enregistrement: ${result['message']}');
+              // Problème d'enregistrement serveur
             }
-          } else {
-            debugPrint('❌ [HomePage] Token FCM est NULL');
           }
-        } catch (e, stackTrace) {
-          debugPrint('❌ [HomePage] Erreur lors de l\'enregistrement FCM: $e');
-          debugPrint('Stack trace: $stackTrace');
+        } catch (e) {
+          // Erreur lors de l'enregistrement FCM
         }
 
         // 🔊 METTRE À JOUR LE CONTEXTE POUR LES ANNONCES VOCALES
@@ -131,17 +104,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   /// Mettre à jour le contexte pour le gestionnaire d'annonces vocales
   void _updateVoiceAnnouncementsContext() {
     try {
-      debugPrint(
-          '🔊 [HomePage] Mise à jour du contexte pour les annonces vocales...');
+      debugPrint('🔊 [HomePage] Mise à jour du contexte pour les annonces vocales...');
       // Définir le contexte pour l'affichage des annonces
       if (mounted) {
         AnnouncementManager().setContext(context);
-        debugPrint(
-            '✅ [HomePage] Contexte mis à jour pour les annonces vocales');
+        debugPrint('✅ [HomePage] Contexte mis à jour pour les annonces vocales');
       }
     } catch (e) {
-      debugPrint(
-          '❌ [HomePage] Erreur mise à jour contexte annonces vocales: $e');
+      debugPrint('❌ [HomePage] Erreur mise à jour contexte annonces vocales: $e');
     }
   }
 
@@ -196,24 +166,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                 setState(() {
                   _currentIndex = index;
                 });
-
+                
                 // Rafraîchir les notifications quand on va sur l'onglet Notifications
                 if (index == 1) {
-                  debugPrint(
-                      '🔄 [HomePage] Rafraîchissement des notifications...');
-                  ref
-                      .read(notificationProvider.notifier)
-                      .loadNotifications(refresh: true);
+                  debugPrint('🔄 [HomePage] Rafraîchissement des notifications...');
+                  ref.read(notificationProvider.notifier).loadNotifications(refresh: true);
                 }
               },
               type: BottomNavigationBarType.fixed,
-              backgroundColor:
-                  Theme.of(context).bottomNavigationBarTheme.backgroundColor,
-              selectedItemColor:
-                  Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
-              unselectedItemColor: Theme.of(context)
-                  .bottomNavigationBarTheme
-                  .unselectedItemColor,
+              backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+              selectedItemColor: Theme.of(context).bottomNavigationBarTheme.selectedItemColor,
+              unselectedItemColor: Theme.of(context).bottomNavigationBarTheme.unselectedItemColor,
               elevation: 0,
               selectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.w600,
@@ -296,18 +259,20 @@ class _HomePageState extends ConsumerState<HomePage> {
       final roleLower = user.role!.toLowerCase();
       return roleLower.contains('client');
     }
-
+    
     // Vérifier via permissions
     if (user.permissions != null) {
-      final hasClientPermissions = user.permissions!.any((p) =>
-          p.toLowerCase().contains('loyalty') ||
-          p.toLowerCase().contains('own_profile'));
-      final hasAdminPermissions = user.permissions!.any((p) =>
-          p.toLowerCase().contains('manage') ||
-          p.toLowerCase().contains('admin'));
+      final hasClientPermissions = user.permissions!.any((p) => 
+        p.toLowerCase().contains('loyalty') || 
+        p.toLowerCase().contains('own_profile')
+      );
+      final hasAdminPermissions = user.permissions!.any((p) => 
+        p.toLowerCase().contains('manage') || 
+        p.toLowerCase().contains('admin')
+      );
       return hasClientPermissions && !hasAdminPermissions;
     }
-
+    
     return false;
   }
 
@@ -391,205 +356,202 @@ class _HomePageState extends ConsumerState<HomePage> {
         color: AppTheme.primaryBlue,
         child: CustomScrollView(
           slivers: [
-            // Header avec image de fond et effet parallax
-            SliverAppBar(
-              expandedHeight: 200,
-              floating: false,
-              pinned: true,
-              elevation: 0,
-              backgroundColor: AppTheme.primaryBlue,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Image de fond
-                    Image.asset(
-                      'art.jpg',
-                      fit: BoxFit.cover,
-                    ),
-                    // Dégradé noir transparent pour voir l'image clairement
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.3),
-                            Colors.black.withValues(alpha: 0.5),
-                            Colors.black.withValues(alpha: 0.7),
-                          ],
-                        ),
+          // Header avec image de fond et effet parallax
+          SliverAppBar(
+            expandedHeight: 200,
+            floating: false,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: AppTheme.primaryBlue,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Image de fond
+                  Image.asset(
+                    'art.jpg',
+                    fit: BoxFit.cover,
+                  ),
+                  // Dégradé noir transparent pour voir l'image clairement
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.3),
+                          Colors.black.withValues(alpha: 0.5),
+                          Colors.black.withValues(alpha: 0.7),
+                        ],
                       ),
                     ),
-                    // Contenu
-                    SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Bienvenue en haut
-                            const Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  // Contenu
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Bienvenue en haut
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Bienvenue à',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              Text(
+                                'ART LUXURY BUS',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Solde en haut à droite avec bouton recharge
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  'Bienvenue à',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w400,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Solde : ',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.white.withValues(alpha: 0.9),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const Text(
+                                        '10 000 FCFA',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  'ART LUXURY BUS',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: 0.5,
+                                const SizedBox(width: 8),
+                                // Bouton recharger
+                                GestureDetector(
+                                  onTap: () {
+                                    // Navigation vers page de recharge (à venir)
+                                    debugPrint('🔄 Navigation vers recharge du solde');
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryOrange,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.add_rounded,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            // Solde en haut à droite avec bouton recharge
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.25),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'Solde : ',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.white
-                                                .withValues(alpha: 0.9),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const Text(
-                                          '10 000 FCFA',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  // Bouton recharger
-                                  GestureDetector(
-                                    onTap: () {
-                                      // Navigation vers page de recharge (à venir)
-                                      debugPrint(
-                                          '🔄 Navigation vers recharge du solde');
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryOrange,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.add_rounded,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                          ),
+                          // Bonjour en bas
+                          Padding(
+                            padding: const EdgeInsets.only(top: 30),
+                            child: Text(
+                              'Bonjour, ${user.name.split(' ').first}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white.withValues(alpha: 0.95),
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            // Bonjour en bas
-                            Padding(
-                              padding: const EdgeInsets.only(top: 30),
-                              child: Text(
-                                'Bonjour, ${user.name.split(' ').first}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              actions: const [
-                Padding(
-                  padding: EdgeInsets.only(right: 16),
-                  child: LocationDisplayWidget(
-                    iconColor: Colors.white,
-                    textColor: Colors.white,
-                    fontSize: 13,
-                    showDropdownIcon: true,
                   ),
-                ),
-              ],
-            ),
-
-            // Contenu principal
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-// Barre de recherche
-                    _buildSearchBar(),
-
-                    const SizedBox(height: 12),
-
-                    // Ad banner
-                    const AdBanner(height: 180),
-
-                    const SizedBox(height: 20),
-
-                    // Quick Actions
-                    _buildQuickActions(user),
-
-                    const SizedBox(height: 24),
-
-                    // Section Services
-                    _buildServicesHeader(user),
-
-                    const SizedBox(height: 16),
-
-                    // Catégories de services
-                    _buildServicesCategories(user),
-
-                    const SizedBox(height: 24),
-
-                    // Section Promotions
-                    _buildPromotionsSection(),
-
-                    const SizedBox(height: 100), // Espace pour bottom nav
-                  ],
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 16),
+                child: LocationDisplayWidget(
+                  iconColor: Colors.white,
+                  textColor: Colors.white,
+                  fontSize: 13,
+                  showDropdownIcon: true,
+                ),
+              ),
+            ],
+          ),
+
+          // Contenu principal
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+// Barre de recherche
+                  _buildSearchBar(),
+
+                  const SizedBox(height: 12),
+
+                  // Ad banner
+                  const AdBanner(height: 180),
+
+                  const SizedBox(height: 20),
+
+                  // Quick Actions
+                  _buildQuickActions(user),
+
+                  const SizedBox(height: 24),
+
+                  // Section Services
+                  _buildServicesHeader(user),
+
+                  const SizedBox(height: 16),
+
+                  // Catégories de services
+                  _buildServicesCategories(user),
+
+                  const SizedBox(height: 24),
+
+                  // Section Promotions
+                  _buildPromotionsSection(),
+
+                  const SizedBox(height: 100), // Espace pour bottom nav
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
       ),
     );
   }
@@ -601,8 +563,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       decoration: BoxDecoration(
         color: isDark ? Colors.grey.shade800 : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border:
-            isDark ? Border.all(color: Colors.grey.shade700, width: 1) : null,
+        border: isDark ? Border.all(color: Colors.grey.shade700, width: 1) : null,
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryBlue.withValues(alpha: 0.08),
@@ -616,11 +577,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         decoration: InputDecoration(
           hintText: 'Rechercher un trajet, une ville...',
           hintStyle: TextStyle(
-            color: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.color
-                ?.withValues(alpha: 0.6),
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
             fontSize: 14,
           ),
           prefixIcon: Icon(
@@ -681,10 +638,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 );
               },
               child: _buildQuickActionItem(
-                icon: Icons.confirmation_number_rounded,
-                label: 'Réserver',
-                color: AppTheme.primaryBlue,
-              ),
+              icon: Icons.confirmation_number_rounded,
+              label: 'Réserver',
+              color: AppTheme.primaryBlue,
+            ),
             ),
             GestureDetector(
               onTap: () {
@@ -696,9 +653,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 );
               },
               child: _buildQuickActionItem(
-                icon: Icons.history_rounded,
-                label: 'Mes trajets',
-                color: AppTheme.primaryOrange,
+              icon: Icons.history_rounded,
+              label: 'Mes trajets',
+              color: AppTheme.primaryOrange,
               ),
             ),
             GestureDetector(
@@ -782,8 +739,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ],
           ),
-          child: Icon(icon,
-              color: isDark ? color.withValues(alpha: 0.9) : color, size: 24),
+          child: Icon(icon, color: isDark ? color.withValues(alpha: 0.9) : color, size: 24),
         ),
         const SizedBox(height: 8),
         Text(
@@ -791,9 +747,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: isDark
-                ? Colors.white
-                : Theme.of(context).textTheme.bodyMedium?.color,
+            color: isDark ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color,
           ),
         ),
       ],
@@ -840,8 +794,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               Text(
                 'Voir tout',
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
                       : AppTheme.primaryBlue,
                   fontWeight: FontWeight.w600,
                 ),
@@ -849,8 +803,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 14,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.white 
                     : AppTheme.primaryBlue,
               ),
             ],
@@ -1188,8 +1142,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Text(
                 'Voir tout',
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
+                  color: Theme.of(context).brightness == Brightness.dark 
+                      ? Colors.white 
                       : AppTheme.primaryOrange,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1426,16 +1380,15 @@ class _HomePageState extends ConsumerState<HomePage> {
           final notificationState = ref.watch(notificationProvider);
 
           // Filtrer les notifications de feedback pour les clients et utilisateurs pointage
-          final filteredNotifications =
-              (_isClient(user) || _hasAttendanceRole(user))
-                  ? notificationState.notifications.where((notif) {
-                      // Exclure les notifications de type feedback/suggestion
-                      return notif.type != 'feedback' &&
-                          notif.type != 'suggestion' &&
-                          notif.type != 'new_feedback' &&
-                          notif.type != 'urgent_feedback';
-                    }).toList()
-                  : notificationState.notifications;
+          final filteredNotifications = (_isClient(user) || _hasAttendanceRole(user))
+              ? notificationState.notifications.where((notif) {
+                  // Exclure les notifications de type feedback/suggestion
+                  return notif.type != 'feedback' &&
+                      notif.type != 'suggestion' &&
+                      notif.type != 'new_feedback' &&
+                      notif.type != 'urgent_feedback';
+                }).toList()
+              : notificationState.notifications;
 
           if (notificationState.isLoading &&
               notificationState.notifications.isEmpty) {
@@ -1505,11 +1458,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   Text(
                     'Vous n\'avez pas encore reçu de notifications',
                     style: TextStyle(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withValues(alpha: 0.7),
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                       fontSize: 14,
                     ),
                   ),
@@ -2239,115 +2188,113 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     // Contenu du profil
                     SafeArea(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Photo de profil compacte
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const EditProfileScreen(),
-                                    ),
-                                  );
-                                },
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 35,
-                                      backgroundColor:
-                                          Colors.white.withValues(alpha: 0.2),
-                                      backgroundImage: user.profilePhotoUrl !=
-                                              null
-                                          ? NetworkImage(user.profilePhotoUrl!)
-                                          : null,
-                                      child: user.profilePhotoUrl == null
-                                          ? Text(
-                                              user.name.isNotEmpty
-                                                  ? user.name[0].toUpperCase()
-                                                  : 'U',
-                                              style: const TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                    Positioned(
-                                      bottom: -2,
-                                      right: -2,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primaryOrange,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                              color: Colors.white, width: 2),
-                                        ),
-                                        child: const Icon(
-                                          Icons.edit,
-                                          color: Colors.white,
-                                          size: 12,
-                                        ),
+                  child: Center(
+                    child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Photo de profil compacte
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditProfileScreen(),
+                              ),
+                            );
+                          },
+                          child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 35,
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.2),
+                              backgroundImage: user.profilePhotoUrl != null
+                                  ? NetworkImage(user.profilePhotoUrl!)
+                                  : null,
+                              child: user.profilePhotoUrl == null
+                                  ? Text(
+                                      user.name.isNotEmpty
+                                          ? user.name[0].toUpperCase()
+                                          : 'U',
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                user.name,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                user.email,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white.withValues(alpha: 0.85),
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 4),
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: -2,
+                              right: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(16),
+                                  color: AppTheme.primaryOrange,
+                                  shape: BoxShape.circle,
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
                                 ),
-                                child: Text(
-                                  _getRoleDisplayName(user.role),
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 12,
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                            ],
+                            ),
+                          ],
+                        ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          user.name,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user.email,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _getRoleDisplayName(user.role),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
+                  ),
+                  ),
+                ),
                   ],
                 ),
               ),
@@ -2419,8 +2366,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const VoiceSettingsScreen(),
+                                builder: (context) => const VoiceSettingsScreen(),
                               ),
                             );
                           },
@@ -2433,8 +2379,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    const ThemeSettingsScreen(),
+                                builder: (context) => const ThemeSettingsScreen(),
                               ),
                             );
                           },
@@ -2482,8 +2427,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                           icon: Icons.bug_report,
                           title: 'Outils de débogage',
                           subtitle: 'Tester les notifications et annonces',
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.orange
+                          color: Theme.of(context).brightness == Brightness.dark 
+                              ? Colors.orange 
                               : Colors.blue,
                           onTap: () {
                             Navigator.pushNamed(context, '/debug');
@@ -2563,8 +2508,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
+        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withValues(alpha: 0.08),
@@ -2608,11 +2552,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         trailing: Icon(
           Icons.arrow_forward_ios,
           size: 14,
-          color: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.color
-              ?.withValues(alpha: 0.5),
+          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
         ),
         onTap: onTap,
       ),

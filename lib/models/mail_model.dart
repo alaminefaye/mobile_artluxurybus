@@ -15,6 +15,10 @@ class MailModel {
   final bool isCollected;
   final DateTime? collectedAt;
   final int? collectedBy;
+  final String? collectorName;
+  final String? collectorPhone;
+  final String? collectorIdCard;
+  final String? collectorSignature;
   final int? clientProfileId;
   final bool isLoyaltyMail;
   final String? loyaltyNotes;
@@ -44,6 +48,10 @@ class MailModel {
     required this.isCollected,
     this.collectedAt,
     this.collectedBy,
+    this.collectorName,
+    this.collectorPhone,
+    this.collectorIdCard,
+    this.collectorSignature,
     this.clientProfileId,
     this.isLoyaltyMail = false,
     this.loyaltyNotes,
@@ -75,6 +83,10 @@ class MailModel {
           ? DateTime.parse(json['collected_at'])
           : null,
       collectedBy: json['collected_by'],
+      collectorName: json['collector_name'],
+      collectorPhone: json['collector_phone'],
+      collectorIdCard: json['collector_id_card'],
+      collectorSignature: json['collector_signature'],
       clientProfileId: json['client_profile_id'],
       isLoyaltyMail:
           json['is_loyalty_mail'] == true || json['is_loyalty_mail'] == 1,
@@ -116,6 +128,10 @@ class MailModel {
       'is_collected': isCollected,
       'collected_at': collectedAt?.toIso8601String(),
       'collected_by': collectedBy,
+      'collector_name': collectorName,
+      'collector_phone': collectorPhone,
+      'collector_id_card': collectorIdCard,
+      'collector_signature': collectorSignature,
       'client_profile_id': clientProfileId,
       'is_loyalty_mail': isLoyaltyMail,
       'loyalty_notes': loyaltyNotes,
@@ -142,6 +158,10 @@ class MailModel {
     bool? isCollected,
     DateTime? collectedAt,
     int? collectedBy,
+    String? collectorName,
+    String? collectorPhone,
+    String? collectorIdCard,
+    String? collectorSignature,
     int? clientProfileId,
     bool? isLoyaltyMail,
     String? loyaltyNotes,
@@ -169,6 +189,10 @@ class MailModel {
       isCollected: isCollected ?? this.isCollected,
       collectedAt: collectedAt ?? this.collectedAt,
       collectedBy: collectedBy ?? this.collectedBy,
+      collectorName: collectorName ?? this.collectorName,
+      collectorPhone: collectorPhone ?? this.collectorPhone,
+      collectorIdCard: collectorIdCard ?? this.collectorIdCard,
+      collectorSignature: collectorSignature ?? this.collectorSignature,
       clientProfileId: clientProfileId ?? this.clientProfileId,
       isLoyaltyMail: isLoyaltyMail ?? this.isLoyaltyMail,
       loyaltyNotes: loyaltyNotes ?? this.loyaltyNotes,

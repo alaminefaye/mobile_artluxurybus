@@ -19,10 +19,10 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
   final _amountController = TextEditingController();
   final _packageValueController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _receivingAgencyController = TextEditingController();
 
   String? _selectedDestination;
   String? _selectedPackageType;
+  String? _selectedReceivingAgency;
   File? _photo;
   bool _isLoyaltyMail = false;
   bool _isLoading = false;
@@ -38,6 +38,27 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
   final ImagePicker _picker = ImagePicker();
 
   @override
+  void initState() {
+    super.initState();
+    
+    // Écouteur pour le téléphone de l'expéditeur
+    _senderPhoneController.addListener(() {
+      final phone = _senderPhoneController.text.trim();
+      if (phone.length == 10) {
+        _autoFillNameFromPhone(phone, isRecipient: false);
+      }
+    });
+    
+    // Écouteur pour le téléphone du bénéficiaire
+    _recipientPhoneController.addListener(() {
+      final phone = _recipientPhoneController.text.trim();
+      if (phone.length == 10) {
+        _autoFillNameFromPhone(phone, isRecipient: true);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _senderNameController.dispose();
     _senderPhoneController.dispose();
@@ -46,9 +67,53 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
     _amountController.dispose();
     _packageValueController.dispose();
     _descriptionController.dispose();
-    _receivingAgencyController.dispose();
     _loyaltyPhoneController.dispose();
     super.dispose();
+  }
+  
+  /// Auto-remplir le nom à partir du numéro de téléphone
+  Future<void> _autoFillNameFromPhone(String phone, {required bool isRecipient}) async {
+    try {
+      final result = await MailApiService.checkLoyaltyPoints(phone);
+      
+      if (result['success'] == true && result['client'] != null) {
+        final clientName = result['client']['nom_complet'] ?? '';
+        
+        if (clientName.isNotEmpty) {
+          setState(() {
+            if (isRecipient) {
+              // Remplir le nom du bénéficiaire
+              if (_recipientNameController.text.isEmpty) {
+                _recipientNameController.text = clientName;
+              }
+            } else {
+              // Remplir le nom de l'expéditeur
+              if (_senderNameController.text.isEmpty) {
+                _senderNameController.text = clientName;
+              }
+            }
+          });
+          
+          // Afficher un message de confirmation
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  isRecipient 
+                    ? '✓ Bénéficiaire trouvé: $clientName'
+                    : '✓ Expéditeur trouvé: $clientName'
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // Ignorer les erreurs silencieusement (client non trouvé = normal)
+      debugPrint('Client non trouvé pour le numéro $phone');
+    }
   }
 
   /// Vérifier les points de fidélité d'un client
@@ -191,7 +256,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
         amount: double.parse(_amountController.text),
         packageValue: _packageValueController.text.trim(),
         packageType: _selectedPackageType!,
-        receivingAgency: _receivingAgencyController.text.trim(),
+        receivingAgency: _selectedReceivingAgency!,
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
@@ -224,11 +289,16 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
-        elevation: 4,
+    return GestureDetector(
+      onTap: () {
+        // Fermer le clavier quand on tape en dehors des champs
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.blue.shade700,
+          foregroundColor: Colors.white,
+          elevation: 4,
         title: const Text(
           'Nouveau Courrier',
           style: TextStyle(
@@ -485,18 +555,38 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _receivingAgencyController,
+                  DropdownButtonFormField<String>(
+                    value: _selectedReceivingAgency,
                     decoration: const InputDecoration(
                       labelText: 'Agence de réception *',
                       prefixIcon: Icon(Icons.business),
                       border: OutlineInputBorder(),
                     ),
+                    hint: const Text('Sélectionner une agence'),
+                    items: [
+                      'Bouaké',
+                      'Yamoussoukro',
+                      'Abidjan Adjamé',
+                      'Abidjan Yopougon',
+                      'Daloa',
+                      'Bouafle Toumori',
+                      'Korhogo',
+                    ].map((agency) {
+                      return DropdownMenuItem(
+                        value: agency,
+                        child: Text(agency),
+                      );
+                    }).toList(),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Ce champ est requis';
+                        return 'Veuillez sélectionner une agence';
                       }
                       return null;
+                    },
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedReceivingAgency = value;
+                      });
                     },
                   ),
                   const SizedBox(height: 16),
@@ -624,6 +714,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                 ],
               ),
             ),
+      ),
     );
   }
 }
