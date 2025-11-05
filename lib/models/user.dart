@@ -25,6 +25,7 @@ class User {
   final String? role;
   // @JsonKey(fromJson: _permissionsFromJson, toJson: _permissionsToJson)
   final List<String>? permissions;
+  final List<String>? rolesList; // Liste des rôles depuis l'API
 
   User({
     required this.id,
@@ -37,9 +38,22 @@ class User {
     this.updatedAt,
     this.role,
     this.permissions,
+    this.rolesList,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Récupérer le rôle depuis display_role, roles[0], ou role (pour compatibilité)
+    String? role;
+    if (json['display_role'] != null && json['display_role'].toString().isNotEmpty) {
+      role = json['display_role'].toString();
+    } else if (json['roles'] != null && 
+                json['roles'] is List && 
+                (json['roles'] as List).isNotEmpty) {
+      role = (json['roles'] as List).first.toString();
+    } else if (json['role'] != null) {
+      role = json['role'].toString();
+    }
+    
     return User(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -49,8 +63,9 @@ class User {
       phoneNumber: json['phone_number'],
       createdAt: json['created_at'],
       updatedAt: json['updated_at'],
-      role: json['role'],
+      role: role,
       permissions: json['permissions'] != null ? List<String>.from(json['permissions']) : null,
+      rolesList: json['roles'] != null ? List<String>.from(json['roles']) : null,
     );
   }
 
@@ -66,6 +81,7 @@ class User {
       'updated_at': updatedAt,
       'role': role,
       'permissions': permissions,
+      'roles': rolesList,
     };
   }
 
@@ -80,6 +96,7 @@ class User {
     String? updatedAt,
     String? role,
     List<String>? permissions,
+    List<String>? rolesList,
   }) {
     return User(
       id: id ?? this.id,
@@ -92,13 +109,14 @@ class User {
       updatedAt: updatedAt ?? this.updatedAt,
       role: role ?? this.role,
       permissions: permissions ?? this.permissions,
+      rolesList: rolesList ?? this.rolesList,
     );
   }
 
   // Getters pour compatibilité avec l'ancien code
   String? get displayName => name;
   String? get displayRole => role;
-  List<String>? get roles => permissions;
+  List<String>? get roles => rolesList ?? permissions; // Préférer rolesList, sinon permissions
   String? get phone => phoneNumber;
   
   // Getter pour l'URL complète de la photo de profil

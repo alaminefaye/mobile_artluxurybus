@@ -340,15 +340,32 @@ class AuthWrapper extends ConsumerWidget {
 
     // Rediriger selon le statut d'authentification et le rôle/permissions
     if (authState.isAuthenticated) {
-      final userRole = authState.user?.role?.trim().toLowerCase();
-      final permissions = authState.user?.permissions ?? [];
+      final user = authState.user;
+      final userRole = user?.role?.trim().toLowerCase();
+      final permissions = user?.permissions ?? [];
+      final roles = user?.roles ?? [];
 
       debugPrint('🔍 [AuthWrapper] Rôle utilisateur: "$userRole"');
+      debugPrint('🔍 [AuthWrapper] DisplayRole: "${user?.displayRole}"');
+      debugPrint('🔍 [AuthWrapper] Roles: $roles');
+      debugPrint('🔍 [AuthWrapper] RolesList: ${user?.rolesList}');
       debugPrint('🔍 [AuthWrapper] Permissions: $permissions');
 
+      // Vérifier si l'utilisateur a le rôle "courrier"
+      // Vérifier dans role, displayRole, ou roles[]
+      bool isCourrier = false;
+      if (userRole != null && userRole == 'courrier') {
+        isCourrier = true;
+      } else if (user?.displayRole != null &&
+          user!.displayRole!.trim().toLowerCase() == 'courrier') {
+        isCourrier = true;
+      } else if (roles.isNotEmpty) {
+        isCourrier =
+            roles.any((r) => r.toString().trim().toLowerCase() == 'courrier');
+      }
+
       // Rediriger vers ManagementHubScreen UNIQUEMENT si l'utilisateur a le rôle "courrier"
-      // Les permissions seules ne suffisent pas pour rediriger vers ManagementHubScreen
-      if (userRole == 'courrier') {
+      if (isCourrier) {
         debugPrint(
             '✅ [AuthWrapper] Redirection vers ManagementHubScreen (rôle: courrier)');
         return const ManagementHubScreen();
