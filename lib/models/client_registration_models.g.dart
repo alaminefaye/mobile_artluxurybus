@@ -37,6 +37,7 @@ ClientSearchData _$ClientSearchDataFromJson(Map<String, dynamic> json) =>
       points: (json['points'] as num).toInt(),
       mailPoints: (json['mail_points'] as num).toInt(),
       hasAccount: json['has_account'] as bool,
+      solde: (json['solde'] as num?)?.toDouble() ?? 0.0,
     );
 
 Map<String, dynamic> _$ClientSearchDataToJson(ClientSearchData instance) =>
@@ -50,6 +51,7 @@ Map<String, dynamic> _$ClientSearchDataToJson(ClientSearchData instance) =>
       'points': instance.points,
       'mail_points': instance.mailPoints,
       'has_account': instance.hasAccount,
+      'solde': instance.solde,
     };
 
 CreateAccountRequest _$CreateAccountRequestFromJson(
@@ -160,6 +162,7 @@ ClientData _$ClientDataFromJson(Map<String, dynamic> json) => ClientData(
       dateNaissance: json['date_naissance'] as String?,
       points: (json['points'] as num).toInt(),
       mailPoints: (json['mail_points'] as num).toInt(),
+      solde: (json['solde'] as num?)?.toDouble() ?? 0.0,
     );
 
 Map<String, dynamic> _$ClientDataToJson(ClientData instance) =>
@@ -172,4 +175,5 @@ Map<String, dynamic> _$ClientDataToJson(ClientData instance) =>
       'date_naissance': instance.dateNaissance,
       'points': instance.points,
       'mail_points': instance.mailPoints,
+      'solde': instance.solde,
     };

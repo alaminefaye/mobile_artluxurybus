@@ -30,7 +30,7 @@ class MailModel {
   final UserInfo? collectedByUser;
   final UserInfo? createdByUser;
   final ClientProfile? clientProfile;
-  
+
   // Indicateurs pour savoir si c'est expédié ou reçu (ajouté par l'API)
   final bool? isSent;
   final bool? isReceived;

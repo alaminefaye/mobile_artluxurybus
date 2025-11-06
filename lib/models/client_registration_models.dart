@@ -38,6 +38,8 @@ class ClientSearchData {
   final int mailPoints;
   @JsonKey(name: 'has_account')
   final bool hasAccount;
+  @JsonKey(name: 'solde')
+  final double solde;
 
   ClientSearchData({
     required this.id,
@@ -49,6 +51,7 @@ class ClientSearchData {
     required this.points,
     required this.mailPoints,
     required this.hasAccount,
+    this.solde = 0.0,
   });
 
   String get nomComplet => '$nom $prenom';
@@ -191,6 +194,8 @@ class ClientData {
   final int points;
   @JsonKey(name: 'mail_points')
   final int mailPoints;
+  @JsonKey(name: 'solde')
+  final double solde;
 
   ClientData({
     required this.id,
@@ -201,6 +206,7 @@ class ClientData {
     this.dateNaissance,
     required this.points,
     required this.mailPoints,
+    this.solde = 0.0,
   });
 
   String get nomComplet => '$nom $prenom';

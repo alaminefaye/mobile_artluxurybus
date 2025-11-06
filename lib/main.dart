@@ -23,6 +23,7 @@ import 'services/depart_service.dart';
 import 'services/reservation_service.dart';
 import 'services/mail_api_service.dart';
 import 'services/bagage_api_service.dart';
+import 'services/recharge_service.dart';
 import 'debug/debug_screen.dart';
 import 'screens/management_hub_screen.dart';
 
@@ -45,6 +46,7 @@ void main() async {
       ReservationService.setToken(token);
       MailApiService.setToken(token);
       BagageApiService.setToken(token);
+      RechargeService.setToken(token);
     } else {
       debugPrint('⚠️ [Main] Aucun token d\'authentification');
     }

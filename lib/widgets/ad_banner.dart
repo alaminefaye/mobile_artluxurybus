@@ -74,7 +74,7 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
         _controller!.removeListener(_activeListener ?? () {});
       } catch (_) {}
       try {
-        await _controller!.dispose();
+      await _controller!.dispose();
       } catch (e) {
         debugPrint('⚠️ [AdBanner] Erreur lors de la libération du controller: $e');
       }
@@ -88,8 +88,8 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
     }
 
     try {
-      final ctrl = VideoPlayerController.networkUrl(Uri.parse(ad.videoUrl!));
-      await ctrl.initialize();
+    final ctrl = VideoPlayerController.networkUrl(Uri.parse(ad.videoUrl!));
+    await ctrl.initialize();
       
       // Vérifier que le widget est toujours monté après l'initialisation
       if (!mounted) {
@@ -97,38 +97,38 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
         return;
       }
       
-      await ctrl.setLooping(false);
-      await ctrl.setVolume(_muted ? 0 : 1);
-      _paused = false;
-      await ctrl.play();
-      _controller = ctrl;
-      if (mounted) setState(() {});
+    await ctrl.setLooping(false);
+    await ctrl.setVolume(_muted ? 0 : 1);
+    _paused = false;
+    await ctrl.play();
+    _controller = ctrl;
+    if (mounted) setState(() {});
 
-      // Listener for completion
-      _activeListener = () {
+    // Listener for completion
+    _activeListener = () {
         if (!mounted || _controller == null) return;
         final v = _controller!.value;
-        if (v.isInitialized) {
-          final dur = v.duration;
-          final pos = v.position;
-          if (!_paused && !_isSwitching && !v.isPlaying && dur.inMilliseconds > 0 && pos >= dur) {
-            _isSwitching = true;
-            _goNext();
-          }
+      if (v.isInitialized) {
+        final dur = v.duration;
+        final pos = v.position;
+        if (!_paused && !_isSwitching && !v.isPlaying && dur.inMilliseconds > 0 && pos >= dur) {
+          _isSwitching = true;
+          _goNext();
         }
-      };
+      }
+    };
       _controller?.addListener(_activeListener!);
 
-      // Fallback timer if duration unavailable
-      final seconds = _ads.length > index ? (_ads[index].displaySeconds ?? 8) : 8;
+    // Fallback timer if duration unavailable
+    final seconds = _ads.length > index ? (_ads[index].displaySeconds ?? 8) : 8;
       if (_controller != null && _controller!.value.duration.inMilliseconds == 0) {
-        _rotationTimer = Timer(Duration(seconds: seconds), () {
-          if (!mounted) return;
-          if (_currentIndex == index && !_isSwitching && !_paused) {
-            _isSwitching = true;
-            _goNext();
-          }
-        });
+      _rotationTimer = Timer(Duration(seconds: seconds), () {
+        if (!mounted) return;
+        if (_currentIndex == index && !_isSwitching && !_paused) {
+          _isSwitching = true;
+          _goNext();
+        }
+      });
       }
     } catch (e) {
       debugPrint('❌ [AdBanner] Erreur lors de l\'initialisation de la vidéo: $e');
@@ -255,20 +255,20 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
     
     // Vérifier que le controller est toujours valide avant de l'utiliser
     try {
-      final size = controller.value.size;
-      return Container(
-        color: Colors.black, // side bars/background
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: SizedBox(
-              width: size.width,
-              height: size.height,
-              child: VideoPlayer(controller),
-            ),
+    final size = controller.value.size;
+    return Container(
+      color: Colors.black, // side bars/background
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: SizedBox(
+            width: size.width,
+            height: size.height,
+            child: VideoPlayer(controller),
           ),
         ),
-      );
+      ),
+    );
     } catch (e) {
       // Si le controller n'est plus valide, retourner un widget vide
       debugPrint('⚠️ [AdBanner] Erreur VideoPlayer: $e');
