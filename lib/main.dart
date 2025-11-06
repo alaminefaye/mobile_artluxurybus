@@ -24,6 +24,7 @@ import 'services/reservation_service.dart';
 import 'services/mail_api_service.dart';
 import 'services/bagage_api_service.dart';
 import 'services/recharge_service.dart';
+import 'services/feature_permission_service.dart';
 import 'debug/debug_screen.dart';
 import 'screens/management_hub_screen.dart';
 
@@ -47,6 +48,17 @@ void main() async {
       MailApiService.setToken(token);
       BagageApiService.setToken(token);
       RechargeService.setToken(token);
+
+      // Charger les permissions de l'utilisateur au démarrage
+      try {
+        debugPrint('📋 [Main] Chargement des permissions utilisateur...');
+        final featurePermissionService = FeaturePermissionService();
+        await featurePermissionService.syncPermissions();
+        debugPrint('✅ [Main] Permissions chargées avec succès');
+      } catch (e) {
+        debugPrint('⚠️ [Main] Erreur lors du chargement des permissions: $e');
+        // Continuer malgré l'erreur
+      }
     } else {
       debugPrint('⚠️ [Main] Aucun token d\'authentification');
     }

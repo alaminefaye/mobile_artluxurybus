@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/feature_permission_model.dart';
 import '../services/feature_permission_service.dart';
+import 'auth_provider.dart';
 
 /// Service de gestion des permissions
 final featurePermissionServiceProvider = Provider<FeaturePermissionService>((ref) {
@@ -8,7 +9,21 @@ final featurePermissionServiceProvider = Provider<FeaturePermissionService>((ref
 });
 
 /// Provider pour récupérer toutes les permissions
+/// Se recharge automatiquement quand l'utilisateur se connecte ou se déconnecte
 final featurePermissionsProvider = FutureProvider<FeaturePermissionsResponse>((ref) async {
+  // Écouter les changements d'authentification pour invalider les permissions
+  final authState = ref.watch(authProvider);
+  
+  // Si l'utilisateur n'est pas authentifié, retourner une réponse vide
+  if (!authState.isAuthenticated) {
+    return FeaturePermissionsResponse(
+      permissions: [],
+      userId: 0,
+      userName: '',
+      userRole: null,
+    );
+  }
+  
   final service = ref.watch(featurePermissionServiceProvider);
   return await service.getUserPermissions();
 });

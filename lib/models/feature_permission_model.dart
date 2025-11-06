@@ -101,6 +101,7 @@ class FeatureCodes {
   // Client
   static const String reservation = 'reservation';
   static const String mesOffres = 'mes_offres';
+  static const String mesTrajets = 'mes_trajets';
   static const String loyalty = 'loyalty';
   static const String feedback = 'feedback';
   static const String gares = 'gares';
@@ -113,6 +114,11 @@ class FeatureCodes {
   static const String courrier = 'courrier';
   static const String userManagement = 'user_management';
   static const String notificationsAdmin = 'notifications_admin';
+  static const String videoAdvertisements = 'video_advertisements';
+
+  // Pointage/Attendance
+  static const String qrScanner = 'qr_scanner';
+  static const String attendanceHistory = 'attendance_history';
 
   // Général
   static const String messages = 'messages';
