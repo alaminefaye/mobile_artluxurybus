@@ -70,15 +70,29 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
 
     // Dispose previous controller to free decoders/buffers
     if (_controller != null) {
+      final oldController = _controller!;
+      _controller = null; // Définir à null immédiatement pour éviter les accès
+      
       try {
-        _controller!.removeListener(_activeListener ?? () {});
+        oldController.removeListener(_activeListener ?? () {});
       } catch (_) {}
+      
+      // Arrêter la lecture avant de dispose
       try {
-      await _controller!.dispose();
+        if (oldController.value.isInitialized && oldController.value.isPlaying) {
+          oldController.pause();
+        }
+      } catch (_) {}
+      
+      // Dispose de manière asynchrone mais attendre que ce soit fait
+      try {
+        await oldController.dispose();
       } catch (e) {
         debugPrint('⚠️ [AdBanner] Erreur lors de la libération du controller: $e');
       }
-      _controller = null;
+      
+      // Vérifier que le widget est toujours monté après le dispose
+      if (!mounted) return;
     }
 
     final ad = _ads[index];
@@ -233,10 +247,33 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _audioFocusSubscription?.cancel(); // 🔇 Nettoyer le listener
+    // Annuler toutes les opérations asynchrones
     _rotationTimer?.cancel();
-    _controller?.dispose();
+    _audioFocusSubscription?.cancel();
+    
+    // Retirer le listener avant de dispose
+    if (_controller != null) {
+      try {
+        _controller!.removeListener(_activeListener ?? () {});
+      } catch (_) {}
+      
+      // Arrêter la lecture avant de dispose
+      try {
+        if (_controller!.value.isInitialized && _controller!.value.isPlaying) {
+          _controller!.pause();
+        }
+      } catch (_) {}
+      
+      // Dispose le controller de manière synchrone
+      try {
+        _controller!.dispose();
+      } catch (e) {
+        debugPrint('⚠️ [AdBanner] Erreur lors du dispose du controller: $e');
+      }
+      _controller = null;
+    }
+    
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -458,11 +495,72 @@ class _AdBannerState extends State<AdBanner> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (_controller == null) return;
+    debugPrint('🔄 [AdBanner] AppLifecycleState changed: $state');
+    
     if (state == AppLifecycleState.paused) {
-      _controller!.pause();
-    } else if (state == AppLifecycleState.resumed && !_paused) {
-      _controller!.play();
+      // Mettre en pause quand l'app passe en arrière-plan
+      if (_controller != null && _controller!.value.isInitialized) {
+        if (_controller!.value.isPlaying) {
+          _controller!.pause();
+          debugPrint('⏸️ [AdBanner] Vidéo mise en pause (app en arrière-plan)');
+        }
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      // Reprendre quand l'app revient au premier plan
+      debugPrint('🔄 [AdBanner] App revient au premier plan');
+      
+      // Vérifier immédiatement si le widget est toujours monté
+      if (!mounted) return;
+      
+      // Attendre un petit délai pour que tout soit stable
+      Future.delayed(const Duration(milliseconds: 500), () {
+        // Vérifier à nouveau que le widget est toujours monté
+        if (!mounted) return;
+        
+        // Vérifier que le controller existe toujours
+        final controller = _controller;
+        if (controller == null) {
+          debugPrint('⚠️ [AdBanner] Controller null après retour');
+          return;
+        }
+        
+        if (controller.value.isInitialized) {
+          // Si la vidéo n'était pas en pause manuelle et pas en pause pour annonce vocale
+          if (!_paused && !_pausedByVoiceAnnouncement) {
+            try {
+              controller.play();
+              debugPrint('▶️ [AdBanner] Vidéo reprise (app au premier plan)');
+              
+              // Redémarrer le timer de rotation si nécessaire
+              if (controller.value.duration.inMilliseconds == 0 && mounted) {
+                final seconds = _ads.isNotEmpty && _currentIndex < _ads.length
+                    ? (_ads[_currentIndex].displaySeconds ?? 8)
+                    : 8;
+                _rotationTimer?.cancel();
+                _rotationTimer = Timer(Duration(seconds: seconds), () {
+                  if (!mounted) return;
+                  if (!_isSwitching && !_paused && !_pausedByVoiceAnnouncement) {
+                    _isSwitching = true;
+                    _goNext();
+                  }
+                });
+              }
+            } catch (e) {
+              debugPrint('⚠️ [AdBanner] Erreur lors de la reprise: $e');
+              // Ne pas recharger si le widget n'est plus monté
+              if (mounted) {
+                _loadAds();
+              }
+            }
+          }
+        } else {
+          // Si le controller n'est pas initialisé et le widget est monté, recharger
+          if (mounted) {
+            debugPrint('⚠️ [AdBanner] Controller non initialisé après retour, rechargement des vidéos...');
+            _loadAds();
+          }
+        }
+      });
     }
   }
 }

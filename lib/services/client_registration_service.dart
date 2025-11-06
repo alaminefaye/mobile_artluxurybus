@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/client_registration_models.dart';
 import '../utils/api_config.dart';
@@ -10,16 +11,34 @@ class ClientRegistrationService {
   /// Rechercher un client par numéro de téléphone
   Future<ClientSearchResponse> searchClient(String telephone) async {
     try {
+      final url = '${ApiConfig.baseUrl}/clients/search';
+      final body = json.encode({'telephone': telephone});
+      
+      debugPrint('🔍 [ClientRegistrationService] Recherche client avec numéro: $telephone');
+      debugPrint('🔍 [ClientRegistrationService] URL: $url');
+      
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/clients/search'),
+        Uri.parse(url),
         headers: _headers,
-        body: json.encode({'telephone': telephone}),
+        body: body,
       );
 
+      debugPrint('🔍 [ClientRegistrationService] Status: ${response.statusCode}');
+      debugPrint('🔍 [ClientRegistrationService] Body: ${response.body}');
 
       final data = json.decode(response.body);
-      return ClientSearchResponse.fromJson(data);
-    } catch (e) {
+      final result = ClientSearchResponse.fromJson(data);
+      
+      if (result.success && result.found) {
+        debugPrint('✅ [ClientRegistrationService] Client trouvé: ${result.client?.nomComplet}');
+      } else {
+        debugPrint('❌ [ClientRegistrationService] Client non trouvé: ${result.message}');
+      }
+      
+      return result;
+    } catch (e, stackTrace) {
+      debugPrint('❌ [ClientRegistrationService] Erreur: $e');
+      debugPrint('❌ [ClientRegistrationService] StackTrace: $stackTrace');
       return ClientSearchResponse(
         success: false,
         found: false,
