@@ -64,6 +64,17 @@ class _HomePageState extends ConsumerState<HomePage>
     WidgetsBinding.instance.addObserver(this);
     _currentIndex = widget.initialTabIndex;
     _loadSolde();
+    
+    // Recharger les permissions au démarrage pour avoir les dernières modifications
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        ref.invalidate(featurePermissionsProvider);
+        debugPrint('🔄 [HomePage] Rechargement des permissions au démarrage');
+      } catch (e) {
+        debugPrint('⚠️ [HomePage] Erreur rechargement permissions: $e');
+      }
+    });
+    
     // Initialiser le token pour l'API des feedbacks et FCM
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authState = ref.read(authProvider);
@@ -185,6 +196,18 @@ class _HomePageState extends ConsumerState<HomePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    
+    // Quand l'app revient au premier plan, recharger les permissions
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('🔄 [HomePage] App reprend, rechargement des permissions...');
+      try {
+        ref.invalidate(featurePermissionsProvider);
+        debugPrint('✅ [HomePage] Permissions invalidées après reprise de l\'app');
+      } catch (e) {
+        debugPrint('⚠️ [HomePage] Erreur rechargement permissions après reprise: $e');
+      }
+    }
+    
     // Ne pas forcer le rechargement automatique - laisser l'AdBanner gérer sa propre reprise
     // Le rechargement avec la clé se fait uniquement quand on revient de la page de recharge
   }
@@ -504,8 +527,17 @@ class _HomePageState extends ConsumerState<HomePage>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
-          // Rafraîchir les données de l'utilisateur
+          // Rafraîchir les données de l'utilisateur et les permissions
           debugPrint('🔄 [HomePage] Actualisation de l\'onglet Accueil');
+          
+          // Recharger les permissions depuis le backend
+          try {
+            ref.invalidate(featurePermissionsProvider);
+            debugPrint('✅ [HomePage] Permissions invalidées, rechargement en cours...');
+          } catch (e) {
+            debugPrint('⚠️ [HomePage] Erreur lors du rechargement des permissions: $e');
+          }
+          
           await _loadSolde();
           await Future.delayed(const Duration(milliseconds: 500));
         },
