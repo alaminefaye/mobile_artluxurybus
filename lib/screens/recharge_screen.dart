@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../services/recharge_service.dart';
@@ -41,20 +42,40 @@ class _RechargeScreenState extends State<RechargeScreen> {
   }
 
   Future<void> _loadSolde() async {
-    final result = await RechargeService.getSolde();
-    if (result['success'] == true && mounted) {
+    if (!mounted) return;
+    
+    try {
+      final result = await RechargeService.getSolde();
+      
+      if (!mounted) return;
+      
       setState(() {
-        final soldeValue = result['solde'];
-        if (soldeValue is double) {
-          _currentSolde = soldeValue;
-        } else if (soldeValue is int) {
-          _currentSolde = soldeValue.toDouble();
-        } else if (soldeValue is String) {
-          _currentSolde = double.tryParse(soldeValue) ?? 0.0;
+        if (result['success'] == true) {
+          final soldeValue = result['solde'];
+          if (soldeValue is double) {
+            _currentSolde = soldeValue;
+          } else if (soldeValue is int) {
+            _currentSolde = soldeValue.toDouble();
+          } else if (soldeValue is String) {
+            _currentSolde = double.tryParse(soldeValue) ?? 0.0;
+          } else {
+            _currentSolde = 0.0;
+          }
         } else {
+          // En cas d'erreur, garder le solde à 0 mais ne pas crasher
           _currentSolde = 0.0;
+          debugPrint('⚠️ [RechargeScreen] Erreur lors du chargement du solde: ${result['message']}');
         }
       });
+    } catch (e, stackTrace) {
+      debugPrint('❌ [RechargeScreen] Exception lors du chargement du solde: $e');
+      debugPrint('❌ [RechargeScreen] Stack trace: $stackTrace');
+      
+      if (mounted) {
+        setState(() {
+          _currentSolde = 0.0;
+        });
+      }
     }
   }
 
@@ -145,21 +166,6 @@ class _RechargeScreenState extends State<RechargeScreen> {
     }
   }
 
-  String _formatMontant(String value) {
-    // Supprimer tous les espaces
-    String digitsOnly = value.replaceAll(' ', '');
-    
-    // Formater avec des espaces tous les 3 chiffres
-    String formatted = '';
-    for (int i = 0; i < digitsOnly.length; i++) {
-      if (i > 0 && (digitsOnly.length - i) % 3 == 0) {
-        formatted += ' ';
-      }
-      formatted += digitsOnly[i];
-    }
-    
-    return formatted;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,11 +178,17 @@ class _RechargeScreenState extends State<RechargeScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
+      body: GestureDetector(
+        onTap: () {
+          // Masquer le clavier quand on tape ailleurs
+          FocusScope.of(context).unfocus();
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Form(
+            key: _formKey,
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Carte du solde actuel
@@ -236,16 +248,40 @@ class _RechargeScreenState extends State<RechargeScreen> {
               TextFormField(
                 controller: _montantController,
                 keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   TextInputFormatter.withFunction((oldValue, newValue) {
                     if (newValue.text.isEmpty) {
                       return newValue;
                     }
-                    final formatted = _formatMontant(newValue.text);
+                    // Supprimer les espaces existants
+                    final digitsOnly = newValue.text.replaceAll(' ', '');
+                    
+                    // Formater avec des espaces tous les 3 chiffres
+                    String formatted = '';
+                    for (int i = 0; i < digitsOnly.length; i++) {
+                      if (i > 0 && (digitsOnly.length - i) % 3 == 0) {
+                        formatted += ' ';
+                      }
+                      formatted += digitsOnly[i];
+                    }
+                    
+                    // Préserver la position du curseur si possible
+                    int selectionOffset = formatted.length;
+                    if (oldValue.selection.isValid) {
+                      final oldDigits = oldValue.text.replaceAll(' ', '');
+                      final newDigits = digitsOnly;
+                      final oldCursorPos = oldValue.selection.baseOffset;
+                      final oldDigitsBeforeCursor = oldDigits.substring(0, oldCursorPos.clamp(0, oldDigits.length)).replaceAll(' ', '').length;
+                      final newDigitsBeforeCursor = newDigits.substring(0, oldDigitsBeforeCursor.clamp(0, newDigits.length));
+                      final spacesBeforeCursor = formatted.substring(0, formatted.indexOf(newDigitsBeforeCursor.isEmpty ? formatted : newDigitsBeforeCursor)).split(' ').length - 1;
+                      selectionOffset = (oldDigitsBeforeCursor + spacesBeforeCursor).clamp(0, formatted.length);
+                    }
+                    
                     return TextEditingValue(
                       text: formatted,
-                      selection: TextSelection.collapsed(offset: formatted.length),
+                      selection: TextSelection.collapsed(offset: selectionOffset),
                     );
                   }),
                 ],
@@ -259,6 +295,14 @@ class _RechargeScreenState extends State<RechargeScreen> {
                   filled: true,
                   fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
                 ),
+                onTap: () {
+                  // S'assurer que le clavier s'affiche correctement
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    _montantController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _montantController.text.length),
+                    );
+                  });
+                },
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Veuillez entrer un montant';
@@ -426,6 +470,7 @@ class _RechargeScreenState extends State<RechargeScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

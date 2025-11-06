@@ -38,8 +38,19 @@ class ClientSearchData {
   final int mailPoints;
   @JsonKey(name: 'has_account')
   final bool hasAccount;
-  @JsonKey(name: 'solde')
+  @JsonKey(name: 'solde', fromJson: _soldeFromJson)
   final double solde;
+
+  // Convertisseur pour le champ solde (gère string ou number)
+  static double _soldeFromJson(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) {
+      return value.toDouble();
+    } else if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
+  }
 
   ClientSearchData({
     required this.id,
@@ -194,8 +205,19 @@ class ClientData {
   final int points;
   @JsonKey(name: 'mail_points')
   final int mailPoints;
-  @JsonKey(name: 'solde')
+  @JsonKey(name: 'solde', fromJson: _soldeFromJson)
   final double solde;
+
+  // Convertisseur pour le champ solde (gère string ou number)
+  static double _soldeFromJson(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) {
+      return value.toDouble();
+    } else if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
+  }
 
   ClientData({
     required this.id,
