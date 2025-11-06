@@ -26,16 +26,35 @@ class ClientRegistrationService {
       debugPrint('🔍 [ClientRegistrationService] Status: ${response.statusCode}');
       debugPrint('🔍 [ClientRegistrationService] Body: ${response.body}');
 
-      final data = json.decode(response.body);
-      final result = ClientSearchResponse.fromJson(data);
-      
-      if (result.success && result.found) {
-        debugPrint('✅ [ClientRegistrationService] Client trouvé: ${result.client?.nomComplet}');
+      // Gérer les différents codes de statut
+      if (response.statusCode == 200 || response.statusCode == 404) {
+        final data = json.decode(response.body);
+        final result = ClientSearchResponse.fromJson(data);
+        
+        debugPrint('🔍 [ClientRegistrationService] Parsing réussi:');
+        debugPrint('   - success: ${result.success}');
+        debugPrint('   - found: ${result.found}');
+        debugPrint('   - hasAccount: ${result.client?.hasAccount ?? "N/A"}');
+        
+        if (result.success && result.found && result.client != null) {
+          debugPrint('✅ [ClientRegistrationService] Client trouvé: ${result.client!.nomComplet}');
+          debugPrint('   - ID: ${result.client!.id}');
+          debugPrint('   - Téléphone: ${result.client!.telephone}');
+          debugPrint('   - A un compte: ${result.client!.hasAccount}');
+        } else {
+          debugPrint('❌ [ClientRegistrationService] Client non trouvé: ${result.message}');
+        }
+        
+        return result;
       } else {
-        debugPrint('❌ [ClientRegistrationService] Client non trouvé: ${result.message}');
+        // Erreur serveur
+        debugPrint('❌ [ClientRegistrationService] Erreur serveur: ${response.statusCode}');
+        return ClientSearchResponse(
+          success: false,
+          found: false,
+          message: 'Erreur serveur (${response.statusCode})',
+        );
       }
-      
-      return result;
     } catch (e, stackTrace) {
       debugPrint('❌ [ClientRegistrationService] Erreur: $e');
       debugPrint('❌ [ClientRegistrationService] StackTrace: $stackTrace');

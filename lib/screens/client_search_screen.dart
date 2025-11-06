@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
 import '../theme/app_theme.dart';
@@ -34,24 +35,41 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       _errorMessage = null;
     });
 
-    final response = await _service.searchClient(_telephoneController.text.trim());
+    final telephone = _telephoneController.text.trim();
+    debugPrint('🔍 [ClientSearchScreen] Recherche client avec numéro: $telephone');
+
+    final response = await _service.searchClient(telephone);
 
     if (!mounted) return;
 
     setState(() => _isLoading = false);
 
+    debugPrint('🔍 [ClientSearchScreen] Réponse reçue:');
+    debugPrint('   - success: ${response.success}');
+    debugPrint('   - found: ${response.found}');
+    debugPrint('   - client: ${response.client != null ? "trouvé" : "null"}');
+    
     if (response.success && response.found && response.client != null) {
       final client = response.client!;
+      debugPrint('🔍 [ClientSearchScreen] Client trouvé:');
+      debugPrint('   - ID: ${client.id}');
+      debugPrint('   - Nom: ${client.nomComplet}');
+      debugPrint('   - Téléphone: ${client.telephone}');
+      debugPrint('   - hasAccount: ${client.hasAccount}');
 
       if (client.hasAccount) {
         // Client a déjà un compte
+        debugPrint('✅ [ClientSearchScreen] Client a déjà un compte, affichage dialog');
         _showAlreadyHasAccountDialog(client);
       } else {
         // Client existe mais n'a pas de compte
+        debugPrint('ℹ️ [ClientSearchScreen] Client existe mais n\'a pas de compte, navigation vers CreateAccountScreen');
         _navigateToCreateAccount(client);
       }
     } else {
       // Client non trouvé
+      debugPrint('❌ [ClientSearchScreen] Client non trouvé');
+      debugPrint('   - Message: ${response.message}');
       _showClientNotFoundDialog();
     }
   }
