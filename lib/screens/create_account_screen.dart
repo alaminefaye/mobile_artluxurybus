@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
@@ -78,15 +79,31 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       dateNaissance: _selectedDate?.toIso8601String().split('T')[0],
     );
 
+    debugPrint('🔐 [CreateAccountScreen] Création compte pour client:');
+    debugPrint('   - Client ID: ${widget.client.id}');
+    debugPrint('   - Nom: ${widget.client.nomComplet}');
+    debugPrint('   - Téléphone: ${widget.client.telephone}');
+
     final response = await _service.createAccountForExistingClient(request);
 
     if (!mounted) return;
 
     setState(() => _isLoading = false);
 
+    debugPrint('🔐 [CreateAccountScreen] Réponse reçue:');
+    debugPrint('   - success: ${response.success}');
+    debugPrint('   - message: ${response.message}');
+    debugPrint('   - data: ${response.data != null ? "présent" : "null"}');
+
     if (response.success && response.data != null) {
+      debugPrint('✅ [CreateAccountScreen] Compte créé avec succès:');
+      debugPrint('   - User ID: ${response.data!.user.id}');
+      debugPrint('   - Email: ${response.data!.user.email}');
+      debugPrint('   - Client ID: ${response.data!.client.id}');
+      
       // Connexion automatique après création du compte
-      await _authService.login(
+      debugPrint('🔐 [CreateAccountScreen] Tentative de connexion automatique...');
+      final loginResponse = await _authService.login(
         LoginRequest(
           email: response.data!.user.email,
           password: _passwordController.text,
@@ -95,27 +112,41 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
       if (!mounted) return;
 
-      // Afficher message de succès
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('Bienvenue ${widget.client.nomComplet}! 🎉'),
-              ),
-            ],
+      if (loginResponse.success) {
+        debugPrint('✅ [CreateAccountScreen] Connexion automatique réussie');
+        
+        // Afficher message de succès
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Bienvenue ${widget.client.nomComplet}! 🎉'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
           ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        );
 
-      // Retour à l'écran principal (connexion réussie)
-      Navigator.of(context).popUntil((route) => route.isFirst);
+        // Retour à l'écran principal (connexion réussie)
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        debugPrint('❌ [CreateAccountScreen] Échec de la connexion automatique: ${loginResponse.message}');
+        // Afficher l'erreur de connexion
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Compte créé mais erreur de connexion: ${loginResponse.message}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     } else {
       // Afficher l'erreur
+      debugPrint('❌ [CreateAccountScreen] Erreur lors de la création du compte: ${response.message}');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response.message),
