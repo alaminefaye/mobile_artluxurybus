@@ -316,7 +316,9 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                 children: [
                   // Section Fidélité courrier
                   Card(
-                    color: Colors.blue.shade50,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.blue.shade900.withOpacity(0.3)
+                        : Colors.blue.shade50,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -324,22 +326,28 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.card_giftcard, color: Colors.blue.shade700),
+                              Icon(
+                                Icons.card_giftcard,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Fidélité courrier',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade700,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'Téléphone du client',
-                            style: TextStyle(fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Row(
@@ -348,12 +356,36 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                 child: TextFormField(
                                   controller: _loyaltyPhoneController,
                                   keyboardType: TextInputType.phone,
-                                  decoration: const InputDecoration(
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                  ),
+                                  decoration: InputDecoration(
                                     hintText: 'Ex: 0123456789',
-                                    prefixIcon: Icon(Icons.phone),
-                                    border: OutlineInputBorder(),
+                                    hintStyle: TextStyle(
+                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.phone,
+                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Theme.of(context).dividerColor,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Theme.of(context).dividerColor,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: Theme.of(context).colorScheme.primary,
+                                        width: 2,
+                                      ),
+                                    ),
                                     filled: true,
-                                    fillColor: Colors.white,
+                                    fillColor: Theme.of(context).cardColor,
                                   ),
                                 ),
                               ),
@@ -382,7 +414,13 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: _canUseFreeMail ? Colors.green.shade100 : Colors.blue.shade100,
+                                color: _canUseFreeMail
+                                    ? (Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.green.shade900.withOpacity(0.3)
+                                        : Colors.green.shade100)
+                                    : (Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.blue.shade900.withOpacity(0.3)
+                                        : Colors.blue.shade100),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: _canUseFreeMail ? Colors.green : Colors.blue,
@@ -404,20 +442,34 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
-                                          color: _canUseFreeMail ? Colors.green.shade900 : Colors.blue.shade900,
+                                          color: _canUseFreeMail
+                                              ? (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.green.shade300
+                                                  : Colors.green.shade900)
+                                              : (Theme.of(context).brightness == Brightness.dark
+                                                  ? Colors.blue.shade300
+                                                  : Colors.blue.shade900),
                                         ),
                                       ),
                                     ],
                                   ),
                                   if (_canUseFreeMail) ...[
                                     const SizedBox(height: 8),
-                                    const Text(
+                                    Text(
                                       '🎉 Courrier gratuit disponible!',
-                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     SwitchListTile(
-                                      title: const Text('Utiliser les points (courrier gratuit)'),
+                                      title: Text(
+                                        'Utiliser les points (courrier gratuit)',
+                                        style: TextStyle(
+                                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                                        ),
+                                      ),
                                       value: _isLoyaltyMail,
                                       onChanged: (value) {
                                         setState(() {
@@ -434,7 +486,9 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       '${10 - _clientPoints} points restants pour un courrier gratuit',
-                                      style: TextStyle(color: Colors.grey.shade700),
+                                      style: TextStyle(
+                                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) ?? Colors.grey.shade700,
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -446,21 +500,47 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Informations de l\'expéditeur',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _senderNameController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Nom de l\'expéditeur *',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.person,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -472,10 +552,36 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _senderPhoneController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Téléphone de l\'expéditeur *',
-                      prefixIcon: Icon(Icons.phone),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.phone,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     keyboardType: TextInputType.phone,
                     validator: (value) {
@@ -486,21 +592,47 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Informations du destinataire',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _recipientNameController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Nom du destinataire *',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.person_outline,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -512,10 +644,36 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _recipientPhoneController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Téléphone du destinataire *',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.phone_outlined,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     keyboardType: TextInputType.phone,
                     validator: (value) {
@@ -526,26 +684,57 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                     },
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Informations du colis',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: _selectedDestination,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Destination *',
-                      prefixIcon: Icon(Icons.location_on),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.location_on,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     items: MailApiService.getDestinations().map((dest) {
                       return DropdownMenuItem(
                         value: dest,
-                        child: Text(dest),
+                        child: Text(
+                          dest,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -557,12 +746,43 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: _selectedReceivingAgency,
-                    decoration: const InputDecoration(
-                      labelText: 'Agence de réception *',
-                      prefixIcon: Icon(Icons.business),
-                      border: OutlineInputBorder(),
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
-                    hint: const Text('Sélectionner une agence'),
+                    decoration: InputDecoration(
+                      labelText: 'Agence de réception *',
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.business,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
+                    ),
+                    hint: Text(
+                      'Sélectionner une agence',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                      ),
+                    ),
                     items: [
                       'Bouaké',
                       'Yamoussoukro',
@@ -574,7 +794,12 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                     ].map((agency) {
                       return DropdownMenuItem(
                         value: agency,
-                        child: Text(agency),
+                        child: Text(
+                          agency,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
                       );
                     }).toList(),
                     validator: (value) {
@@ -592,15 +817,46 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: _selectedPackageType,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Type de colis *',
-                      prefixIcon: Icon(Icons.inventory_2),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.inventory_2,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     items: MailApiService.getPackageTypes().map((type) {
                       return DropdownMenuItem(
                         value: type,
-                        child: Text(type),
+                        child: Text(
+                          type,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -612,11 +868,40 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _packageValueController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Valeur du colis *',
-                      prefixIcon: Icon(Icons.attach_money),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                       hintText: 'Ex: 50 000 FCFA',
+                      hintStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.attach_money,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -628,10 +913,36 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _amountController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Montant à payer (FCFA) *',
-                      prefixIcon: Icon(Icons.payments),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.payments,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     keyboardType: TextInputType.number,
                     validator: (value) {
@@ -647,20 +958,46 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _descriptionController,
-                    decoration: const InputDecoration(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                    decoration: InputDecoration(
                       labelText: 'Description (optionnel)',
-                      prefixIcon: Icon(Icons.description),
-                      border: OutlineInputBorder(),
+                      labelStyle: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.description,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).cardColor,
                     ),
                     maxLines: 3,
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Photo du colis',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(height: 16),
