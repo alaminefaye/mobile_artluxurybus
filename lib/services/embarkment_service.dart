@@ -175,5 +175,47 @@ class EmbarkmentService {
       };
     }
   }
+
+  /// Rechercher des tickets par siège ou téléphone pour un départ
+  static Future<Map<String, dynamic>> searchTickets({
+    required int departId,
+    required String searchTerm,
+  }) async {
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/embarkment/departs/$departId/search-tickets')
+          .replace(queryParameters: {'search': searchTerm});
+      final token = await _getToken();
+
+      final headers = {
+        ...ApiConfig.defaultHeaders,
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.get(uri, headers: headers)
+          .timeout(ApiConfig.requestTimeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': data['data'] ?? [],
+          'message': data['message'] ?? 'Tickets trouvés avec succès',
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'message': errorData['message'] ?? 'Erreur lors de la recherche',
+          'data': [],
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erreur: ${e.toString()}',
+        'data': [],
+      };
+    }
+  }
 }
 

@@ -24,12 +24,24 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
   bool _isLoadingTickets = false;
   String? _errorMessage;
   bool _isScanning = false;
+  
+  // Recherche manuelle
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isSearching = false;
+  bool _showSearchResults = false;
 
   @override
   void initState() {
     super.initState();
     _loadDepartDetails();
     _loadScannedTickets();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDepartDetails() async {
@@ -256,6 +268,92 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
     );
   }
 
+  Future<void> _searchTickets() async {
+    final searchTerm = _searchController.text.trim();
+    if (searchTerm.isEmpty) {
+      _showResultDialog(
+        success: false,
+        message: 'Veuillez entrer un numéro de siège ou de téléphone',
+      );
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _showSearchResults = false;
+      _searchResults = [];
+    });
+
+    try {
+      final result = await EmbarkmentService.searchTickets(
+        departId: widget.departId,
+        searchTerm: searchTerm,
+      );
+
+      setState(() {
+        _isSearching = false;
+        if (result['success'] == true) {
+          _searchResults = List<Map<String, dynamic>>.from(result['data'] ?? []);
+          _showSearchResults = true;
+          if (_searchResults.isEmpty) {
+            _showResultDialog(
+              success: false,
+              message: 'Aucun ticket trouvé pour "$searchTerm"',
+            );
+          }
+        } else {
+          _showResultDialog(
+            success: false,
+            message: result['message'] ?? 'Erreur lors de la recherche',
+          );
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _isSearching = false;
+      });
+      _showResultDialog(
+        success: false,
+        message: 'Erreur: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<void> _markTicketAsUsed(int ticketId) async {
+    // Utiliser la même méthode que le scan QR code
+    try {
+      final result = await EmbarkmentService.scanTicket(
+        departId: widget.departId,
+        qrCode: ticketId.toString(),
+      );
+
+      final success = result['success'] ?? false;
+      final message = result['message'] ?? '';
+
+      _showResultDialog(
+        success: success,
+        message: message,
+      );
+
+      if (success) {
+        // Recharger les données
+        _loadDepartDetails();
+        _loadScannedTickets();
+        // Réinitialiser la recherche
+        setState(() {
+          _searchController.clear();
+          _showSearchResults = false;
+          _searchResults = [];
+        });
+      }
+    } catch (e) {
+      _showResultDialog(
+        success: false,
+        message: 'Erreur: ${e.toString()}',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -326,6 +424,102 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                             // Statistiques en haut
                             _buildStatisticsCard(),
                             const SizedBox(height: 16),
+                            
+                            // Section Recherche manuelle
+                            Card(
+                              elevation: 2,
+                              color: Theme.of(context).cardColor,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Recherche manuelle',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).textTheme.titleLarge?.color,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Rechercher par numéro de siège ou téléphone',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _searchController,
+                                            decoration: InputDecoration(
+                                              hintText: 'Ex: 14 ou 0705316506',
+                                              prefixIcon: const Icon(Icons.search),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            keyboardType: TextInputType.text,
+                                            onSubmitted: (_) => _searchTickets(),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ElevatedButton(
+                                          onPressed: _isSearching ? null : _searchTickets,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppTheme.primaryBlue,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                          ),
+                                          child: _isSearching
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                  ),
+                                                )
+                                              : const Icon(Icons.search),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Résultats de recherche
+                            if (_showSearchResults && _searchResults.isNotEmpty) ...[
+                              Card(
+                                elevation: 2,
+                                color: Theme.of(context).cardColor,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Résultats de recherche (${_searchResults.length})',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(context).textTheme.titleLarge?.color,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      ..._searchResults.map((ticket) => _buildSearchResultItem(ticket)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
                             
                             // Bouton Scanner
                             ElevatedButton.icon(
@@ -618,6 +812,118 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchResultItem(Map<String, dynamic> ticket) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isUsed = ticket['is_used'] == true;
+    final ticketId = ticket['id'] as int;
+    final nomComplet = ticket['nom_complet'] ?? 'N/A';
+    final telephone = ticket['telephone'] ?? 'N/A';
+    final siegeNumber = ticket['siege_number'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isUsed
+            ? (isDark ? Colors.green.withValues(alpha: 0.2) : Colors.green[50])
+            : (isDark ? Colors.blue.withValues(alpha: 0.2) : Colors.blue[50]),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isUsed
+              ? (isDark ? Colors.green.withValues(alpha: 0.5) : Colors.green[200]!)
+              : (isDark ? Colors.blue.withValues(alpha: 0.5) : Colors.blue[200]!),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isUsed ? Colors.green : Colors.blue,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isUsed ? Icons.check_circle : Icons.event_seat,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nomComplet,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  telephone,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  ),
+                ),
+                if (siegeNumber != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Siège: $siegeNumber',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+                if (isUsed && ticket['scanned_at_formatted'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Scanné le: ${ticket['scanned_at_formatted']}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.green[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (!isUsed)
+            ElevatedButton(
+              onPressed: () => _markTicketAsUsed(ticketId),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              child: const Text('Valider'),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'Déjà scanné',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
         ],
       ),
     );

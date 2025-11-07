@@ -707,6 +707,30 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       // Partager l'image
       if (!mounted) return;
       
+      // Construire le message de partage avec toutes les informations
+      final dateDepart = trip.depart?.dateDepartFormatted ?? trip.depart?.dateDepart ?? '';
+      final heureDepart = trip.depart?.heureDepart ?? '';
+      final siegeInfo = trip.siegeNumber != null ? 'Siège: ${trip.siegeNumber}' : '';
+      
+      final shareText = StringBuffer();
+      shareText.writeln('Mon ticket de voyage - ART LUXURY BUS');
+      shareText.writeln('${trip.routeText}');
+      if (dateDepart.isNotEmpty) {
+        shareText.writeln('Date de départ: $dateDepart');
+      }
+      if (heureDepart.isNotEmpty) {
+        shareText.writeln('Heure de départ: $heureDepart');
+      }
+      if (siegeInfo.isNotEmpty) {
+        shareText.writeln(siegeInfo);
+      }
+      shareText.writeln('');
+      shareText.writeln('⚠️ Merci de vous présenter à la gare au moins 30 minutes avant le départ.');
+      shareText.writeln('');
+      shareText.writeln('📌 Ce ticket est non remboursable.');
+      shareText.writeln('');
+      shareText.writeln('Merci d\'avoir choisi la compagnie ART LUXURY BUS. Nous vous souhaitons un excellent voyage ! 🚌✨');
+      
       // Sur iOS, il faut spécifier sharePositionOrigin
       if (Platform.isIOS && shareButtonKey?.currentContext != null) {
         final RenderBox? renderBox = shareButtonKey!.currentContext?.findRenderObject() as RenderBox?;
@@ -716,7 +740,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           
           await Share.shareXFiles(
             [XFile(imagePath)],
-            text: 'Mon ticket de voyage - ART LUXURY BUS\n${trip.routeText}',
+            text: shareText.toString(),
             subject: 'Ticket de voyage',
             sharePositionOrigin: Rect.fromLTWH(
               position.dx,
@@ -729,7 +753,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           // Fallback si on ne peut pas obtenir la position
           await Share.shareXFiles(
             [XFile(imagePath)],
-            text: 'Mon ticket de voyage - ART LUXURY BUS\n${trip.routeText}',
+            text: shareText.toString(),
             subject: 'Ticket de voyage',
           );
         }
@@ -737,7 +761,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         // Android ou si pas de position disponible
         await Share.shareXFiles(
           [XFile(imagePath)],
-          text: 'Mon ticket de voyage - ART LUXURY BUS\n${trip.routeText}',
+          text: shareText.toString(),
           subject: 'Ticket de voyage',
         );
       }
