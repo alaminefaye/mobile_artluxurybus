@@ -1617,87 +1617,106 @@ class _HomePageState extends ConsumerState<HomePage>
           Consumer(
             builder: (context, ref, child) {
               final notificationState = ref.watch(notificationProvider);
+              // Afficher les boutons seulement s'il y a des notifications
+              if (notificationState.notifications.isEmpty) {
+                return const SizedBox.shrink();
+              }
+
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Bouton pour marquer toutes comme lues (toujours visible s'il y a des notifications)
+                  IconButton(
+                    icon: const Icon(Icons.mark_email_read),
+                    onPressed: () {
+                      ref.read(notificationProvider.notifier).markAllAsRead();
+                    },
+                    tooltip: 'Tout marquer comme lu',
+                  ),
                   // Bouton pour supprimer toutes les notifications
-                  if (notificationState.notifications.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () async {
-                        // Afficher une boîte de dialogue de confirmation
-                        final shouldDelete = await showDialog<bool>(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text(
-                                  'Supprimer toutes les notifications'),
-                              content: const Text(
-                                'Êtes-vous sûr de vouloir supprimer toutes vos notifications ? Cette action est irréversible.',
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () async {
+                      // Afficher une boîte de dialogue de confirmation
+                      final shouldDelete = await showDialog<bool>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text(
+                                'Supprimer toutes les notifications'),
+                            content: const Text(
+                              'Êtes-vous sûr de vouloir supprimer toutes vos notifications ? Cette action est irréversible.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('Annuler'),
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(false),
-                                  child: const Text('Annuler'),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red,
                                 ),
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(true),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.red,
-                                  ),
-                                  child: const Text('Supprimer'),
-                                ),
-                              ],
-                            );
-                          },
+                                child: const Text('Supprimer'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      if (shouldDelete == true && mounted) {
+                        // Afficher un indicateur de chargement
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
                         );
 
-                        if (shouldDelete == true && mounted) {
-                          // Afficher un indicateur de chargement
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
+                        // Supprimer toutes les notifications
+                        await ref
+                            .read(notificationProvider.notifier)
+                            .deleteAllNotifications();
 
-                          // Supprimer toutes les notifications
-                          await ref
-                              .read(notificationProvider.notifier)
-                              .deleteAllNotifications();
+                        // Fermer l'indicateur de chargement
+                        if (mounted) {
+                          Navigator.of(context).pop();
+                        }
 
-                          // Fermer l'indicateur de chargement
-                          if (mounted) {
-                            Navigator.of(context).pop();
-                          }
-
-                          // Afficher un message de succès
-                          if (mounted) {
+                        // Vérifier le résultat et afficher un message
+                        if (mounted) {
+                          final notificationState = ref.read(notificationProvider);
+                          
+                          if (notificationState.error != null) {
+                            // Afficher un message d'erreur
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(notificationState.error ?? 'Erreur lors de la suppression'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          } else {
+                            // Recharger les notifications depuis le serveur pour synchroniser
+                            await ref.read(notificationProvider.notifier).refresh();
+                            
+                            // Afficher un message de succès
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text(
-                                    'Toutes les notifications ont été supprimées'),
+                                content: Text('Toutes les notifications ont été supprimées'),
                                 backgroundColor: Colors.green,
                                 duration: Duration(seconds: 2),
                               ),
                             );
                           }
                         }
-                      },
-                      tooltip: 'Supprimer toutes les notifications',
-                    ),
-                  // Bouton pour marquer toutes comme lues
-                  if (notificationState.unreadCount > 0)
-                    IconButton(
-                      icon: const Icon(Icons.mark_email_read),
-                      onPressed: () {
-                        ref.read(notificationProvider.notifier).markAllAsRead();
-                      },
-                      tooltip: 'Tout marquer comme lu',
-                    ),
+                      }
+                    },
+                    tooltip: 'Supprimer toutes les notifications',
+                  ),
                 ],
               );
             },

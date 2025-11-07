@@ -161,7 +161,8 @@ class NotificationApiService {
   static Future<Map<String, dynamic>> deleteAllNotifications() async {
     try {
       debugPrint('🗑️ [API] Suppression de TOUTES les notifications');
-      debugPrint('🔑 [API] Token: ${_token != null ? "Défini" : "NON DÉFINI"}');
+      debugPrint('🔑 [API] Token: ${_token != null ? "Défini (${_token!.substring(0, 10)}...)" : "NON DÉFINI"}');
+      debugPrint('🌐 [API] URL: $baseUrl/notifications/delete-all');
       
       final response = await http.delete(
         Uri.parse('$baseUrl/notifications/delete-all'),
@@ -171,7 +172,18 @@ class NotificationApiService {
       debugPrint('📡 [API] Status: ${response.statusCode}');
       debugPrint('📄 [API] Body: ${response.body}');
 
-      return jsonDecode(response.body);
+      if (response.statusCode == 401) {
+        debugPrint('❌ [API] NON AUTORISÉ - Token invalide ou expiré');
+        return {'success': false, 'message': 'Vous devez vous reconnecter'};
+      }
+
+      if (response.statusCode == 404) {
+        debugPrint('❌ [API] Route non trouvée');
+        return {'success': false, 'message': 'Route non trouvée. Veuillez vérifier la configuration du serveur.'};
+      }
+
+      final data = jsonDecode(response.body);
+      return data;
     } on SocketException {
       debugPrint('❌ [API] Pas de connexion internet');
       return {'success': false, 'message': 'Pas de connexion internet'};

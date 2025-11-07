@@ -223,17 +223,30 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Supprimer toutes les notifications
   Future<void> deleteAllNotifications() async {
     try {
+      _log.info('🗑️ [PROVIDER] Tentative de suppression de toutes les notifications');
+      
       final result = await NotificationApiService.deleteAllNotifications();
       
+      _log.info('📡 [PROVIDER] Résultat: ${result['success']}');
+      _log.info("📄 [PROVIDER] Message: ${result['message']}");
+      
       if (result['success']) {
+        _log.info('✅ [PROVIDER] Suppression réussie! Mise à jour de l\'état...');
+        
+        // Mettre à jour l'état localement
         state = state.copyWith(
           notifications: [],
           unreadCount: 0,
+          error: null,
         );
+        
+        _log.info('✅ [PROVIDER] État mis à jour - notifications vidées');
       } else {
+        _log.warning("❌ [PROVIDER] Échec: ${result['message']}");
         state = state.copyWith(error: result['message'] ?? 'Erreur lors de la suppression');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _log.severe('❌ [PROVIDER] Exception lors de la suppression', e, stackTrace);
       state = state.copyWith(error: 'Erreur suppression: $e');
     }
   }
