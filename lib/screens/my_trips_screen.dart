@@ -586,6 +586,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   }
 
   void _showTripDetails(Trip trip) {
+    // GlobalKey pour obtenir la position du bouton de partage (iOS)
+    final GlobalKey shareButtonKey = GlobalKey();
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -619,10 +622,11 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Bouton Partager
+                      // Bouton Partager avec GlobalKey pour iOS
                       IconButton(
+                        key: shareButtonKey,
                         icon: const Icon(Icons.share_rounded),
-                        onPressed: () => _shareTicket(trip),
+                        onPressed: () => _shareTicket(trip, shareButtonKey, context),
                         color: AppTheme.primaryBlue,
                         tooltip: 'Partager le ticket',
                       ),
@@ -653,7 +657,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Future<void> _shareTicket(Trip trip) async {
+  Future<void> _shareTicket(Trip trip, GlobalKey? shareButtonKey, BuildContext context) async {
     try {
       // Afficher un indicateur de chargement
       if (!mounted) return;
@@ -701,11 +705,41 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
       // Partager l'image
       if (!mounted) return;
-      await Share.shareXFiles(
-        [XFile(imagePath)],
-        text: 'Mon ticket de voyage - ART LUXURY BUS\n${trip.routeText}',
-        subject: 'Ticket de voyage',
-      );
+      
+      // Sur iOS, il faut spécifier sharePositionOrigin
+      if (Platform.isIOS && shareButtonKey?.currentContext != null) {
+        final RenderBox? renderBox = shareButtonKey!.currentContext?.findRenderObject() as RenderBox?;
+        if (renderBox != null) {
+          final position = renderBox.localToGlobal(Offset.zero);
+          final size = renderBox.size;
+          
+          await Share.shareXFiles(
+            [XFile(imagePath)],
+            text: 'Mon ticket de voyage - ART LUXURY BUS\n${trip.routeText}',
+            subject: 'Ticket de voyage',
+            sharePositionOrigin: Rect.fromLTWH(
+              position.dx,
+              position.dy,
+              size.width,
+              size.height,
+            ),
+          );
+        } else {
+          // Fallback si on ne peut pas obtenir la position
+          await Share.shareXFiles(
+            [XFile(imagePath)],
+            text: 'Mon ticket de voyage - ART LUXURY BUS\n${trip.routeText}',
+            subject: 'Ticket de voyage',
+          );
+        }
+      } else {
+        // Android ou si pas de position disponible
+        await Share.shareXFiles(
+          [XFile(imagePath)],
+          text: 'Mon ticket de voyage - ART LUXURY BUS\n${trip.routeText}',
+          subject: 'Ticket de voyage',
+        );
+      }
 
       // Supprimer le fichier temporaire après un délai
       Future.delayed(const Duration(seconds: 5), () {
