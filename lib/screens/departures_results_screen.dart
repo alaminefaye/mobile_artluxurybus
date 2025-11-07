@@ -26,12 +26,12 @@ class DeparturesResultsScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: departs.isEmpty
-          ? _buildEmptyState()
-          : _buildResultsList(),
+          ? _buildEmptyState(context)
+          : _buildResultsList(context),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -70,7 +70,7 @@ class DeparturesResultsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildResultsList() {
+  Widget _buildResultsList(BuildContext context) {
     return Column(
       children: [
         // En-tête avec les critères de recherche
