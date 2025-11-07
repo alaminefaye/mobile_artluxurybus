@@ -183,29 +183,41 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
             ),
           ),
           ListTile(
-            leading: Icon(Icons.person, color: Colors.blue.shade700),
-            title: const Text(
+            leading: Icon(
+              Icons.person,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            title: Text(
               'Mon Profil',
-              style: TextStyle(fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
             ),
             onTap: () {
               Navigator.pop(context);
               _showProfileDialog(context);
             },
           ),
-          const Divider(),
+          Divider(color: Theme.of(context).dividerColor),
           ListTile(
-            leading: Icon(Icons.lock, color: Colors.orange.shade700),
-            title: const Text(
+            leading: Icon(
+              Icons.lock,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+            title: Text(
               'Changer mot de passe',
-              style: TextStyle(fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
             ),
             onTap: () {
               Navigator.pop(context);
               _showChangePasswordDialog(context);
             },
           ),
-          const Divider(),
+          Divider(color: Theme.of(context).dividerColor),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text(
@@ -263,16 +275,17 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade600,
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey.shade600,
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
           ),
         ),
       ],
@@ -449,7 +462,14 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     }
 
     if (_dashboard == null) {
-      return const Center(child: Text('Aucune donnée disponible'));
+      return Center(
+        child: Text(
+          'Aucune donnée disponible',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+      );
     }
 
     return RefreshIndicator(
@@ -474,6 +494,9 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
   }
 
   Widget _buildStatsPeriodCard(String title, DashboardPeriod period) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Theme.of(context).cardColor;
+    
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -482,11 +505,14 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [Colors.blue.shade50, Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: cardColor,
+          gradient: isDark 
+              ? null
+              : LinearGradient(
+                  colors: [Colors.blue.shade50, cardColor],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -508,7 +534,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
+                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade900,
                   ),
                 ),
               ],
@@ -537,7 +563,10 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 ),
               ],
             ),
-            const Divider(height: 24),
+            Divider(
+              height: 24,
+              color: Theme.of(context).dividerColor,
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -576,7 +605,10 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+          ),
         ),
       ],
     );
@@ -587,6 +619,8 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
       return const SizedBox.shrink();
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Card(
       elevation: 2,
       child: Padding(
@@ -594,21 +628,35 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Top Destinations',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 16),
             ..._dashboard!.topDestinations.map((dest) {
               return ListTile(
-                leading: const Icon(Icons.location_on, color: Colors.blue),
-                title: Text(dest.destination),
+                leading: Icon(
+                  Icons.location_on,
+                  color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                ),
+                title: Text(
+                  dest.destination,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
                 trailing: Chip(
                   label: Text('${dest.count}'),
-                  backgroundColor: Colors.blue.shade100,
+                  backgroundColor: isDark 
+                      ? Colors.blue.shade800
+                      : Colors.blue.shade100,
+                  labelStyle: TextStyle(
+                    color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                  ),
                 ),
               );
             }),
@@ -626,13 +674,14 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
             'Courriers en attente',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
         ),
@@ -652,13 +701,14 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Text(
             'Collectés récemment',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
             ),
           ),
         ),
@@ -679,12 +729,15 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
   }
 
   Widget _buildMailCard(MailModel mail) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor:
-              mail.isCollected ? Colors.green.shade100 : Colors.orange.shade100,
+          backgroundColor: mail.isCollected
+              ? (isDark ? Colors.green.shade800 : Colors.green.shade100)
+              : (isDark ? Colors.orange.shade800 : Colors.orange.shade100),
           child: Icon(
             mail.isCollected ? Icons.check_circle : Icons.pending,
             color: mail.isCollected ? Colors.green : Colors.orange,
@@ -692,13 +745,26 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
         ),
         title: Text(
           mail.mailNumber,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Expéditeur: ${mail.senderName}'),
-            Text('Destination: ${mail.destination}'),
+            Text(
+              'Expéditeur: ${mail.senderName}',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+            ),
+            Text(
+              'Destination: ${mail.destination}',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+            ),
           ],
         ),
         trailing: Row(
@@ -942,20 +1008,50 @@ class _MailListViewState extends State<MailListView> {
           padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _searchController,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
             decoration: InputDecoration(
               hintText: 'Rechercher un courrier...',
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear),
+                      icon: Icon(
+                        Icons.clear,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
                       onPressed: () {
                         _searchController.clear();
                         _performSearch('');
                       },
                     )
                   : null,
+              filled: true,
+              fillColor: Theme.of(context).cardColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 2,
+                ),
               ),
             ),
             onSubmitted: _performSearch,
@@ -996,11 +1092,18 @@ class _MailListViewState extends State<MailListView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inbox, size: 64, color: Colors.grey.shade400),
+            Icon(
+              Icons.inbox,
+              size: 64,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.4) ?? Colors.grey.shade400,
+            ),
             const SizedBox(height: 16),
             Text(
               'Aucun courrier',
-              style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey.shade600,
+              ),
             ),
           ],
         ),
@@ -1034,12 +1137,17 @@ class _MailListViewState extends State<MailListView> {
   }
 
   Widget _buildMailCard(MailModel mail) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
+    final subtitleColor = Theme.of(context).textTheme.bodyMedium?.color;
+    
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor:
-              mail.isCollected ? Colors.green.shade100 : Colors.orange.shade100,
+          backgroundColor: mail.isCollected
+              ? (isDark ? Colors.green.shade800 : Colors.green.shade100)
+              : (isDark ? Colors.orange.shade800 : Colors.orange.shade100),
           child: Icon(
             mail.isCollected ? Icons.check_circle : Icons.pending,
             color: mail.isCollected ? Colors.green : Colors.orange,
@@ -1047,15 +1155,30 @@ class _MailListViewState extends State<MailListView> {
         ),
         title: Text(
           mail.mailNumber,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Expéditeur: ${mail.senderName}'),
-            Text('Téléphone: ${mail.senderPhone}'),
-            Text('Destination: ${mail.destination}'),
-            Text('Type: ${mail.packageType}'),
+            Text(
+              'Expéditeur: ${mail.senderName}',
+              style: TextStyle(color: subtitleColor),
+            ),
+            Text(
+              'Téléphone: ${mail.senderPhone}',
+              style: TextStyle(color: subtitleColor),
+            ),
+            Text(
+              'Destination: ${mail.destination}',
+              style: TextStyle(color: subtitleColor),
+            ),
+            Text(
+              'Type: ${mail.packageType}',
+              style: TextStyle(color: subtitleColor),
+            ),
           ],
         ),
         trailing: Row(
@@ -1076,7 +1199,10 @@ class _MailListViewState extends State<MailListView> {
                 ),
                 Text(
                   DateFormat('dd/MM/yy').format(mail.createdAt),
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                  ),
                 ),
               ],
             ),
