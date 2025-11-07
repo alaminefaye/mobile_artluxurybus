@@ -2303,10 +2303,8 @@ class _HomePageState extends ConsumerState<HomePage>
         'title': 'Historique',
         'subtitle': 'Vos pointages',
         'color': AppTheme.primaryOrange,
-        'onTap': () => Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => const AttendanceHistoryScreen())),
+        'onTap': () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen())),
       });
     } else if (_isAdminOrChefAgence(user)) {
       // Seulement pour Super Admin, Admin et Chef agence
@@ -2373,8 +2371,8 @@ class _HomePageState extends ConsumerState<HomePage>
         'title': 'Mes Trajets',
         'subtitle': 'Voir mes réservations',
         'color': AppTheme.primaryOrange,
-        'onTap': () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const MyTripsScreen())),
+        'onTap': () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const MyTripsScreen())),
       });
       services.add({
         'icon': Icons.local_shipping_rounded,
@@ -2830,6 +2828,12 @@ class _HomePageState extends ConsumerState<HomePage>
     required IconData icon,
     required List<Widget> options,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = isDark ? Colors.orange : AppTheme.primaryBlue;
+    final backgroundColor = isDark 
+        ? Colors.orange.withValues(alpha: 0.1)
+        : AppTheme.primaryBlue.withValues(alpha: 0.1);
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2840,12 +2844,12 @@ class _HomePageState extends ConsumerState<HomePage>
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  color: backgroundColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
-                  color: AppTheme.primaryBlue,
+                  color: iconColor,
                   size: 16,
                 ),
               ),
