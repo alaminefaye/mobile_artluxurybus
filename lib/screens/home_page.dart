@@ -13,8 +13,10 @@ import '../services/notification_api_service.dart';
 import '../services/ads_api_service.dart';
 import '../services/horaire_service.dart';
 import '../services/video_advertisement_service.dart';
+import '../services/slide_service.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
+import '../models/slide_model.dart';
 import '../widgets/location_display_widget.dart';
 import '../widgets/ad_banner.dart';
 import 'notification_detail_screen.dart';
@@ -57,6 +59,8 @@ class _HomePageState extends ConsumerState<HomePage>
   double _solde = 0.0;
   bool _isLoadingSolde = false;
   int _adBannerKey = 0; // Clé pour forcer le rechargement de l'AdBanner
+  List<Slide> _slides = [];
+  bool _isLoadingSlides = false;
 
   @override
   void initState() {
@@ -64,17 +68,7 @@ class _HomePageState extends ConsumerState<HomePage>
     WidgetsBinding.instance.addObserver(this);
     _currentIndex = widget.initialTabIndex;
     _loadSolde();
-    
-    // Recharger les permissions au démarrage pour avoir les dernières modifications
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        ref.invalidate(featurePermissionsProvider);
-        debugPrint('🔄 [HomePage] Rechargement des permissions au démarrage');
-      } catch (e) {
-        debugPrint('⚠️ [HomePage] Erreur rechargement permissions: $e');
-      }
-    });
-    
+    _loadSlides();
     // Initialiser le token pour l'API des feedbacks et FCM
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final authState = ref.read(authProvider);
@@ -88,6 +82,7 @@ class _HomePageState extends ConsumerState<HomePage>
           AdsApiService.setToken(token);
           HoraireService.setToken(token);
           VideoAdvertisementService.setToken(token);
+          SlideService.setToken(token);
           TripService.setToken(token);
           DepartService.setToken(token);
           ReservationService.setToken(token);
@@ -187,6 +182,34 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
+  Future<void> _loadSlides() async {
+    if (!mounted) return;
+
+    try {
+      setState(() {
+        _isLoadingSlides = true;
+      });
+
+      final slideService = SlideService();
+      final slides = await slideService.getActiveSlides();
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingSlides = false;
+        _slides = slides;
+      });
+    } catch (e) {
+      debugPrint('❌ [HomePage] Erreur lors du chargement des slides: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSlides = false;
+          _slides = [];
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -196,18 +219,6 @@ class _HomePageState extends ConsumerState<HomePage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
-    // Quand l'app revient au premier plan, recharger les permissions
-    if (state == AppLifecycleState.resumed) {
-      debugPrint('🔄 [HomePage] App reprend, rechargement des permissions...');
-      try {
-        ref.invalidate(featurePermissionsProvider);
-        debugPrint('✅ [HomePage] Permissions invalidées après reprise de l\'app');
-      } catch (e) {
-        debugPrint('⚠️ [HomePage] Erreur rechargement permissions après reprise: $e');
-      }
-    }
-    
     // Ne pas forcer le rechargement automatique - laisser l'AdBanner gérer sa propre reprise
     // Le rechargement avec la clé se fait uniquement quand on revient de la page de recharge
   }
@@ -527,18 +538,10 @@ class _HomePageState extends ConsumerState<HomePage>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
-          // Rafraîchir les données de l'utilisateur et les permissions
+          // Rafraîchir les données de l'utilisateur
           debugPrint('🔄 [HomePage] Actualisation de l\'onglet Accueil');
-          
-          // Recharger les permissions depuis le backend
-          try {
-            ref.invalidate(featurePermissionsProvider);
-            debugPrint('✅ [HomePage] Permissions invalidées, rechargement en cours...');
-          } catch (e) {
-            debugPrint('⚠️ [HomePage] Erreur lors du rechargement des permissions: $e');
-          }
-          
           await _loadSolde();
+          await _loadSlides();
           await Future.delayed(const Duration(milliseconds: 500));
         },
         color: AppTheme.primaryBlue,
@@ -760,8 +763,8 @@ class _HomePageState extends ConsumerState<HomePage>
 
                     const SizedBox(height: 24),
 
-                    // Section Promotions
-                    _buildPromotionsSection(),
+                    // Section Slides
+                    _buildSlidesSection(),
 
                     const SizedBox(height: 100), // Espace pour bottom nav
                   ],
@@ -865,6 +868,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   icon: Icons.confirmation_number_rounded,
                   label: 'Réserver',
                   color: AppTheme.primaryBlue,
+                  useWhiteBackground: true,
                 ),
               ),
             if (_isFeatureEnabled(ref, FeatureCodes.mesTrajets))
@@ -945,17 +949,28 @@ class _HomePageState extends ConsumerState<HomePage>
     required IconData icon,
     required String label,
     required Color color,
+    bool useWhiteBackground = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = useWhiteBackground && isDark
+        ? Colors.white
+        : (isDark ? color.withValues(alpha: 0.15) : Colors.white);
+    final iconColor = useWhiteBackground && isDark
+        ? color
+        : (isDark ? color.withValues(alpha: 0.9) : color);
+    final borderColor = useWhiteBackground && isDark
+        ? color.withValues(alpha: 0.3)
+        : (isDark ? color.withValues(alpha: 0.4) : Colors.transparent);
+
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isDark ? color.withValues(alpha: 0.15) : Colors.white,
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isDark ? color.withValues(alpha: 0.4) : Colors.transparent,
+              color: borderColor,
               width: 1.5,
             ),
             boxShadow: [
@@ -966,8 +981,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             ],
           ),
-          child: Icon(icon,
-              color: isDark ? color.withValues(alpha: 0.9) : color, size: 24),
+          child: Icon(icon, color: iconColor, size: 24),
         ),
         const SizedBox(height: 8),
         Text(
@@ -1082,6 +1096,19 @@ class _HomePageState extends ConsumerState<HomePage>
                 );
               },
             ),
+          if (_isFeatureEnabled(ref, FeatureCodes.courrier))
+            _buildServiceIcon(
+              icon: Icons.local_shipping_rounded,
+              label: 'Courrier',
+              color: AppTheme.primaryOrange,
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MyMailsScreen(),
+                  ),
+                );
+              },
+            ),
           if (_isFeatureEnabled(ref, FeatureCodes.feedback))
             _buildServiceIcon(
               icon: Icons.feedback_rounded,
@@ -1092,18 +1119,6 @@ class _HomePageState extends ConsumerState<HomePage>
                   MaterialPageRoute(
                     builder: (context) => const FeedbackScreen(),
                   ),
-                );
-              },
-            ),
-          if (_isFeatureEnabled(ref, FeatureCodes.payment))
-            _buildServiceIcon(
-              icon: Icons.payment_rounded,
-              label: 'Paiement',
-              color: const Color(0xFF6366F1),
-              onTap: () {
-                // Navigation vers paiement (à venir)
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Paiement - En développement')),
                 );
               },
             ),
@@ -1322,206 +1337,128 @@ class _HomePageState extends ConsumerState<HomePage>
     );
   }
 
-  // Section Promotions
-  Widget _buildPromotionsSection() {
+  // Section Slides
+  Widget _buildSlidesSection() {
+    if (_isLoadingSlides) {
+      return const SizedBox(
+        height: 200,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_slides.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Offres Spéciales',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).textTheme.titleLarge?.color,
-                letterSpacing: 0.5,
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              child: Text(
-                'Voir tout',
-                style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : AppTheme.primaryOrange,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
+        Text(
+          'Slides',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).textTheme.titleLarge?.color,
+            letterSpacing: 0.5,
+          ),
         ),
         const SizedBox(height: 12),
         SizedBox(
           height: 200,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildPromotionCard(
-                title: '-20% Fidélité',
-                subtitle: 'Sur votre 10ème voyage',
-                icon: Icons.card_giftcard_rounded,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF9333EA),
-                    Color(0xFF7C3AED),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              _buildPromotionCard(
-                title: 'Courrier Gratuit',
-                subtitle: 'Pour tout achat de 2 billets',
-                icon: Icons.local_shipping_rounded,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.primaryOrange,
-                    Color(0xFFF97316),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              _buildPromotionCard(
-                title: 'Weekend Pass',
-                subtitle: 'Voyagez tout le weekend',
-                icon: Icons.calendar_month_rounded,
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.primaryBlue,
-                    Color(0xFF2563EB),
-                  ],
-                ),
-              ),
-            ],
+          child: PageView.builder(
+            itemCount: _slides.length,
+            itemBuilder: (context, index) {
+              final slide = _slides[index];
+              return _buildSlideCard(slide);
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPromotionCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Gradient gradient,
-  }) {
+  Widget _buildSlideCard(Slide slide) {
     return Container(
-      width: 280,
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        gradient: gradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 15,
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
             spreadRadius: 0,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Image du slide
+            Image.network(
+              slide.imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey.shade300,
+                  child: const Icon(
+                    Icons.broken_image,
+                    size: 50,
+                    color: Colors.grey,
+                  ),
+                );
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  color: Colors.grey.shade200,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  ),
+                );
+              },
+            ),
+            // Dégradé pour le texte
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'NOUVEAU',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.7),
+                      Colors.black.withValues(alpha: 0.3),
+                      Colors.transparent,
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  slide.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'En savoir plus',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A237E),
-                      ),
-                    ),
-                    SizedBox(width: 3),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 13,
-                      color: Color(0xFF1A237E),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2278,6 +2215,21 @@ class _HomePageState extends ConsumerState<HomePage>
           'color': AppTheme.primaryOrange,
           'onTap': () => Navigator.push(context,
               MaterialPageRoute(builder: (_) => const MyTripsScreen())),
+        });
+      }
+      if (_isFeatureEnabled(ref, FeatureCodes.courrier)) {
+        services.add({
+          'icon': Icons.local_shipping_rounded,
+          'title': 'Courrier',
+          'subtitle': 'Mes courriers',
+          'color': AppTheme.primaryOrange,
+          'onTap': () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const MyMailsScreen(),
+              ),
+            );
+          },
         });
       }
       if (_isFeatureEnabled(ref, FeatureCodes.payment)) {
