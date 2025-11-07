@@ -157,6 +157,30 @@ class NotificationApiService {
     }
   }
 
+  /// Supprimer toutes les notifications
+  static Future<Map<String, dynamic>> deleteAllNotifications() async {
+    try {
+      debugPrint('🗑️ [API] Suppression de TOUTES les notifications');
+      debugPrint('🔑 [API] Token: ${_token != null ? "Défini" : "NON DÉFINI"}');
+      
+      final response = await http.delete(
+        Uri.parse('$baseUrl/notifications/delete-all'),
+        headers: _headers,
+      );
+      
+      debugPrint('📡 [API] Status: ${response.statusCode}');
+      debugPrint('📄 [API] Body: ${response.body}');
+
+      return jsonDecode(response.body);
+    } on SocketException {
+      debugPrint('❌ [API] Pas de connexion internet');
+      return {'success': false, 'message': 'Pas de connexion internet'};
+    } catch (e) {
+      debugPrint('❌ [API] Exception: $e');
+      return {'success': false, 'message': 'Erreur: $e'};
+    }
+  }
+
   /// Obtenir le nombre de notifications non lues
   static Future<int> getUnreadCount() async {
     try {

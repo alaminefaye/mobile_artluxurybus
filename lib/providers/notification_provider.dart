@@ -220,6 +220,24 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
   }
 
+  /// Supprimer toutes les notifications
+  Future<void> deleteAllNotifications() async {
+    try {
+      final result = await NotificationApiService.deleteAllNotifications();
+      
+      if (result['success']) {
+        state = state.copyWith(
+          notifications: [],
+          unreadCount: 0,
+        );
+      } else {
+        state = state.copyWith(error: result['message'] ?? 'Erreur lors de la suppression');
+      }
+    } catch (e) {
+      state = state.copyWith(error: 'Erreur suppression: $e');
+    }
+  }
+
   /// Rafraîchir les notifications
   Future<void> refresh() async {
     await loadNotifications(refresh: true);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,6 +62,9 @@ class _HomePageState extends ConsumerState<HomePage>
   int _adBannerKey = 0; // Clé pour forcer le rechargement de l'AdBanner
   List<Slide> _slides = [];
   bool _isLoadingSlides = false;
+  PageController? _slidesPageController;
+  Timer? _slidesTimer;
+  int _currentSlideIndex = 0;
 
   @override
   void initState() {
@@ -199,6 +203,25 @@ class _HomePageState extends ConsumerState<HomePage>
         _isLoadingSlides = false;
         _slides = slides;
       });
+
+      // Initialiser ou réinitialiser le PageController et le Timer après le chargement des slides
+      if (slides.isNotEmpty) {
+        if (_slidesPageController != null &&
+            _slidesPageController!.hasClients) {
+          // Si le PageController existe déjà, juste réinitialiser le timer
+          _currentSlideIndex = 0;
+          _slidesPageController!.jumpToPage(0);
+          _startAutoScroll();
+        } else {
+          // Sinon, initialiser complètement
+          _initializeSlidesAutoScroll();
+        }
+      } else {
+        // Si pas de slides, nettoyer
+        _slidesTimer?.cancel();
+        _slidesPageController?.dispose();
+        _slidesPageController = null;
+      }
     } catch (e) {
       debugPrint('❌ [HomePage] Erreur lors du chargement des slides: $e');
       if (mounted) {
@@ -213,7 +236,74 @@ class _HomePageState extends ConsumerState<HomePage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _slidesTimer?.cancel();
+    _slidesPageController?.dispose();
     super.dispose();
+  }
+
+  void _initializeSlidesAutoScroll() {
+    // Annuler le timer existant s'il y en a un
+    _slidesTimer?.cancel();
+
+    // Disposer du PageController existant s'il y en a un
+    _slidesPageController?.dispose();
+
+    // Créer un nouveau PageController
+    _slidesPageController = PageController(initialPage: 0);
+    _currentSlideIndex = 0;
+
+    // Démarrer le défilement automatique
+    _startAutoScroll();
+  }
+
+  void _onSlideChanged(int index) {
+    if (_currentSlideIndex != index) {
+      setState(() {
+        _currentSlideIndex = index;
+      });
+
+      // Réinitialiser le timer quand l'utilisateur change manuellement de slide
+      _resetAutoScrollTimer();
+    }
+  }
+
+  void _onSlideTapped() {
+    // Arrêter temporairement le défilement automatique quand l'utilisateur interagit
+    _resetAutoScrollTimer();
+  }
+
+  void _resetAutoScrollTimer() {
+    // Annuler le timer actuel
+    _slidesTimer?.cancel();
+
+    // Redémarrer le défilement automatique après 5 secondes d'inactivité
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted &&
+          _slides.isNotEmpty &&
+          _slidesPageController != null &&
+          _slidesPageController!.hasClients) {
+        _startAutoScroll();
+      }
+    });
+  }
+
+  void _startAutoScroll() {
+    // Annuler le timer existant
+    _slidesTimer?.cancel();
+
+    // Démarrer le timer pour le défilement automatique (toutes les 3 secondes)
+    _slidesTimer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
+      if (_slidesPageController != null &&
+          _slidesPageController!.hasClients &&
+          _slides.isNotEmpty) {
+        _currentSlideIndex = (_currentSlideIndex + 1) % _slides.length;
+        _slidesPageController!.animateToPage(
+          _currentSlideIndex,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   @override
@@ -1368,13 +1458,40 @@ class _HomePageState extends ConsumerState<HomePage>
         SizedBox(
           height: 200,
           child: PageView.builder(
+            controller: _slidesPageController,
             itemCount: _slides.length,
+            onPageChanged: _onSlideChanged,
             itemBuilder: (context, index) {
               final slide = _slides[index];
-              return _buildSlideCard(slide);
+              return GestureDetector(
+                onTap: _onSlideTapped,
+                child: _buildSlideCard(slide),
+              );
             },
           ),
         ),
+        // Indicateurs de pagination
+        if (_slides.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _slides.length,
+                (index) => Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _currentSlideIndex == index
+                        ? AppTheme.primaryBlue
+                        : Colors.grey.shade300,
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -1500,16 +1617,89 @@ class _HomePageState extends ConsumerState<HomePage>
           Consumer(
             builder: (context, ref, child) {
               final notificationState = ref.watch(notificationProvider);
-              if (notificationState.unreadCount > 0) {
-                return IconButton(
-                  icon: const Icon(Icons.mark_email_read),
-                  onPressed: () {
-                    ref.read(notificationProvider.notifier).markAllAsRead();
-                  },
-                  tooltip: 'Tout marquer comme lu',
-                );
-              }
-              return const SizedBox.shrink();
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Bouton pour supprimer toutes les notifications
+                  if (notificationState.notifications.isNotEmpty)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () async {
+                        // Afficher une boîte de dialogue de confirmation
+                        final shouldDelete = await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text(
+                                  'Supprimer toutes les notifications'),
+                              content: const Text(
+                                'Êtes-vous sûr de vouloir supprimer toutes vos notifications ? Cette action est irréversible.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text('Annuler'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                  ),
+                                  child: const Text('Supprimer'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (shouldDelete == true && mounted) {
+                          // Afficher un indicateur de chargement
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (context) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+
+                          // Supprimer toutes les notifications
+                          await ref
+                              .read(notificationProvider.notifier)
+                              .deleteAllNotifications();
+
+                          // Fermer l'indicateur de chargement
+                          if (mounted) {
+                            Navigator.of(context).pop();
+                          }
+
+                          // Afficher un message de succès
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                    'Toutes les notifications ont été supprimées'),
+                                backgroundColor: Colors.green,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      tooltip: 'Supprimer toutes les notifications',
+                    ),
+                  // Bouton pour marquer toutes comme lues
+                  if (notificationState.unreadCount > 0)
+                    IconButton(
+                      icon: const Icon(Icons.mark_email_read),
+                      onPressed: () {
+                        ref.read(notificationProvider.notifier).markAllAsRead();
+                      },
+                      tooltip: 'Tout marquer comme lu',
+                    ),
+                ],
+              );
             },
           ),
         ],
