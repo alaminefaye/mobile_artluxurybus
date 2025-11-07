@@ -1688,25 +1688,30 @@ class _HomePageState extends ConsumerState<HomePage>
 
                         // Vérifier le résultat et afficher un message
                         if (mounted) {
-                          final notificationState = ref.read(notificationProvider);
-                          
+                          final notificationState =
+                              ref.read(notificationProvider);
+
                           if (notificationState.error != null) {
                             // Afficher un message d'erreur
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(notificationState.error ?? 'Erreur lors de la suppression'),
+                                content: Text(notificationState.error ??
+                                    'Erreur lors de la suppression'),
                                 backgroundColor: Colors.red,
                                 duration: const Duration(seconds: 3),
                               ),
                             );
                           } else {
                             // Recharger les notifications depuis le serveur pour synchroniser
-                            await ref.read(notificationProvider.notifier).refresh();
-                            
+                            await ref
+                                .read(notificationProvider.notifier)
+                                .refresh();
+
                             // Afficher un message de succès
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Toutes les notifications ont été supprimées'),
+                                content: Text(
+                                    'Toutes les notifications ont été supprimées'),
                                 backgroundColor: Colors.green,
                                 duration: Duration(seconds: 2),
                               ),
@@ -1731,13 +1736,30 @@ class _HomePageState extends ConsumerState<HomePage>
           final filteredNotifications =
               (_isClient(user) || _hasAttendanceRole(user))
                   ? notificationState.notifications.where((notif) {
-                      // Exclure les notifications de type feedback/suggestion
-                      return notif.type != 'feedback' &&
+                      // Exclure UNIQUEMENT les notifications de type feedback/suggestion
+                      // NE PAS filtrer les notifications de type 'notification' ou 'message_notification'
+                      final shouldInclude = notif.type != 'feedback' &&
                           notif.type != 'suggestion' &&
                           notif.type != 'new_feedback' &&
                           notif.type != 'urgent_feedback';
+                      
+                      // Log pour debug
+                      if (!shouldInclude) {
+                        debugPrint('🔔 [FILTRE] Notification exclue: type=${notif.type}, titre=${notif.title}');
+                      }
+                      
+                      return shouldInclude;
                     }).toList()
                   : notificationState.notifications;
+          
+          // Log pour debug
+          debugPrint('🔔 [FILTRE] Total notifications: ${notificationState.notifications.length}');
+          debugPrint('🔔 [FILTRE] Notifications filtrées: ${filteredNotifications.length}');
+          debugPrint('🔔 [FILTRE] Est client: ${_isClient(user)}');
+          debugPrint('🔔 [FILTRE] A rôle pointage: ${_hasAttendanceRole(user)}');
+          if (notificationState.notifications.isNotEmpty) {
+            debugPrint('🔔 [FILTRE] Types de notifications: ${notificationState.notifications.map((n) => n.type).toSet().join(", ")}');
+          }
 
           if (notificationState.isLoading &&
               notificationState.notifications.isEmpty) {
