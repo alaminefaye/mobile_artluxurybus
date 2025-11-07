@@ -181,8 +181,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: Column(
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
             // Formulaire de recherche
             Container(
               padding: const EdgeInsets.all(16),
@@ -209,12 +210,29 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    dropdownColor: Colors.white,
+                    dropdownColor: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).cardColor
+                        : Colors.white,
                     style: const TextStyle(color: Colors.white),
+                    selectedItemBuilder: (BuildContext context) {
+                      return _embarquements.map<Widget>((String ville) {
+                        return Text(
+                          ville,
+                          style: const TextStyle(color: Colors.white),
+                        );
+                      }).toList();
+                    },
                     items: _embarquements.map((ville) {
                       return DropdownMenuItem(
                         value: ville,
-                        child: Text(ville, style: const TextStyle(color: Colors.black87)),
+                        child: Text(
+                          ville,
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -239,12 +257,29 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    dropdownColor: Colors.white,
+                    dropdownColor: Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).cardColor
+                        : Colors.white,
                     style: const TextStyle(color: Colors.white),
+                    selectedItemBuilder: (BuildContext context) {
+                      return _destinations.map<Widget>((String ville) {
+                        return Text(
+                          ville,
+                          style: const TextStyle(color: Colors.white),
+                        );
+                      }).toList();
+                    },
                     items: _destinations.map((ville) {
                       return DropdownMenuItem(
                         value: ville,
-                        child: Text(ville, style: const TextStyle(color: Colors.black87)),
+                        child: Text(
+                          ville,
+                          style: TextStyle(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -351,7 +386,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
             ),
 
             // Espace vide - les résultats seront affichés sur une page séparée
-            Expanded(
+            Container(
+              padding: const EdgeInsets.all(32),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -359,14 +395,18 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     Icon(
                       Icons.search,
                       size: 64,
-                      color: Colors.grey[400],
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white54
+                          : Colors.grey[400],
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'Remplissez le formulaire et cliquez sur "Rechercher"',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : Colors.grey[600],
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -374,7 +414,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
