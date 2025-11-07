@@ -185,14 +185,14 @@ class DeparturesResultsScreen extends StatelessWidget {
         ],
       ),
       child: InkWell(
-        onTap: () {
+        onTap: (depart['is_active'] == true) ? () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => SeatSelectionScreen(depart: depart),
             ),
           );
-        },
+        } : null,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -322,13 +322,17 @@ class DeparturesResultsScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.orange,
+                  color: (depart['is_active'] == true) 
+                      ? Colors.orange 
+                      : Colors.grey[400],
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Sélectionner',
-                    style: TextStyle(
+                    (depart['is_active'] == true) 
+                        ? 'Sélectionner' 
+                        : 'Réservation indisponible',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
