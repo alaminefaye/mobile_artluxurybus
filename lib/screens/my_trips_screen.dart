@@ -750,78 +750,129 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     // Données pour le QR code
     final qrData = 'TICKET|${trip.id}|${trip.telephone}|${date}|${seatNumber}';
 
+    // Détecter si c'est un laisser-passer
+    final isLaisserPasser = trip.isPassthrough || trip.isLoyaltyReward || (trip.prix != null && trip.prix == 0);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: isLaisserPasser
+            ? Border.all(
+                color: Colors.orange,
+                width: 3,
+              )
+            : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: isLaisserPasser
+                ? Colors.orange.withValues(alpha: 0.3)
+                : Colors.black.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Column(
+      child: Stack(
         children: [
-          // Section Header (Blanc)
-          _buildBoardingHeader(trip),
-
-          // Section FROM/TO (Blanc avec design)
-          _buildRouteSection(fromCity, toCity, date, time),
-
-          // Bandeau "BOARDING PASS"
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue,
-            ),
-            child: const Center(
-              child: Text(
-                'TICKET D\'EMBARQUEMENT',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-          ),
-
-          // Section Informations (Bleu - couleurs thème)
-          _buildInfoSection(trip, seatNumber, ticketNumber),
-
-          // Ligne pointillée de séparation (style boarding pass)
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: List.generate(
-                60,
-                (index) => Expanded(
-                  child: Container(
-                    height: 2,
-                    decoration: BoxDecoration(
-                      color: index % 3 == 0
-                          ? Colors.white.withValues(alpha: 0.6)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(1),
-                    ),
+          // Filigrane pour laisser-passer
+          if (isLaisserPasser)
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.08,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: CustomPaint(
+                    painter: WatermarkPainter(),
                   ),
                 ),
               ),
             ),
-          ),
+          
+          // Contenu du ticket
+          Column(
+            children: [
+              // Section Header (Blanc)
+              _buildBoardingHeader(trip, isLaisserPasser),
 
-          // QR Code Section
-          _buildQRSection(qrData, trip.id),
+              // Section FROM/TO (Blanc avec design)
+              _buildRouteSection(fromCity, toCity, date, time, isLaisserPasser),
+
+              // Bandeau "BOARDING PASS" ou "LAISSER PASSER"
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: isLaisserPasser
+                      ? LinearGradient(
+                          colors: [
+                            Colors.orange.shade600,
+                            Colors.orange.shade800,
+                          ],
+                        )
+                      : null,
+                  color: isLaisserPasser ? null : AppTheme.primaryBlue,
+                ),
+                child: Center(
+                  child: Text(
+                    isLaisserPasser ? 'LAISSER PASSER' : 'TICKET D\'EMBARQUEMENT',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                      shadows: isLaisserPasser
+                          ? [
+                              Shadow(
+                                color: Colors.orange.shade900,
+                                blurRadius: 4,
+                                offset: const Offset(1, 1),
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Section Informations (Bleu/Orange selon le type)
+              _buildInfoSection(trip, seatNumber, ticketNumber, isLaisserPasser),
+
+              // Ligne pointillée de séparation (style boarding pass)
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: List.generate(
+                    60,
+                    (index) => Expanded(
+                      child: Container(
+                        height: 2,
+                        decoration: BoxDecoration(
+                          color: index % 3 == 0
+                              ? (isLaisserPasser
+                                  ? Colors.orange.withValues(alpha: 0.6)
+                                  : Colors.white.withValues(alpha: 0.6))
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(1),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // QR Code Section
+              _buildQRSection(qrData, trip.id, isLaisserPasser),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBoardingHeader(Trip trip) {
+  Widget _buildBoardingHeader(Trip trip, bool isLaisserPasser) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -841,8 +892,25 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue,
+                  gradient: isLaisserPasser
+                      ? LinearGradient(
+                          colors: [
+                            Colors.orange.shade400,
+                            Colors.orange.shade600,
+                          ],
+                        )
+                      : null,
+                  color: isLaisserPasser ? null : AppTheme.primaryBlue,
                   borderRadius: BorderRadius.circular(25),
+                  boxShadow: isLaisserPasser
+                      ? [
+                          BoxShadow(
+                            color: Colors.orange.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: const Icon(
                   Icons.directions_bus_rounded,
@@ -862,16 +930,33 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
             ],
           ),
-          // Badge classe
+          // Badge classe ou GRATUIT
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppTheme.primaryBlue,
+              gradient: isLaisserPasser
+                  ? LinearGradient(
+                      colors: [
+                        Colors.orange.shade400,
+                        Colors.orange.shade600,
+                      ],
+                    )
+                  : null,
+              color: isLaisserPasser ? null : AppTheme.primaryBlue,
               borderRadius: BorderRadius.circular(20),
+              boxShadow: isLaisserPasser
+                  ? [
+                      BoxShadow(
+                        color: Colors.orange.withValues(alpha: 0.4),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
             ),
-            child: const Text(
-              'STANDARD',
-              style: TextStyle(
+            child: Text(
+              isLaisserPasser ? 'GRATUIT' : 'STANDARD',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -885,14 +970,14 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   }
 
   Widget _buildRouteSection(
-      String fromCity, String toCity, String date, String time) {
+      String fromCity, String toCity, String date, String time, bool isLaisserPasser) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.primaryBlue,
+            color: isLaisserPasser ? Colors.orange : AppTheme.primaryBlue,
             width: 2,
           ),
         ),
@@ -945,7 +1030,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Icon(
                   Icons.arrow_forward_rounded,
-                  color: AppTheme.primaryBlue,
+                  color: isLaisserPasser ? Colors.orange : AppTheme.primaryBlue,
                   size: 24,
                 ),
               ),
@@ -995,17 +1080,22 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Widget _buildInfoSection(Trip trip, String seatNumber, String ticketNumber) {
+  Widget _buildInfoSection(Trip trip, String seatNumber, String ticketNumber, bool isLaisserPasser) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryBlue,
-            AppTheme.accentBlue,
-          ],
+          colors: isLaisserPasser
+              ? [
+                  Colors.orange.shade600,
+                  Colors.orange.shade800,
+                ]
+              : [
+                  AppTheme.primaryBlue,
+                  AppTheme.accentBlue,
+                ],
         ),
       ),
       child: Column(
@@ -1122,22 +1212,55 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 ),
             ],
           ),
-          if (trip.prix != null) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Prix',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
+          // Prix ou badge LAISSER PASSER
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isLaisserPasser ? 'Type' : 'Prix',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
-                      const SizedBox(height: 4),
+                    ),
+                    const SizedBox(height: 4),
+                    if (isLaisserPasser)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.card_giftcard,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'GRATUIT',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (trip.prix != null)
                       Text(
                         '${trip.prix!.toStringAsFixed(0)} FCFA',
                         style: const TextStyle(
@@ -1146,27 +1269,41 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           color: Colors.white,
                           letterSpacing: 0.5,
                         ),
+                      )
+                    else
+                      Text(
+                        '-',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildQRSection(String qrData, int ticketId) {
+  Widget _buildQRSection(String qrData, int ticketId, bool isLaisserPasser) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryBlue,
+          colors: isLaisserPasser
+              ? [
+                  Colors.orange.shade600,
+                  Colors.orange.shade800,
+                ]
+              : [
+                  AppTheme.primaryBlue,
             AppTheme.accentBlue,
           ],
         ),
@@ -1200,4 +1337,46 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       ),
     );
   }
+}
+
+// CustomPainter pour le filigrane "LAISSER PASSER"
+class WatermarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final textSpan = TextSpan(
+      text: 'LAISSER\nPASSER',
+      style: TextStyle(
+        fontSize: 60,
+        fontWeight: FontWeight.bold,
+        color: Colors.orange.withValues(alpha: 0.15),
+        letterSpacing: 4,
+        height: 1.2,
+      ),
+    );
+
+    final textPainter = TextPainter(
+      text: textSpan,
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout(maxWidth: size.width);
+
+    // Calculer la position pour centrer le texte
+    final offset = Offset(
+      (size.width - textPainter.width) / 2,
+      (size.height - textPainter.height) / 2,
+    );
+
+    // Dessiner le texte en diagonale
+    canvas.save();
+    canvas.translate(offset.dx + textPainter.width / 2, offset.dy + textPainter.height / 2);
+    canvas.rotate(-0.5); // Rotation de -30 degrés environ
+    canvas.translate(-textPainter.width / 2, -textPainter.height / 2);
+    textPainter.paint(canvas, Offset.zero);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(WatermarkPainter oldDelegate) => false;
 }
