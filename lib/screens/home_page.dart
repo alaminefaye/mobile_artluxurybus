@@ -42,7 +42,6 @@ import '../services/depart_service.dart';
 import '../services/reservation_service.dart';
 import 'recharge_screen.dart';
 import '../services/recharge_service.dart';
-import 'embarkment_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -585,40 +584,6 @@ class _HomePageState extends ConsumerState<HomePage>
     return false; // Par défaut, afficher les notifications
   }
 
-  bool _hasEmbarkmentRole(User user) {
-    // Vérifier le rôle
-    if (user.role != null) {
-      final roleLower = user.role!.toLowerCase();
-      if (roleLower.contains('embarquement') || roleLower.contains('embarkment')) {
-        return true;
-      }
-    }
-
-    // Vérifier les permissions
-    if (user.permissions != null) {
-      for (var permission in user.permissions!) {
-        final permLower = permission.toLowerCase();
-        if (permLower.contains('embarquement') || 
-            permLower.contains('embarkment') ||
-            permLower.contains('scan_ticket')) {
-          return true;
-        }
-      }
-    }
-
-    // Vérifier les rôles dans la liste
-    if (user.rolesList != null) {
-      for (var role in user.rolesList!) {
-        final roleLower = role.toLowerCase();
-        if (roleLower.contains('embarquement') || roleLower.contains('embarkment')) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   Widget _buildHomeTab(User user) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1020,22 +985,6 @@ class _HomePageState extends ConsumerState<HomePage>
               icon: Icons.access_time_rounded,
               label: 'Statut',
               color: AppTheme.primaryBlue,
-            ),
-          ],
-          if (_hasEmbarkmentRole(user)) ...[
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const EmbarkmentScreen(),
-                  ),
-                );
-              },
-              child: _buildQuickActionItem(
-                icon: Icons.directions_bus_rounded,
-                label: 'Embarquement',
-                color: Colors.green,
-              ),
             ),
           ],
         ],

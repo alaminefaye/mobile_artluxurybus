@@ -31,6 +31,7 @@ import 'debug/debug_screen.dart';
 import 'screens/management_hub_screen.dart';
 import 'screens/mail_management_screen.dart';
 import 'screens/mail_detail_screen.dart' as mail_detail;
+import 'screens/embarkment_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -481,6 +482,35 @@ class AuthWrapper extends ConsumerWidget {
         isCourrier = roles.any(
           (r) => r.toString().trim().toLowerCase() == 'courrier',
         );
+      }
+
+      // Vérifier si l'utilisateur a le rôle "embarquement"
+      bool isEmbarkment = false;
+      if (userRole != null && (userRole.contains('embarquement') || userRole.contains('embarkment'))) {
+        isEmbarkment = true;
+      } else if (user?.displayRole != null &&
+          (user!.displayRole!.trim().toLowerCase().contains('embarquement') ||
+           user.displayRole!.trim().toLowerCase().contains('embarkment'))) {
+        isEmbarkment = true;
+      } else if (roles.isNotEmpty) {
+        isEmbarkment = roles.any(
+          (r) => r.toString().trim().toLowerCase().contains('embarquement') ||
+                 r.toString().trim().toLowerCase().contains('embarkment'),
+        );
+      } else if (permissions.isNotEmpty) {
+        isEmbarkment = permissions.any(
+          (p) => p.toLowerCase().contains('embarquement') ||
+                 p.toLowerCase().contains('embarkment') ||
+                 p.toLowerCase().contains('scan_ticket'),
+        );
+      }
+
+      // Rediriger vers EmbarkmentScreen si l'utilisateur a le rôle "embarquement"
+      if (isEmbarkment) {
+        debugPrint(
+          '✅ [AuthWrapper] Redirection vers EmbarkmentScreen (rôle: embarquement)',
+        );
+        return const EmbarkmentScreen();
       }
 
       // Rediriger vers ManagementHubScreen UNIQUEMENT si l'utilisateur a le rôle "courrier"
