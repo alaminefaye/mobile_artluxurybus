@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
 import '../services/auth_service.dart';
-import '../models/simple_auth_models.dart';
+import '../providers/auth_provider.dart';
+import '../models/user.dart';
+import '../screens/home_page.dart';
 
-class CreateAccountScreen extends StatefulWidget {
+class CreateAccountScreen extends ConsumerStatefulWidget {
   final ClientSearchData client;
 
   const CreateAccountScreen({
@@ -15,10 +18,10 @@ class CreateAccountScreen extends StatefulWidget {
   });
 
   @override
-  State<CreateAccountScreen> createState() => _CreateAccountScreenState();
+  ConsumerState<CreateAccountScreen> createState() => _CreateAccountScreenState();
 }
 
-class _CreateAccountScreenState extends State<CreateAccountScreen> {
+class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -51,6 +54,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Future<void> _selectDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime(2000),
@@ -60,6 +64,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       helpText: 'Sélectionnez votre date de naissance',
       cancelText: 'Annuler',
       confirmText: 'OK',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: Colors.orange,
+                    onPrimary: Colors.white,
+                    surface: Theme.of(context).cardColor,
+                    onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+                  )
+                : Theme.of(context).colorScheme,
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null && picked != _selectedDate) {
@@ -101,19 +120,35 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       debugPrint('   - Email: ${response.data!.user.email}');
       debugPrint('   - Client ID: ${response.data!.client.id}');
       
-      // Connexion automatique après création du compte
-      debugPrint('🔐 [CreateAccountScreen] Tentative de connexion automatique...');
-      final loginResponse = await _authService.login(
-        LoginRequest(
-          email: response.data!.user.email,
-          password: _passwordController.text,
-        ),
-      );
-
-      if (!mounted) return;
-
-      if (loginResponse.success) {
+      // Connexion automatique avec le token retourné par l'inscription
+      debugPrint('🔐 [CreateAccountScreen] Connexion automatique avec token...');
+      
+      try {
+        // Convertir UserData en format User pour AuthService
+        final userData = {
+          'id': response.data!.user.id,
+          'name': response.data!.user.name,
+          'email': response.data!.user.email,
+          'role': response.data!.user.role,
+          'permissions': response.data!.user.permissions,
+        };
+        
+        // Sauvegarder directement le token retourné par l'inscription
+        await _authService.saveAuthDataFromRegistration(
+          token: response.data!.token,
+          tokenType: response.data!.tokenType,
+          userData: userData,
+        );
+        
+        // Convertir UserData en User pour mettre à jour authProvider
+        final user = User.fromJson(userData);
+        
+        // Mettre à jour authProvider pour que l'app reconnaisse l'authentification
+        await ref.read(authProvider.notifier).updateAuthAfterRegistration(user: user);
+        
         debugPrint('✅ [CreateAccountScreen] Connexion automatique réussie');
+        
+        if (!mounted) return;
         
         // Afficher message de succès
         ScaffoldMessenger.of(context).showSnackBar(
@@ -133,14 +168,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         );
 
         // Retour à l'écran principal (connexion réussie)
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      } else {
-        debugPrint('❌ [CreateAccountScreen] Échec de la connexion automatique: ${loginResponse.message}');
-        // Afficher l'erreur de connexion
+        // Naviguer directement vers HomePage puisque authProvider est mis à jour
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomePage()),
+          (route) => false, // Supprimer toutes les routes précédentes
+        );
+      } catch (e) {
+        debugPrint('❌ [CreateAccountScreen] Erreur lors de la connexion automatique: $e');
+        if (!mounted) return;
+        
+        // Afficher l'erreur mais le compte est créé
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Compte créé mais erreur de connexion: ${loginResponse.message}'),
+            content: Text('Compte créé mais erreur de connexion: $e'),
             backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

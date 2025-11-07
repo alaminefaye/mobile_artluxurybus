@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
 import '../services/auth_service.dart';
-import '../models/simple_auth_models.dart';
+import '../providers/auth_provider.dart';
+import '../models/user.dart';
 import '../theme/app_theme.dart';
+import '../screens/home_page.dart';
 
-class RegisterNewClientScreen extends StatefulWidget {
+class RegisterNewClientScreen extends ConsumerStatefulWidget {
   final String? initialPhone;
 
   const RegisterNewClientScreen({
@@ -15,11 +18,11 @@ class RegisterNewClientScreen extends StatefulWidget {
   });
 
   @override
-  State<RegisterNewClientScreen> createState() =>
+  ConsumerState<RegisterNewClientScreen> createState() =>
       _RegisterNewClientScreenState();
 }
 
-class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
+class _RegisterNewClientScreenState extends ConsumerState<RegisterNewClientScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nomController = TextEditingController();
   final _prenomController = TextEditingController();
@@ -55,6 +58,7 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
   }
 
   Future<void> _selectDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime(2000),
@@ -64,6 +68,21 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
       helpText: 'Sélectionnez votre date de naissance',
       cancelText: 'Annuler',
       confirmText: 'OK',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: Colors.orange,
+                    onPrimary: Colors.white,
+                    surface: Theme.of(context).cardColor,
+                    onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+                  )
+                : Theme.of(context).colorScheme,
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null && picked != _selectedDate) {
@@ -95,37 +114,74 @@ class _RegisterNewClientScreenState extends State<RegisterNewClientScreen> {
     setState(() => _isLoading = false);
 
     if (response.success && response.data != null) {
-      // Connexion automatique après inscription
-      await _authService.login(
-        LoginRequest(
-          email: response.data!.user.email,
-          password: _passwordController.text,
-        ),
-      );
+      // Connexion automatique avec le token retourné par l'inscription
+      debugPrint('✅ [RegisterNewClientScreen] Inscription réussie, connexion automatique...');
+      
+      try {
+        // Convertir UserData en format User pour AuthService
+        final userData = {
+          'id': response.data!.user.id,
+          'name': response.data!.user.name,
+          'email': response.data!.user.email,
+          'role': response.data!.user.role,
+          'permissions': response.data!.user.permissions,
+        };
+        
+        // Sauvegarder directement le token retourné par l'inscription
+        await _authService.saveAuthDataFromRegistration(
+          token: response.data!.token,
+          tokenType: response.data!.tokenType,
+          userData: userData,
+        );
+        
+        // Convertir UserData en User pour mettre à jour authProvider
+        final user = User.fromJson(userData);
+        
+        // Mettre à jour authProvider pour que l'app reconnaisse l'authentification
+        await ref.read(authProvider.notifier).updateAuthAfterRegistration(user: user);
+        
+        debugPrint('✅ [RegisterNewClientScreen] Connexion automatique réussie');
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      // Message de bienvenue
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.celebration, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Bienvenue ${response.data!.client.nomComplet}! 🎉',
+        // Message de bienvenue
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.celebration, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Bienvenue ${response.data!.client.nomComplet}! 🎉',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
           ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+        );
 
-      // Retour à l'écran principal
-      Navigator.of(context).popUntil((route) => route.isFirst);
+        // Retour à l'écran principal (connexion réussie)
+        // Naviguer directement vers HomePage puisque authProvider est mis à jour
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomePage()),
+          (route) => false, // Supprimer toutes les routes précédentes
+        );
+      } catch (e) {
+        debugPrint('❌ [RegisterNewClientScreen] Erreur lors de la connexion automatique: $e');
+        if (!mounted) return;
+        
+        // Afficher l'erreur mais l'inscription est réussie
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Inscription réussie mais erreur de connexion: $e'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } else {
       // Afficher l'erreur
       String errorMessage = response.message;

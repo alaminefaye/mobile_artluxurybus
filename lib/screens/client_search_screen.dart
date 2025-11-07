@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
 import '../theme/app_theme.dart';
@@ -36,7 +37,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     });
 
     final telephone = _telephoneController.text.trim();
-    debugPrint('🔍 [ClientSearchScreen] Recherche client avec numéro: $telephone');
+    debugPrint(
+        '🔍 [ClientSearchScreen] Recherche client avec numéro: $telephone');
 
     final response = await _service.searchClient(telephone);
 
@@ -48,7 +50,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     debugPrint('   - success: ${response.success}');
     debugPrint('   - found: ${response.found}');
     debugPrint('   - client: ${response.client != null ? "trouvé" : "null"}');
-    
+
     if (response.success && response.found && response.client != null) {
       final client = response.client!;
       debugPrint('🔍 [ClientSearchScreen] Client trouvé:');
@@ -57,13 +59,26 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
       debugPrint('   - Téléphone: ${client.telephone}');
       debugPrint('   - hasAccount: ${client.hasAccount}');
 
-      if (client.hasAccount) {
+      // Vérification explicite avec comparaison booléenne
+      final hasAccount = client.hasAccount == true;
+      debugPrint('🔍 [ClientSearchScreen] Vérification hasAccount:');
+      debugPrint('   - client.hasAccount: ${client.hasAccount}');
+      debugPrint(
+          '   - client.hasAccount == true: ${client.hasAccount == true}');
+      debugPrint('   - hasAccount (variable): $hasAccount');
+      debugPrint('   - Type: ${client.hasAccount.runtimeType}');
+
+      if (hasAccount) {
         // Client a déjà un compte
-        debugPrint('✅ [ClientSearchScreen] Client a déjà un compte, affichage dialog');
+        debugPrint(
+            '✅ [ClientSearchScreen] Client a déjà un compte, affichage dialog');
+        debugPrint('   - Nom: ${client.nomComplet}');
+        debugPrint('   - ID: ${client.id}');
         _showAlreadyHasAccountDialog(client);
       } else {
         // Client existe mais n'a pas de compte
-        debugPrint('ℹ️ [ClientSearchScreen] Client existe mais n\'a pas de compte, navigation vers CreateAccountScreen');
+        debugPrint(
+            'ℹ️ [ClientSearchScreen] Client existe mais n\'a pas de compte, navigation vers CreateAccountScreen');
         _navigateToCreateAccount(client);
       }
     } else {
@@ -75,40 +90,64 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   }
 
   void _showAlreadyHasAccountDialog(ClientSearchData client) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              Icons.info_outline, 
-              color: Theme.of(context).brightness == Brightness.dark 
-                  ? AppTheme.primaryOrange 
-                  : Colors.blue,
+    debugPrint('📱 [ClientSearchScreen] Affichage du dialog "Compte existant"');
+    debugPrint('   - Client: ${client.nomComplet}');
+    debugPrint('   - Context: ${context.toString()}');
+
+    // Utiliser un délai pour s'assurer que le contexte est valide
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        debugPrint(
+            '❌ [ClientSearchScreen] Context non monté, impossible d\'afficher le dialog');
+        return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.primaryOrange
+                    : Colors.blue,
+              ),
+              const SizedBox(width: 8),
+              const Text('Compte existant'),
+            ],
+          ),
+          content: Text(
+            'Bonjour ${client.nomComplet}!\n\n'
+            'Vous avez déjà un compte. Veuillez vous connecter.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                debugPrint('📱 [ClientSearchScreen] Bouton OK cliqué');
+                Navigator.pop(context);
+              },
+              child: const Text('OK'),
             ),
-            const SizedBox(width: 8),
-            const Text('Compte existant'),
+            ElevatedButton(
+              onPressed: () {
+                debugPrint(
+                    '📱 [ClientSearchScreen] Bouton "Se connecter" cliqué');
+                Navigator.pop(context); // Fermer dialog
+                Navigator.pop(context); // Retour à l'écran de connexion
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.orange
+                    : Colors.blue,
+              ),
+              child: const Text('Se connecter'),
+            ),
           ],
         ),
-        content: Text(
-          'Bonjour ${client.nomComplet}!\n\n'
-          'Vous avez déjà un compte. Veuillez vous connecter.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // Fermer dialog
-              Navigator.pop(context); // Retour à l'écran de connexion
-            },
-            child: const Text('Se connecter'),
-          ),
-        ],
-      ),
-    );
+      );
+    });
   }
 
   void _showClientNotFoundDialog() {
@@ -129,6 +168,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.orange
+                  : Colors.blue,
+            ),
             child: const Text('Annuler'),
           ),
           ElevatedButton(
@@ -136,6 +180,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
               Navigator.pop(context);
               _navigateToRegisterNewClient();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.orange
+                  : Colors.blue,
+            ),
             child: const Text('Créer un compte'),
           ),
         ],
@@ -179,27 +228,28 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 20),
-                
+
                 // Icône
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: (Theme.of(context).brightness == Brightness.dark 
-                        ? AppTheme.primaryOrange 
-                        : Colors.blue).withValues(alpha: 0.1),
+                    color: (Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : Colors.blue)
+                        .withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.phone_android,
                     size: 60,
-                    color: Theme.of(context).brightness == Brightness.dark 
-                        ? AppTheme.primaryOrange 
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.primaryOrange
                         : Colors.blue,
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Titre
                 const Text(
                   'Recherche de votre profil',
@@ -209,9 +259,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Description
                 Text(
                   'Entrez votre numéro de téléphone pour vérifier si vous êtes déjà enregistré',
@@ -221,58 +271,67 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                
+
                 const SizedBox(height: 40),
-                
+
                 // Champ téléphone
                 TextFormField(
                   controller: _telephoneController,
-                  keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark 
-                        ? Colors.white 
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
                         : Colors.black,
                   ),
                   decoration: InputDecoration(
                     labelText: 'Numéro de téléphone',
                     labelStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? AppTheme.primaryOrange 
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
                           : null,
                     ),
-                    hintText: '+221 77 123 45 67',
+                    hintText: '0123456789',
                     hintStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? Colors.grey[400] 
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[400]
                           : Colors.grey[600],
                     ),
                     prefixIcon: Icon(
                       Icons.phone,
-                      color: Theme.of(context).brightness == Brightness.dark 
-                          ? AppTheme.primaryOrange 
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
                           : null,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark 
-                        ? Colors.grey[800] 
+                    fillColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]
                         : Colors.grey[50],
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Veuillez entrer votre numéro de téléphone';
                     }
-                    if (value.length < 8) {
-                      return 'Numéro de téléphone invalide';
+                    // Vérifier exactement 10 chiffres
+                    if (value.length != 10) {
+                      return 'Le numéro doit contenir exactement 10 chiffres';
+                    }
+                    // Vérifier que ce sont bien des chiffres
+                    if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                      return 'Veuillez entrer uniquement des chiffres';
                     }
                     return null;
                   },
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Message d'erreur
                 if (_errorMessage != null)
                   Container(
@@ -280,7 +339,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                     decoration: BoxDecoration(
                       color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                      border:
+                          Border.all(color: Colors.red.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -295,22 +355,23 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                       ],
                     ),
                   ),
-                
+
                 if (_errorMessage != null) const SizedBox(height: 24),
-                
+
                 // Bouton rechercher avec gradient
                 Container(
                   height: 50,
                   decoration: BoxDecoration(
-                    gradient: Theme.of(context).brightness == Brightness.dark 
+                    gradient: Theme.of(context).brightness == Brightness.dark
                         ? AppTheme.accentGradient
                         : AppTheme.primaryGradient,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: (Theme.of(context).brightness == Brightness.dark 
-                            ? AppTheme.primaryOrange 
-                            : AppTheme.primaryBlue).withValues(alpha: 0.3),
+                        color: (Theme.of(context).brightness == Brightness.dark
+                                ? AppTheme.primaryOrange
+                                : AppTheme.primaryBlue)
+                            .withValues(alpha: 0.3),
                         spreadRadius: 1,
                         blurRadius: 8,
                         offset: const Offset(0, 4),
@@ -333,7 +394,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                             width: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Text(
@@ -346,9 +408,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                           ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Divider
                 Row(
                   children: [
@@ -366,9 +428,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                     Expanded(child: Divider(color: Colors.grey[300])),
                   ],
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Bouton inscription directe
                 OutlinedButton.icon(
                   onPressed: _navigateToRegisterNewClient,
@@ -381,21 +443,23 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
+
                 // Info
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: (Theme.of(context).brightness == Brightness.dark 
-                        ? AppTheme.primaryOrange 
-                        : Colors.blue).withValues(alpha: 0.05),
+                    color: (Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : Colors.blue)
+                        .withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: (Theme.of(context).brightness == Brightness.dark 
-                          ? AppTheme.primaryOrange 
-                          : Colors.blue).withValues(alpha: 0.2),
+                      color: (Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.primaryOrange
+                              : Colors.blue)
+                          .withValues(alpha: 0.2),
                     ),
                   ),
                   child: Row(
@@ -403,8 +467,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Theme.of(context).brightness == Brightness.dark 
-                            ? AppTheme.primaryOrange 
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
                             : Colors.blue[700],
                         size: 20,
                       ),
@@ -414,9 +478,10 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                           'Si vous avez déjà voyagé avec nous, vos informations sont peut-être déjà enregistrées. Recherchez d\'abord votre profil.',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Theme.of(context).brightness == Brightness.dark 
-                                ? AppTheme.primaryOrange 
-                                : Colors.blue[900],
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? AppTheme.primaryOrange
+                                    : Colors.blue[900],
                             height: 1.4,
                           ),
                         ),
