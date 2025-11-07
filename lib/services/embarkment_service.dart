@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/api_config.dart';
+import 'auth_service.dart';
 
 class EmbarkmentService {
   static String? _token;
@@ -9,14 +10,21 @@ class EmbarkmentService {
     _token = token;
   }
 
+  /// Récupérer le token d'authentification (dynamique)
+  static Future<String?> _getToken() async {
+    final authService = AuthService();
+    return await authService.getToken();
+  }
+
   /// Récupérer tous les départs disponibles pour l'embarquement
   static Future<Map<String, dynamic>> getDepartsForEmbarkment() async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/embarkment/departs');
+      final token = await _getToken();
 
       final headers = {
         ...ApiConfig.defaultHeaders,
-        if (_token != null) 'Authorization': 'Bearer $_token',
+        if (token != null) 'Authorization': 'Bearer $token',
       };
 
       final response = await http.get(uri, headers: headers)
@@ -50,10 +58,11 @@ class EmbarkmentService {
   static Future<Map<String, dynamic>> getDepartDetails(int departId) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/embarkment/departs/$departId');
+      final token = await _getToken();
 
       final headers = {
         ...ApiConfig.defaultHeaders,
-        if (_token != null) 'Authorization': 'Bearer $_token',
+        if (token != null) 'Authorization': 'Bearer $token',
       };
 
       final response = await http.get(uri, headers: headers)
@@ -90,10 +99,11 @@ class EmbarkmentService {
   }) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/embarkment/departs/$departId/scan-ticket');
+      final token = await _getToken();
 
       final headers = {
         ...ApiConfig.defaultHeaders,
-        if (_token != null) 'Authorization': 'Bearer $_token',
+        if (token != null) 'Authorization': 'Bearer $token',
       };
 
       final body = json.encode({
@@ -132,10 +142,11 @@ class EmbarkmentService {
   static Future<Map<String, dynamic>> getScannedTickets(int departId) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/embarkment/departs/$departId/scanned-tickets');
+      final token = await _getToken();
 
       final headers = {
         ...ApiConfig.defaultHeaders,
-        if (_token != null) 'Authorization': 'Bearer $_token',
+        if (token != null) 'Authorization': 'Bearer $token',
       };
 
       final response = await http.get(uri, headers: headers)
