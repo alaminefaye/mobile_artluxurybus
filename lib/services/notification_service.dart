@@ -357,6 +357,12 @@ class NotificationService {
         );
       }
 
+      // Si device_id est toujours null après tous les essais, utiliser le token FCM comme fallback
+      if (deviceId == null || (deviceId.isNotEmpty == false)) {
+        debugPrint('⚠️ [NotificationService] Device ID non disponible, utilisation du token FCM comme identifiant');
+        deviceId = token.substring(0, 20); // Utiliser les 20 premiers caractères du token comme ID temporaire
+      }
+
       debugPrint('📱 Enregistrement FCM Token avec device_id: $deviceId');
       debugPrint('📱 Type d\'appareil: $deviceType');
 
@@ -412,10 +418,17 @@ class NotificationService {
     debugPrint('   - Données: ${message.data}');
     debugPrint('   - Message ID: ${message.messageId}');
     debugPrint('   - Type: ${message.data['type']}');
+    debugPrint('   - msg_type: ${message.data['msg_type']}');
 
     // 🔊 Vérifier si c'est une annonce vocale UNIQUEMENT
-    if (message.data['msg_type'] == 'annonce') {
+    // IMPORTANT: Les notifications de type "notification" ou "message_notification" 
+    // ne doivent PAS passer par _handleAnnouncementMessage
+    final msgType = message.data['msg_type']?.toString().toLowerCase();
+    if (msgType == 'annonce') {
+      debugPrint('🔊 [NotificationService] Traitement comme annonce vocale');
       _handleAnnouncementMessage(message);
+    } else {
+      debugPrint('📢 [NotificationService] Traitement comme notification normale');
     }
 
     // Déterminer le titre et le corps de la notification
@@ -437,6 +450,7 @@ class NotificationService {
     debugPrint('   - Corps: $body');
 
     // Afficher une notification locale pour TOUTES les notifications
+    // (que ce soit une annonce vocale ou une notification normale)
     _showLocalNotification(title: title, body: body, data: message.data);
 
     // Envoyer via le stream pour TOUTES les notifications
