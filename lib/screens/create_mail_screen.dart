@@ -421,11 +421,11 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                         ? Colors.green.shade900.withOpacity(0.3)
                                         : Colors.green.shade100)
                                     : (Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.blue.shade900.withOpacity(0.3)
-                                        : Colors.blue.shade100),
+                                        ? Colors.orange.shade900.withOpacity(0.3)
+                                        : Colors.orange.shade100),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: _canUseFreeMail ? Colors.green : Colors.blue,
+                                  color: _canUseFreeMail ? Colors.green : Colors.orange,
                                   width: 2,
                                 ),
                               ),
