@@ -31,24 +31,34 @@ class NotificationApiService {
         if (unreadOnly) 'unread_only': '1',
       };
 
-      // Essayer d'abord l'endpoint temporaire qui fonctionne
-      var uri = Uri.parse('$baseUrl/notifications/all').replace(queryParameters: queryParams);
+      debugPrint('🔔 [API] Récupération des notifications');
+      debugPrint('🔔 [API] Page: $page, Limit: $limit, UnreadOnly: $unreadOnly');
+      debugPrint('🔑 [API] Token: ${_token != null ? "Défini" : "NON DÉFINI"}');
+
+      // Utiliser l'endpoint principal /notifications
+      var uri = Uri.parse('$baseUrl/notifications').replace(queryParameters: queryParams);
+      debugPrint('🌐 [API] URL: $uri');
       
       var response = await http.get(uri, headers: _headers);
       
-      // Si l'endpoint /all ne fonctionne pas, essayer l'original
-      if (response.statusCode == 404) {
-        uri = Uri.parse('$baseUrl/notifications').replace(queryParameters: queryParams);
-        response = await http.get(uri, headers: _headers);
-      }
+      debugPrint('📡 [API] Status: ${response.statusCode}');
+      debugPrint('📄 [API] Body: ${response.body}');
       
       final data = jsonDecode(response.body);
       
-      // API call successful
-
       if (response.statusCode == 200) {
+        debugPrint('✅ [API] Notifications récupérées avec succès');
+        if (data['data'] != null && data['data']['notifications'] != null) {
+          final notifications = data['data']['notifications'] as List;
+          debugPrint('📋 [API] Nombre de notifications: ${notifications.length}');
+          if (notifications.isNotEmpty) {
+            debugPrint('📋 [API] Types de notifications: ${notifications.map((n) => n['type']).toSet().join(", ")}');
+            debugPrint('📋 [API] Première notification: type=${notifications[0]['type']}, title=${notifications[0]['title']}');
+          }
+        }
         return NotificationResponse.fromJson(data);
       } else {
+        debugPrint('❌ [API] Erreur: ${data['message'] ?? 'Erreur inconnue'}');
         return NotificationResponse(
           success: false,
           message: data['message'] ?? 'Service de notifications en cours de mise à jour',
