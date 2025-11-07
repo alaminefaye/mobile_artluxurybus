@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/embarkment_model.dart';
 import '../services/embarkment_service.dart';
+import '../services/depart_service.dart';
 import '../theme/app_theme.dart';
 import 'embarkment_detail_screen.dart';
 
@@ -14,13 +15,86 @@ class EmbarkmentScreen extends ConsumerStatefulWidget {
 
 class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
   List<EmbarkmentDepart> _departs = [];
+  List<EmbarkmentDepart> _filteredDeparts = [];
   bool _isLoading = true;
   String? _errorMessage;
+  
+  // Recherche et filtres
+  final TextEditingController _searchController = TextEditingController();
+  String? _selectedEmbarquement;
+  String? _selectedDestination;
+  List<String> _embarquements = [];
+  List<String> _destinations = [];
 
   @override
   void initState() {
     super.initState();
     _loadDeparts();
+    _loadTrajets();
+    _searchController.addListener(_filterDeparts);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadTrajets() async {
+    try {
+      final embarquements = await DepartService.getEmbarquements();
+      final destinations = await DepartService.getDestinations();
+      setState(() {
+        _embarquements = embarquements;
+        _destinations = destinations;
+      });
+    } catch (e) {
+      debugPrint('Erreur chargement trajets: $e');
+    }
+  }
+
+  void _filterDeparts() {
+    setState(() {
+      _filteredDeparts = _departs.where((depart) {
+        // Filtre par recherche
+        final searchQuery = _searchController.text.toLowerCase();
+        if (searchQuery.isNotEmpty) {
+          final routeText = depart.routeText.toLowerCase();
+          final busNumber = depart.bus?.registrationNumber?.toLowerCase() ?? '';
+          final departNumber = depart.numeroDepart?.toLowerCase() ?? '';
+          if (!routeText.contains(searchQuery) &&
+              !busNumber.contains(searchQuery) &&
+              !departNumber.contains(searchQuery)) {
+            return false;
+          }
+        }
+
+        // Filtre par embarquement
+        if (_selectedEmbarquement != null && _selectedEmbarquement!.isNotEmpty) {
+          if (depart.trajet?.embarquement != _selectedEmbarquement) {
+            return false;
+          }
+        }
+
+        // Filtre par destination
+        if (_selectedDestination != null && _selectedDestination!.isNotEmpty) {
+          if (depart.trajet?.destination != _selectedDestination) {
+            return false;
+          }
+        }
+
+        return true;
+      }).toList();
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _searchController.clear();
+      _selectedEmbarquement = null;
+      _selectedDestination = null;
+    });
+    _filterDeparts();
   }
 
   Future<void> _loadDeparts() async {
@@ -38,8 +112,10 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
           _departs = data
               .map((json) => EmbarkmentDepart.fromJson(json as Map<String, dynamic>))
               .toList();
+          _filteredDeparts = _departs;
           _isLoading = false;
         });
+        _filterDeparts();
       } else {
         setState(() {
           _errorMessage = result['message'] ?? 'Erreur lors du chargement';
@@ -56,6 +132,8 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gestion d\'Embarquement'),
@@ -85,7 +163,10 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                       const SizedBox(height: 16),
                       Text(
                         _errorMessage!,
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -96,51 +177,270 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                     ],
                   ),
                 )
-              : _departs.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.event_busy,
-                            size: 64,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Aucun départ disponible',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadDeparts,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _departs.length,
-                        itemBuilder: (context, index) {
-                          final depart = _departs[index];
-                          return _buildDepartCard(depart);
-                        },
-                      ),
+              : Column(
+                  children: [
+                    // Section recherche et filtres
+                    _buildSearchAndFilters(isDark),
+                    
+                    // Liste des départs
+                    Expanded(
+                      child: _departs.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.event_busy,
+                                    size: 64,
+                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Aucun départ disponible',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : _filteredDeparts.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.search_off,
+                                        size: 64,
+                                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Aucun résultat trouvé',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      TextButton(
+                                        onPressed: _clearFilters,
+                                        child: const Text('Réinitialiser les filtres'),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : RefreshIndicator(
+                                  onRefresh: _loadDeparts,
+                                  child: ListView.builder(
+                                    padding: const EdgeInsets.all(16),
+                                    itemCount: _filteredDeparts.length,
+                                    itemBuilder: (context, index) {
+                                      final depart = _filteredDeparts[index];
+                                      return _buildDepartCard(depart, isDark);
+                                    },
+                                  ),
+                                ),
                     ),
+                  ],
+                ),
     );
   }
 
-  Widget _buildDepartCard(EmbarkmentDepart depart) {
+  Widget _buildSearchAndFilters(bool isDark) {
+    final hasActiveFilters = _searchController.text.isNotEmpty ||
+        _selectedEmbarquement != null ||
+        _selectedDestination != null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).dividerColor,
+            width: 1,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Barre de recherche
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Rechercher par trajet, bus, numéro...',
+              hintStyle: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(
+                        Icons.clear,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        _filterDeparts();
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: Theme.of(context).cardColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          // Filtres par trajet
+          Row(
+            children: [
+              Expanded(
+                child: _buildFilterDropdown(
+                  'Embarquement',
+                  _embarquements,
+                  _selectedEmbarquement,
+                  (value) {
+                    setState(() {
+                      _selectedEmbarquement = value;
+                    });
+                    _filterDeparts();
+                  },
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildFilterDropdown(
+                  'Destination',
+                  _destinations,
+                  _selectedDestination,
+                  (value) {
+                    setState(() {
+                      _selectedDestination = value;
+                    });
+                    _filterDeparts();
+                  },
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          
+          // Bouton réinitialiser les filtres
+          if (hasActiveFilters) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _clearFilters,
+                icon: const Icon(Icons.clear_all, size: 18),
+                label: const Text('Réinitialiser les filtres'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  side: BorderSide(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown(
+    String label,
+    List<String> items,
+    String? value,
+    ValueChanged<String?> onChanged,
+    bool isDark,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).dividerColor,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          hint: Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+          ),
+          items: [
+            DropdownMenuItem<String>(
+              value: null,
+              child: Text(
+                'Tous',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+            ...items.map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+              );
+            }),
+          ],
+          onChanged: onChanged,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+            fontSize: 14,
+          ),
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDepartCard(EmbarkmentDepart depart, bool isDark) {
     final isReady = depart.isReadyForEmbarkment;
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: isReady ? 4 : 2,
+      color: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isReady ? AppTheme.primaryOrange : Colors.grey[300]!,
+          color: isReady
+              ? AppTheme.primaryOrange
+              : Theme.of(context).dividerColor,
           width: isReady ? 2 : 1,
         ),
       ),
@@ -182,7 +482,7 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                           'Départ #${depart.numeroDepart ?? depart.id}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -214,18 +514,32 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
               // Informations du départ
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     depart.dateDepartFormatted ?? depart.dateDepart ?? 'N/A',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                   const SizedBox(width: 16),
-                  Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                  Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     depart.heureDepart ?? 'N/A',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ],
               ),
@@ -233,11 +547,18 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.directions_bus, size: 16, color: Colors.grey[600]),
+                    Icon(
+                      Icons.directions_bus,
+                      size: 16,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Bus: ${depart.bus!.registrationNumber ?? 'N/A'}',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
                     ),
                   ],
                 ),
@@ -248,8 +569,11 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -299,7 +623,7 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
           ),
         ),
       ],

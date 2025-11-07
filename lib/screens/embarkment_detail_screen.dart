@@ -265,7 +265,10 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                       const SizedBox(height: 16),
                       Text(
                         _errorMessage!,
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
@@ -277,7 +280,14 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                   ),
                 )
               : _departData == null
-                  ? const Center(child: Text('Aucune donnée disponible'))
+                  ? Center(
+                      child: Text(
+                        'Aucune donnée disponible',
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                    )
                   : RefreshIndicator(
                       onRefresh: () async {
                         await _loadDepartDetails();
@@ -345,22 +355,34 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Statistiques',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color,
               ),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.directions_bus, color: AppTheme.primaryBlue),
+                Icon(
+                  Icons.directions_bus,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
-                const Text('Bus: '),
+                Text(
+                  'Bus: ',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
                 Text(
                   busNumber,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                 ),
               ],
             ),
@@ -411,7 +433,7 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey[600],
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
           ),
         ),
       ],
@@ -421,6 +443,7 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
   Widget _buildScannedTicketsList() {
     return Card(
       elevation: 2,
+      color: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -430,11 +453,12 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Tickets Scannés',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.titleLarge?.color,
                   ),
                 ),
                 if (_isLoadingTickets)
@@ -449,7 +473,7 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryBlue,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
               ],
@@ -464,14 +488,14 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                           Icon(
                             Icons.qr_code_scanner_outlined,
                             size: 48,
-                            color: Colors.grey[400],
+                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             'Aucun ticket scanné',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -494,13 +518,20 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
   }
 
   Widget _buildTicketItem(ScannedTicket ticket) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green[50],
+        color: isDark
+            ? Colors.green.withValues(alpha: 0.2)
+            : Colors.green[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green[200]!),
+        border: Border.all(
+          color: isDark
+              ? Colors.green.withValues(alpha: 0.5)
+              : Colors.green[200]!,
+        ),
       ),
       child: Row(
         children: [
@@ -523,9 +554,10 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
               children: [
                 Text(
                   ticket.nomComplet,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -533,7 +565,7 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                   ticket.telephone,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                 ),
                 if (ticket.siegeNumber != null) ...[
@@ -542,7 +574,7 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                     'Siège: ${ticket.siegeNumber}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -556,7 +588,7 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
                 ticket.scannedAtFormatted ?? ticket.scannedAt,
                 style: TextStyle(
                   fontSize: 11,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                 ),
               ),
             ],
