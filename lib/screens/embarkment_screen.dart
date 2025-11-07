@@ -24,8 +24,10 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
   final TextEditingController _searchController = TextEditingController();
   String? _selectedEmbarquement;
   String? _selectedDestination;
+  String? _selectedHeure;
   List<String> _embarquements = [];
   List<String> _destinations = [];
+  List<String> _heures = [];
 
   @override
   void initState() {
@@ -45,9 +47,20 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
     try {
       final embarquements = await DepartService.getEmbarquements();
       final destinations = await DepartService.getDestinations();
+      
+      // Extraire les heures uniques des départs
+      final heuresSet = <String>{};
+      for (var depart in _departs) {
+        if (depart.heureDepart != null && depart.heureDepart!.isNotEmpty) {
+          heuresSet.add(depart.heureDepart!);
+        }
+      }
+      final heures = heuresSet.toList()..sort();
+      
       setState(() {
         _embarquements = embarquements;
         _destinations = destinations;
+        _heures = heures;
       });
     } catch (e) {
       debugPrint('Erreur chargement trajets: $e');
@@ -84,6 +97,13 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
           }
         }
 
+        // Filtre par heure
+        if (_selectedHeure != null && _selectedHeure!.isNotEmpty) {
+          if (depart.heureDepart != _selectedHeure) {
+            return false;
+          }
+        }
+
         return true;
       }).toList();
     });
@@ -94,6 +114,7 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
       _searchController.clear();
       _selectedEmbarquement = null;
       _selectedDestination = null;
+      _selectedHeure = null;
     });
     _filterDeparts();
   }
@@ -116,6 +137,8 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
           _filteredDeparts = _departs;
           _isLoading = false;
         });
+        // Recharger les heures après avoir chargé les départs
+        _loadTrajets();
         _filterDeparts();
       } else {
         setState(() {
@@ -283,7 +306,8 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
   Widget _buildSearchAndFilters(bool isDark) {
     final hasActiveFilters = _searchController.text.isNotEmpty ||
         _selectedEmbarquement != null ||
-        _selectedDestination != null;
+        _selectedDestination != null ||
+        _selectedHeure != null;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -372,6 +396,21 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Filtre par heure
+          _buildFilterDropdown(
+            'Heure de départ',
+            _heures,
+            _selectedHeure,
+            (value) {
+              setState(() {
+                _selectedHeure = value;
+              });
+              _filterDeparts();
+            },
+            isDark,
           ),
           
           // Bouton réinitialiser les filtres
