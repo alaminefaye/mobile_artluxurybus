@@ -95,15 +95,24 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
       _isScanning = true;
     });
 
+    bool hasProcessed = false; // Variable pour éviter les traitements multiples
+
     try {
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => AiBarcodeScanner(
             onDetect: (BarcodeCapture capture) {
               final String? scanned = capture.barcodes.firstOrNull?.displayValue;
-              if (scanned != null && !_isScanning) {
-                Navigator.of(context).pop();
-                _processQRCode(scanned);
+              // Traiter seulement si on a un code scanné et qu'on n'a pas déjà traité
+              if (scanned != null && scanned.isNotEmpty && !hasProcessed) {
+                hasProcessed = true; // Marquer comme traité immédiatement
+                Navigator.of(context).pop(); // Fermer le scanner
+                // Traiter le QR code après un court délai pour s'assurer que le Navigator est fermé
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    _processQRCode(scanned);
+                  }
+                });
               }
             },
           ),
@@ -142,17 +151,33 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
 
     try {
       // Parser le QR code si c'est du JSON
-      String codeToSend = qrCode;
+      String codeToSend = qrCode.trim(); // Nettoyer les espaces
+      
+      // Essayer de parser comme JSON
       try {
         final Map<String, dynamic> qrData = json.decode(qrCode);
-        if (qrData.containsKey('ticket_id') || qrData.containsKey('id')) {
-          codeToSend = (qrData['ticket_id'] ?? qrData['id']).toString();
+        // Chercher l'ID du ticket dans différents champs possibles
+        if (qrData.containsKey('ticket_id')) {
+          codeToSend = qrData['ticket_id'].toString();
+        } else if (qrData.containsKey('id')) {
+          codeToSend = qrData['id'].toString();
         } else if (qrData.containsKey('code')) {
           codeToSend = qrData['code'].toString();
+        } else {
+          // Si aucun champ connu, essayer de trouver une valeur numérique
+          final values = qrData.values.where((v) => v != null).toList();
+          if (values.isNotEmpty) {
+            codeToSend = values.first.toString();
+          }
         }
       } catch (e) {
         // Si ce n'est pas du JSON, utiliser la valeur brute
-        codeToSend = qrCode;
+        codeToSend = qrCode.trim();
+      }
+
+      // Vérifier que le code n'est pas vide
+      if (codeToSend.isEmpty) {
+        throw Exception('Le QR code scanné est vide');
       }
 
       final result = await EmbarkmentService.scanTicket(

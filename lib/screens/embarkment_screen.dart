@@ -247,14 +247,18 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                                   Icon(
                                     Icons.event_busy,
                                     size: 64,
-                                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.7)
+                                        : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
                                     'Aucun départ disponible',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                      color: isDark
+                                          ? Colors.white
+                                          : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                                     ),
                                   ),
                                 ],
@@ -268,20 +272,31 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                                       Icon(
                                         Icons.search_off,
                                         size: 64,
-                                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                                        color: isDark
+                                            ? Colors.white.withValues(alpha: 0.7)
+                                            : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
                                         'Aucun résultat trouvé',
                                         style: TextStyle(
                                           fontSize: 16,
-                                          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                          color: isDark
+                                              ? Colors.white
+                                              : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                                         ),
                                       ),
                                       const SizedBox(height: 8),
                                       TextButton(
                                         onPressed: _clearFilters,
-                                        child: const Text('Réinitialiser les filtres'),
+                                        child: Text(
+                                          'Réinitialiser les filtres',
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white
+                                                : Theme.of(context).colorScheme.primary,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -327,9 +342,11 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Rechercher par trajet, bus, numéro...',
-              hintStyle: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              ),
+            hintStyle: TextStyle(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.7)
+                  : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+            ),
               prefixIcon: Icon(
                 Icons.search,
                 color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -420,12 +437,29 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _clearFilters,
-                icon: const Icon(Icons.clear_all, size: 18),
-                label: const Text('Réinitialiser les filtres'),
+                icon: Icon(
+                  Icons.clear_all,
+                  size: 18,
+                  color: isDark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
+                ),
+                label: Text(
+                  'Réinitialiser les filtres',
+                  style: TextStyle(
+                    color: isDark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.primary,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: isDark
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.primary,
                   side: BorderSide(
-                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
                   ),
                 ),
               ),
@@ -456,13 +490,15 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          hint: Text(
-            label,
-            style: TextStyle(
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
-              fontSize: 14,
+            hint: Text(
+              label,
+              style: TextStyle(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.8)
+                    : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                fontSize: 14,
+              ),
             ),
-          ),
           items: [
             DropdownMenuItem<String>(
               value: null,
@@ -543,17 +579,21 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                       children: [
                         Text(
                           depart.routeText,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? Colors.white
+                                : Theme.of(context).textTheme.titleLarge?.color,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Départ #${depart.numeroDepart ?? depart.id}',
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                            fontSize: 16,
+                            color: AppTheme.primaryOrange,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -588,28 +628,36 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                   Icon(
                     Icons.calendar_today,
                     size: 16,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     depart.dateDepartFormatted ?? depart.dateDepart ?? 'N/A',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                      color: isDark
+                          ? Colors.white
+                          : Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Icon(
                     Icons.access_time,
                     size: 16,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     depart.heureDepart ?? 'N/A',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                      color: isDark
+                          ? Colors.white
+                          : Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -621,14 +669,18 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                     Icon(
                       Icons.directions_bus,
                       size: 16,
-                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.9)
+                          : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Bus: ${depart.bus!.registrationNumber ?? 'N/A'}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        color: isDark
+                            ? Colors.white
+                            : Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                   ],
@@ -654,18 +706,21 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                       '${depart.nombrePlaces}',
                       Icons.event_seat,
                       Colors.blue,
+                      isDark,
                     ),
                     _buildStatItem(
                       'Réservées',
                       '${depart.placesReservees}',
                       Icons.bookmark,
                       Colors.orange,
+                      isDark,
                     ),
                     _buildStatItem(
                       'Scannés',
                       '${depart.ticketsScannes}',
                       Icons.qr_code_scanner,
                       Colors.green,
+                      isDark,
                     ),
                   ],
                 ),
@@ -677,7 +732,7 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(String label, String value, IconData icon, Color color, bool isDark) {
     return Column(
       children: [
         Icon(icon, color: color, size: 20),
@@ -694,7 +749,9 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.9)
+                : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
           ),
         ),
       ],
