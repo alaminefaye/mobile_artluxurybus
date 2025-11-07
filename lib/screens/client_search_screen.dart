@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/loading_indicator.dart';
 import 'create_account_screen.dart';
 import 'register_new_client_screen.dart';
 
@@ -394,14 +395,9 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
+                        ? LoadingIndicator(
+                            size: 20,
+                            strokeWidth: 2,
                           )
                         : const Text(
                             'Rechercher',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../widgets/loading_indicator.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
 import '../services/auth_service.dart';
@@ -439,14 +440,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                     ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
+                      ? LoadingIndicator(
+                          size: 20,
+                          strokeWidth: 2,
                         )
                       : const Text(
                           'Créer mon compte',

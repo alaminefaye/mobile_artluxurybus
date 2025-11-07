@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/mail_api_service.dart';
+import '../widgets/loading_indicator.dart';
 
 class CreateMailScreen extends StatefulWidget {
   const CreateMailScreen({super.key});
@@ -308,7 +309,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const CenteredLoadingIndicator()
           : Form(
               key: _formKey,
               child: ListView(
@@ -399,13 +400,9 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                 ),
                                 child: _isCheckingLoyalty
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
+                                    ? LoadingIndicator(
+                                        size: 20,
+                                        strokeWidth: 2,
                                       )
                                     : const Text('Vérifier'),
                               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/loading_indicator.dart';
 import '../models/bagage_model.dart';
 import '../services/bagage_api_service.dart';
 import 'bagage_detail_screen.dart';
@@ -127,7 +128,7 @@ class _BagageManagementScreenState extends State<BagageManagementScreen>
 
   Widget _buildDashboardTab() {
     if (_isLoadingDashboard) {
-      return const Center(child: CircularProgressIndicator());
+      return const CenteredLoadingIndicator();
     }
 
     if (_dashboardError != null) {
@@ -607,7 +608,7 @@ class _BagageListViewState extends State<BagageListView> {
                             return const Center(
                               child: Padding(
                                 padding: EdgeInsets.all(16.0),
-                                child: CircularProgressIndicator(),
+                                child: LoadingIndicator(),
                               ),
                             );
                           }

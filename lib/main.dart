@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart' as theme_provider;
+import 'widgets/loading_indicator.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_page.dart';
 import 'screens/splash_screen.dart';
@@ -92,11 +93,7 @@ void main() async {
     // Continuer malgré l'erreur pour éviter le crash
   }
 
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -125,12 +122,14 @@ class _MyAppState extends ConsumerState<MyApp> {
         if (navigatorContext != null) {
           AnnouncementManager().setContext(navigatorContext);
           debugPrint(
-              '✅ [Main] Contexte Navigator défini pour AnnouncementManager');
+            '✅ [Main] Contexte Navigator défini pour AnnouncementManager',
+          );
         } else {
           // Fallback au context actuel
           AnnouncementManager().setContext(context);
           debugPrint(
-              '⚠️ [Main] Contexte fallback utilisé pour AnnouncementManager');
+            '⚠️ [Main] Contexte fallback utilisé pour AnnouncementManager',
+          );
         }
       }
     });
@@ -213,16 +212,15 @@ class _MyAppState extends ConsumerState<MyApp> {
       final action = data?['action']?.toString() ?? '';
 
       debugPrint(
-          '🔔 Navigation notification: type=$notificationType, action=$action');
+        '🔔 Navigation notification: type=$notificationType, action=$action',
+      );
 
       // NOUVEAU: Gérer les notifications de tickets
       if (notificationType == 'new_ticket' && action == 'view_trips') {
         // ignore: use_build_context_synchronously
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const MyTripsScreen(),
-          ),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const MyTripsScreen()));
         debugPrint('✅ Navigation vers Mes Trajets (nouveau ticket)');
         return;
       }
@@ -231,13 +229,12 @@ class _MyAppState extends ConsumerState<MyApp> {
       if (notificationType == 'departure_time_changed' &&
           action == 'view_trips') {
         // ignore: use_build_context_synchronously
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const MyTripsScreen(),
-          ),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const MyTripsScreen()));
         debugPrint(
-            '✅ Navigation vers Mes Trajets (changement d\'heure de départ)');
+          '✅ Navigation vers Mes Trajets (changement d\'heure de départ)',
+        );
         return;
       }
 
@@ -245,9 +242,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       if (notificationType == 'loyalty_point' && action == 'view_loyalty') {
         // ignore: use_build_context_synchronously
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const LoyaltyHomeScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const LoyaltyHomeScreen()),
         );
         debugPrint('✅ Navigation vers Programme Fidélité (nouveau point)');
         return;
@@ -264,47 +259,55 @@ class _MyAppState extends ConsumerState<MyApp> {
         final userRole = user?.role?.trim().toLowerCase() ?? '';
         final permissions = user?.permissions ?? [];
         final roles = user?.roles ?? [];
-        
+
         // Vérifier si l'utilisateur a le rôle courrier ou la permission courrier
-        final hasMailRole = userRole == 'courrier' ||
+        final hasMailRole =
+            userRole == 'courrier' ||
             roles.any((r) => r.toLowerCase().contains('courrier')) ||
             permissions.any((p) => p.toLowerCase().contains('courrier')) ||
             permissions.any((p) => p.toLowerCase().contains('mail'));
-        
+
         debugPrint('🔔 [Notification] Rôle utilisateur: $userRole');
         debugPrint('🔔 [Notification] Has mail role: $hasMailRole');
-        
+
         // Vérifier si on a un ID de courrier pour ouvrir directement les détails
-        final mailId = data != null ? int.tryParse(data['mail_id']?.toString() ?? '') : null;
-        
+        final mailId = data != null
+            ? int.tryParse(data['mail_id']?.toString() ?? '')
+            : null;
+
         if (hasMailRole) {
           // Pour les agents avec rôle courrier
           if (mailId != null) {
             // Si on a un ID de courrier, ouvrir directement les détails
-            MailApiService.getMailDetails(mailId).then((mail) {
-              final newContext = _navigatorKey.currentContext;
-              if (newContext != null && mounted) {
-                // ignore: use_build_context_synchronously
-                Navigator.of(newContext).push(
-                  MaterialPageRoute(
-                    builder: (context) => mail_detail.MailDetailScreen(mail: mail),
-                  ),
-                );
-                debugPrint('✅ Navigation vers détails du courrier #${mail.mailNumber} (agent)');
-              }
-            }).catchError((e) {
-              debugPrint('❌ Erreur lors du chargement des détails: $e');
-              // En cas d'erreur, naviguer vers la page de gestion
-              final newContext = _navigatorKey.currentContext;
-              if (newContext != null && mounted) {
-                // ignore: use_build_context_synchronously
-                Navigator.of(newContext).push(
-                  MaterialPageRoute(
-                    builder: (context) => const MailManagementScreen(),
-                  ),
-                );
-              }
-            });
+            MailApiService.getMailDetails(mailId)
+                .then((mail) {
+                  final newContext = _navigatorKey.currentContext;
+                  if (newContext != null && mounted) {
+                    // ignore: use_build_context_synchronously
+                    Navigator.of(newContext).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            mail_detail.MailDetailScreen(mail: mail),
+                      ),
+                    );
+                    debugPrint(
+                      '✅ Navigation vers détails du courrier #${mail.mailNumber} (agent)',
+                    );
+                  }
+                })
+                .catchError((e) {
+                  debugPrint('❌ Erreur lors du chargement des détails: $e');
+                  // En cas d'erreur, naviguer vers la page de gestion
+                  final newContext = _navigatorKey.currentContext;
+                  if (newContext != null && mounted) {
+                    // ignore: use_build_context_synchronously
+                    Navigator.of(newContext).push(
+                      MaterialPageRoute(
+                        builder: (context) => const MailManagementScreen(),
+                      ),
+                    );
+                  }
+                });
           } else {
             // Pas d'ID, naviguer vers la page de gestion (seulement si pas déjà dessus)
             // ignore: use_build_context_synchronously
@@ -319,37 +322,40 @@ class _MyAppState extends ConsumerState<MyApp> {
           // Pour les clients
           if (mailId != null) {
             // Si on a un ID de courrier, ouvrir directement les détails
-            MailApiService.getMailDetails(mailId).then((mail) {
-              final newContext = _navigatorKey.currentContext;
-              if (newContext != null && mounted) {
-                // ignore: use_build_context_synchronously
-                Navigator.of(newContext).push(
-                  MaterialPageRoute(
-                    builder: (context) => mail_detail.MailDetailScreen(mail: mail),
-                  ),
-                );
-                debugPrint('✅ Navigation vers détails du courrier #${mail.mailNumber} (client)');
-              }
-            }).catchError((e) {
-              debugPrint('❌ Erreur lors du chargement des détails: $e');
-              // En cas d'erreur, naviguer vers Mes Courriers
-              final newContext = _navigatorKey.currentContext;
-              if (newContext != null && mounted) {
-                // ignore: use_build_context_synchronously
-                Navigator.of(newContext).push(
-                  MaterialPageRoute(
-                    builder: (context) => const MyMailsScreen(),
-                  ),
-                );
-              }
-            });
+            MailApiService.getMailDetails(mailId)
+                .then((mail) {
+                  final newContext = _navigatorKey.currentContext;
+                  if (newContext != null && mounted) {
+                    // ignore: use_build_context_synchronously
+                    Navigator.of(newContext).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            mail_detail.MailDetailScreen(mail: mail),
+                      ),
+                    );
+                    debugPrint(
+                      '✅ Navigation vers détails du courrier #${mail.mailNumber} (client)',
+                    );
+                  }
+                })
+                .catchError((e) {
+                  debugPrint('❌ Erreur lors du chargement des détails: $e');
+                  // En cas d'erreur, naviguer vers Mes Courriers
+                  final newContext = _navigatorKey.currentContext;
+                  if (newContext != null && mounted) {
+                    // ignore: use_build_context_synchronously
+                    Navigator.of(newContext).push(
+                      MaterialPageRoute(
+                        builder: (context) => const MyMailsScreen(),
+                      ),
+                    );
+                  }
+                });
           } else {
             // Pas d'ID, naviguer vers Mes Courriers
             // ignore: use_build_context_synchronously
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const MyMailsScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const MyMailsScreen()),
             );
             debugPrint('✅ Navigation vers Mes Courriers (client)');
           }
@@ -377,7 +383,8 @@ class _MyAppState extends ConsumerState<MyApp> {
               id: int.tryParse(data['notification_id'].toString()) ?? 0,
               title: notification['title']?.toString() ?? '',
               message: notification['body']?.toString() ?? '',
-              type: data['msg_type']?.toString() ??
+              type:
+                  data['msg_type']?.toString() ??
                   data['type']?.toString() ??
                   '',
               isRead: false,
@@ -388,9 +395,8 @@ class _MyAppState extends ConsumerState<MyApp> {
             // ignore: use_build_context_synchronously
             Navigator.of(newContext).push(
               MaterialPageRoute(
-                builder: (context) => NotificationDetailScreen(
-                  notification: notificationModel,
-                ),
+                builder: (context) =>
+                    NotificationDetailScreen(notification: notificationModel),
               ),
             );
           }
@@ -411,8 +417,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       themeMode: themeMode == theme_provider.ThemeMode.system
           ? ThemeMode.system
           : themeMode == theme_provider.ThemeMode.dark
-              ? ThemeMode.dark
-              : ThemeMode.light,
+          ? ThemeMode.dark
+          : ThemeMode.light,
       navigatorKey: _navigatorKey,
       // Configuration des localisations pour supporter le français
       localizationsDelegates: const [
@@ -426,9 +432,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       ],
       locale: const Locale('fr', 'FR'), // Langue par défaut
       home: const SplashScreen(),
-      routes: {
-        '/debug': (context) => const DebugScreen(),
-      },
+      routes: {'/debug': (context) => const DebugScreen()},
     );
   }
 }
@@ -447,7 +451,7 @@ class AuthWrapper extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
+              LoadingIndicator(),
               SizedBox(height: 16),
               Text('Chargement...'),
             ],
@@ -478,20 +482,23 @@ class AuthWrapper extends ConsumerWidget {
           user!.displayRole!.trim().toLowerCase() == 'courrier') {
         isCourrier = true;
       } else if (roles.isNotEmpty) {
-        isCourrier =
-            roles.any((r) => r.toString().trim().toLowerCase() == 'courrier');
+        isCourrier = roles.any(
+          (r) => r.toString().trim().toLowerCase() == 'courrier',
+        );
       }
 
       // Rediriger vers ManagementHubScreen UNIQUEMENT si l'utilisateur a le rôle "courrier"
       if (isCourrier) {
         debugPrint(
-            '✅ [AuthWrapper] Redirection vers ManagementHubScreen (rôle: courrier)');
+          '✅ [AuthWrapper] Redirection vers ManagementHubScreen (rôle: courrier)',
+        );
         return const ManagementHubScreen();
       }
 
       // Tous les autres utilisateurs authentifiés vont vers HomePage
       debugPrint(
-          '➡️ [AuthWrapper] Redirection vers HomePage (rôle: "$userRole")');
+        '➡️ [AuthWrapper] Redirection vers HomePage (rôle: "$userRole")',
+      );
       return const HomePage();
     } else {
       return const LoginScreen();

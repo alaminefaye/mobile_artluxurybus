@@ -4,6 +4,7 @@ import '../models/mail_model.dart';
 import '../services/mail_api_service.dart';
 import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/loading_indicator.dart';
 import 'mail_detail_screen.dart';
 import 'create_mail_screen.dart';
 import 'package:intl/intl.dart';
@@ -399,7 +400,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: LoadingIndicator(strokeWidth: 2),
                     )
                   : const Text('Changer'),
             ),
@@ -440,7 +441,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
 
   Widget _buildDashboardTab() {
     if (_isLoadingDashboard) {
-      return const Center(child: CircularProgressIndicator());
+      return const CenteredLoadingIndicator();
     }
 
     if (_dashboardError != null) {
@@ -1066,7 +1067,7 @@ class _MailListViewState extends State<MailListView> {
 
   Widget _buildContent() {
     if (_isLoading && _mails.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const CenteredLoadingIndicator();
     }
 
     if (_error != null && _mails.isEmpty) {
@@ -1124,7 +1125,7 @@ class _MailListViewState extends State<MailListView> {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(),
+                child: LoadingIndicator(),
               ),
             );
           }
