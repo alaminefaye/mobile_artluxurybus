@@ -28,8 +28,8 @@ class _ManagementHubScreenState extends State<ManagementHubScreen> {
             _selectedIndex = index;
           });
         },
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+        selectedItemColor: Colors.orange,
+        unselectedItemColor: Colors.orange.withOpacity(0.6),
         backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor ?? Theme.of(context).cardColor,
         items: const [
           BottomNavigationBarItem(
