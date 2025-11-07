@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/embarkment_model.dart';
 import '../services/embarkment_service.dart';
 import '../services/depart_service.dart';
+import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import 'embarkment_detail_screen.dart';
 
@@ -145,6 +146,37 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
             icon: const Icon(Icons.refresh),
             onPressed: _loadDeparts,
             tooltip: 'Actualiser',
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            color: Theme.of(context).cardColor,
+            onSelected: (value) {
+              if (value == 'logout') {
+                _showLogoutDialog(context);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.logout,
+                      color: Colors.red,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Se déconnecter',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -627,6 +659,50 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Déconnexion',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.titleLarge?.color,
+          ),
+        ),
+        content: Text(
+          'Êtes-vous sûr de vouloir vous déconnecter ?',
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Annuler',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Se déconnecter'),
+          ),
+        ],
+      ),
     );
   }
 }
