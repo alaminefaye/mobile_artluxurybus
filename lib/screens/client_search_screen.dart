@@ -128,6 +128,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 debugPrint('📱 [ClientSearchScreen] Bouton OK cliqué');
                 Navigator.pop(context);
               },
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.orange
+                    : Colors.blue,
+              ),
               child: const Text('OK'),
             ),
             ElevatedButton(
