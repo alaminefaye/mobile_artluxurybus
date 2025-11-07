@@ -27,6 +27,8 @@ import 'services/recharge_service.dart';
 import 'services/feature_permission_service.dart';
 import 'debug/debug_screen.dart';
 import 'screens/management_hub_screen.dart';
+import 'screens/mail_management_screen.dart';
+import 'screens/mail_detail_screen.dart' as mail_detail;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -252,28 +254,116 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
 
       // NOUVEAU: Gérer les notifications de courriers
-      if ((notificationType == 'new_mail_sent' ||
-              notificationType == 'new_mail_received' ||
+      if ((notificationType == 'new_mail_sender' ||
+              notificationType == 'new_mail_recipient' ||
               notificationType == 'mail_collected') &&
-          action == 'view_mails') {
-        // ignore: use_build_context_synchronously
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const MyMailsScreen(),
-          ),
-        );
-        debugPrint('✅ Navigation vers Mes Courriers (notification courrier)');
+          action == 'view_mail') {
+        // Vérifier le rôle de l'utilisateur pour décider où naviguer
+        final authState = ref.read(authProvider);
+        final user = authState.user;
+        final userRole = user?.role?.trim().toLowerCase() ?? '';
+        final permissions = user?.permissions ?? [];
+        final roles = user?.roles ?? [];
+        
+        // Vérifier si l'utilisateur a le rôle courrier ou la permission courrier
+        final hasMailRole = userRole == 'courrier' ||
+            roles.any((r) => r.toLowerCase().contains('courrier')) ||
+            permissions.any((p) => p.toLowerCase().contains('courrier')) ||
+            permissions.any((p) => p.toLowerCase().contains('mail'));
+        
+        debugPrint('🔔 [Notification] Rôle utilisateur: $userRole');
+        debugPrint('🔔 [Notification] Has mail role: $hasMailRole');
+        
+        // Vérifier si on a un ID de courrier pour ouvrir directement les détails
+        final mailId = data != null ? int.tryParse(data['mail_id']?.toString() ?? '') : null;
+        
+        if (hasMailRole) {
+          // Pour les agents avec rôle courrier
+          if (mailId != null) {
+            // Si on a un ID de courrier, ouvrir directement les détails
+            MailApiService.getMailDetails(mailId).then((mail) {
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) => mail_detail.MailDetailScreen(mail: mail),
+                  ),
+                );
+                debugPrint('✅ Navigation vers détails du courrier #${mail.mailNumber} (agent)');
+              }
+            }).catchError((e) {
+              debugPrint('❌ Erreur lors du chargement des détails: $e');
+              // En cas d'erreur, naviguer vers la page de gestion
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MailManagementScreen(),
+                  ),
+                );
+              }
+            });
+          } else {
+            // Pas d'ID, naviguer vers la page de gestion (seulement si pas déjà dessus)
+            // ignore: use_build_context_synchronously
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const MailManagementScreen(),
+              ),
+            );
+            debugPrint('✅ Navigation vers Gestion des Courriers (agent)');
+          }
+        } else {
+          // Pour les clients
+          if (mailId != null) {
+            // Si on a un ID de courrier, ouvrir directement les détails
+            MailApiService.getMailDetails(mailId).then((mail) {
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) => mail_detail.MailDetailScreen(mail: mail),
+                  ),
+                );
+                debugPrint('✅ Navigation vers détails du courrier #${mail.mailNumber} (client)');
+              }
+            }).catchError((e) {
+              debugPrint('❌ Erreur lors du chargement des détails: $e');
+              // En cas d'erreur, naviguer vers Mes Courriers
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MyMailsScreen(),
+                  ),
+                );
+              }
+            });
+          } else {
+            // Pas d'ID, naviguer vers Mes Courriers
+            // ignore: use_build_context_synchronously
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const MyMailsScreen(),
+              ),
+            );
+            debugPrint('✅ Navigation vers Mes Courriers (client)');
+          }
+        }
         return;
       }
 
-      // Navigation par défaut vers l'onglet Notifications
+      // Navigation par défaut vers l'onglet Notifications (seulement si pas de type spécifique)
       // ignore: use_build_context_synchronously
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) =>
               const HomePage(initialTabIndex: 1), // Index 1 = Notifications
         ),
-        (route) => false,
       );
 
       // Ensuite, si on a un ID de notification, ouvrir le détail
