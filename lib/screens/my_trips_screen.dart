@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -781,8 +782,16 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     final seatNumber = trip.siegeNumber?.toString() ?? 'N/A';
     final ticketNumber = trip.depart?.numeroDepart ?? trip.id.toString();
 
-    // Données pour le QR code
-    final qrData = 'TICKET|${trip.id}|${trip.telephone}|${date}|${seatNumber}';
+    // Données pour le QR code - Format JSON compatible avec le scanner d'embarquement
+    // Le scanner peut parser soit un JSON avec ticket_id/id/code, soit directement l'ID
+    final qrData = jsonEncode({
+      'ticket_id': trip.id,
+      'id': trip.id,
+      'code': trip.id.toString(),
+      'telephone': trip.telephone,
+      'date': date,
+      'seat': seatNumber,
+    });
 
     // Détecter si c'est un laisser-passer
     final isLaisserPasser = trip.isPassthrough || trip.isLoyaltyReward || (trip.prix != null && trip.prix == 0);

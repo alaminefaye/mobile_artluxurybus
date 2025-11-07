@@ -26,6 +26,7 @@ import 'services/mail_api_service.dart';
 import 'services/bagage_api_service.dart';
 import 'services/recharge_service.dart';
 import 'services/feature_permission_service.dart';
+import 'services/embarkment_service.dart';
 import 'debug/debug_screen.dart';
 import 'screens/management_hub_screen.dart';
 import 'screens/mail_management_screen.dart';
@@ -51,6 +52,7 @@ void main() async {
       MailApiService.setToken(token);
       BagageApiService.setToken(token);
       RechargeService.setToken(token);
+      EmbarkmentService.setToken(token);
 
       // Charger les permissions de l'utilisateur au démarrage
       try {
@@ -261,8 +263,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         final roles = user?.roles ?? [];
 
         // Vérifier si l'utilisateur a le rôle courrier ou la permission courrier
-        final hasMailRole =
-            userRole == 'courrier' ||
+        final hasMailRole = userRole == 'courrier' ||
             roles.any((r) => r.toLowerCase().contains('courrier')) ||
             permissions.any((p) => p.toLowerCase().contains('courrier')) ||
             permissions.any((p) => p.toLowerCase().contains('mail'));
@@ -279,35 +280,33 @@ class _MyAppState extends ConsumerState<MyApp> {
           // Pour les agents avec rôle courrier
           if (mailId != null) {
             // Si on a un ID de courrier, ouvrir directement les détails
-            MailApiService.getMailDetails(mailId)
-                .then((mail) {
-                  final newContext = _navigatorKey.currentContext;
-                  if (newContext != null && mounted) {
-                    // ignore: use_build_context_synchronously
-                    Navigator.of(newContext).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            mail_detail.MailDetailScreen(mail: mail),
-                      ),
-                    );
-                    debugPrint(
-                      '✅ Navigation vers détails du courrier #${mail.mailNumber} (agent)',
-                    );
-                  }
-                })
-                .catchError((e) {
-                  debugPrint('❌ Erreur lors du chargement des détails: $e');
-                  // En cas d'erreur, naviguer vers la page de gestion
-                  final newContext = _navigatorKey.currentContext;
-                  if (newContext != null && mounted) {
-                    // ignore: use_build_context_synchronously
-                    Navigator.of(newContext).push(
-                      MaterialPageRoute(
-                        builder: (context) => const MailManagementScreen(),
-                      ),
-                    );
-                  }
-                });
+            MailApiService.getMailDetails(mailId).then((mail) {
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        mail_detail.MailDetailScreen(mail: mail),
+                  ),
+                );
+                debugPrint(
+                  '✅ Navigation vers détails du courrier #${mail.mailNumber} (agent)',
+                );
+              }
+            }).catchError((e) {
+              debugPrint('❌ Erreur lors du chargement des détails: $e');
+              // En cas d'erreur, naviguer vers la page de gestion
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MailManagementScreen(),
+                  ),
+                );
+              }
+            });
           } else {
             // Pas d'ID, naviguer vers la page de gestion (seulement si pas déjà dessus)
             // ignore: use_build_context_synchronously
@@ -322,35 +321,33 @@ class _MyAppState extends ConsumerState<MyApp> {
           // Pour les clients
           if (mailId != null) {
             // Si on a un ID de courrier, ouvrir directement les détails
-            MailApiService.getMailDetails(mailId)
-                .then((mail) {
-                  final newContext = _navigatorKey.currentContext;
-                  if (newContext != null && mounted) {
-                    // ignore: use_build_context_synchronously
-                    Navigator.of(newContext).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            mail_detail.MailDetailScreen(mail: mail),
-                      ),
-                    );
-                    debugPrint(
-                      '✅ Navigation vers détails du courrier #${mail.mailNumber} (client)',
-                    );
-                  }
-                })
-                .catchError((e) {
-                  debugPrint('❌ Erreur lors du chargement des détails: $e');
-                  // En cas d'erreur, naviguer vers Mes Courriers
-                  final newContext = _navigatorKey.currentContext;
-                  if (newContext != null && mounted) {
-                    // ignore: use_build_context_synchronously
-                    Navigator.of(newContext).push(
-                      MaterialPageRoute(
-                        builder: (context) => const MyMailsScreen(),
-                      ),
-                    );
-                  }
-                });
+            MailApiService.getMailDetails(mailId).then((mail) {
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        mail_detail.MailDetailScreen(mail: mail),
+                  ),
+                );
+                debugPrint(
+                  '✅ Navigation vers détails du courrier #${mail.mailNumber} (client)',
+                );
+              }
+            }).catchError((e) {
+              debugPrint('❌ Erreur lors du chargement des détails: $e');
+              // En cas d'erreur, naviguer vers Mes Courriers
+              final newContext = _navigatorKey.currentContext;
+              if (newContext != null && mounted) {
+                // ignore: use_build_context_synchronously
+                Navigator.of(newContext).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MyMailsScreen(),
+                  ),
+                );
+              }
+            });
           } else {
             // Pas d'ID, naviguer vers Mes Courriers
             // ignore: use_build_context_synchronously
@@ -383,8 +380,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               id: int.tryParse(data['notification_id'].toString()) ?? 0,
               title: notification['title']?.toString() ?? '',
               message: notification['body']?.toString() ?? '',
-              type:
-                  data['msg_type']?.toString() ??
+              type: data['msg_type']?.toString() ??
                   data['type']?.toString() ??
                   '',
               isRead: false,
@@ -417,8 +413,8 @@ class _MyAppState extends ConsumerState<MyApp> {
       themeMode: themeMode == theme_provider.ThemeMode.system
           ? ThemeMode.system
           : themeMode == theme_provider.ThemeMode.dark
-          ? ThemeMode.dark
-          : ThemeMode.light,
+              ? ThemeMode.dark
+              : ThemeMode.light,
       navigatorKey: _navigatorKey,
       // Configuration des localisations pour supporter le français
       localizationsDelegates: const [
