@@ -328,7 +328,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                             children: [
                               Icon(
                                 Icons.card_giftcard,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Colors.orange,
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -338,7 +338,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: Theme.of(context).brightness == Brightness.dark
                                       ? Colors.white
-                                      : Theme.of(context).colorScheme.primary,
+                                      : Colors.orange,
                                 ),
                               ),
                             ],
@@ -395,7 +395,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                               ElevatedButton(
                                 onPressed: _isCheckingLoyalty ? null : _checkLoyaltyPoints,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
+                                  backgroundColor: Colors.orange,
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                 ),
                                 child: _isCheckingLoyalty
@@ -436,7 +436,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                     children: [
                                       Icon(
                                         _canUseFreeMail ? Icons.check_circle : Icons.info,
-                                        color: _canUseFreeMail ? Colors.green : Colors.blue,
+                                        color: _canUseFreeMail ? Colors.green : Colors.orange,
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
@@ -449,8 +449,8 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                                   ? Colors.green.shade300
                                                   : Colors.green.shade900)
                                               : (Theme.of(context).brightness == Brightness.dark
-                                                  ? Colors.blue.shade300
-                                                  : Colors.blue.shade900),
+                                                  ? Colors.orange.shade300
+                                                  : Colors.orange.shade900),
                                         ),
                                       ),
                                     ],
