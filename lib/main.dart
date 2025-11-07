@@ -225,6 +225,20 @@ class _MyAppState extends ConsumerState<MyApp> {
         return;
       }
 
+      // NOUVEAU: Gérer les notifications de changement d'heure de départ
+      if (notificationType == 'departure_time_changed' &&
+          action == 'view_trips') {
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const MyTripsScreen(),
+          ),
+        );
+        debugPrint(
+            '✅ Navigation vers Mes Trajets (changement d\'heure de départ)');
+        return;
+      }
+
       // NOUVEAU: Gérer les notifications de points de fidélité
       if (notificationType == 'loyalty_point' && action == 'view_loyalty') {
         // ignore: use_build_context_synchronously
