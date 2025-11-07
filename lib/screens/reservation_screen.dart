@@ -140,12 +140,28 @@ class _ReservationScreenState extends State<ReservationScreen> {
   }
 
   Future<void> _selectDate() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('fr', 'FR'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: Colors.orange,
+                    onPrimary: Colors.white,
+                    surface: Theme.of(context).cardColor,
+                    onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+                  )
+                : Theme.of(context).colorScheme,
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {

@@ -39,7 +39,9 @@ class DeparturesResultsScreen extends StatelessWidget {
           Icon(
             Icons.search_off,
             size: 80,
-            color: Colors.grey[400],
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white54
+                : Colors.grey[400],
           ),
           const SizedBox(height: 24),
           Text(
@@ -47,7 +49,9 @@ class DeparturesResultsScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.grey[700],
             ),
           ),
           const SizedBox(height: 8),
@@ -55,7 +59,9 @@ class DeparturesResultsScreen extends StatelessWidget {
             'Essayez de modifier vos critères de recherche',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.grey[600],
             ),
             textAlign: TextAlign.center,
           ),
@@ -87,7 +93,9 @@ class DeparturesResultsScreen extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.location_on,
-                    color: AppTheme.primaryBlue,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppTheme.primaryBlue,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -97,7 +105,9 @@ class DeparturesResultsScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryBlue,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.primaryBlue,
                       ),
                     ),
                   ),
@@ -108,7 +118,9 @@ class DeparturesResultsScreen extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.calendar_today,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.grey[600],
                     size: 18,
                   ),
                   const SizedBox(width: 8),
@@ -116,7 +128,9 @@ class DeparturesResultsScreen extends StatelessWidget {
                     'Date: $date',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[700],
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.grey[700],
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -194,7 +208,9 @@ class DeparturesResultsScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryBlue,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : AppTheme.primaryBlue,
                       ),
                     ),
                   ),
@@ -218,14 +234,23 @@ class DeparturesResultsScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.location_on, color: AppTheme.primaryBlue, size: 20),
+                  Icon(
+                    Icons.location_on,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppTheme.primaryBlue,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${depart['trajet']['embarquement']} → ${depart['trajet']['destination']}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : null,
                       ),
                     ),
                   ),
@@ -249,13 +274,21 @@ class DeparturesResultsScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.event_seat, color: Colors.grey[600], size: 20),
+                  Icon(
+                    Icons.event_seat,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.grey[600],
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     '${depart['places_disponibles']} places disponibles',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.grey[600],
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.grey[600],
                     ),
                   ),
                 ],
@@ -264,13 +297,21 @@ class DeparturesResultsScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.directions_bus, color: Colors.grey[600], size: 20),
+                    Icon(
+                      Icons.directions_bus,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.grey[600],
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Bus: ${depart['bus']['numero'] ?? 'N/A'}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.grey[600],
                       ),
                     ),
                   ],
