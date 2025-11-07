@@ -510,12 +510,24 @@ class _BagageListViewState extends State<BagageListView> {
           padding: const EdgeInsets.all(8.0),
           child: TextField(
             controller: _searchController,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
             decoration: InputDecoration(
               hintText: 'Rechercher...',
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+              ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear),
+                      icon: Icon(
+                        Icons.clear,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                      ),
                       onPressed: () {
                         _searchController.clear();
                         _onSearch('');
@@ -524,9 +536,25 @@ class _BagageListViewState extends State<BagageListView> {
                   : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 2,
+                ),
               ),
               filled: true,
-              fillColor: Colors.grey.shade50,
+              fillColor: Theme.of(context).cardColor,
             ),
             onSubmitted: _onSearch,
           ),
