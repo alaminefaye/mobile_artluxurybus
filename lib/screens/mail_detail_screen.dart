@@ -134,6 +134,13 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       Text(_mail.description!),
                     ]),
                   ],
+                  if (_mail.photo != null && _mail.photo!.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _buildInfoSection('Photo du courrier', [
+                      const SizedBox(height: 12),
+                      _buildMailPhoto(_mail.photoUrl ?? _mail.photo!),
+                    ]),
+                  ],
                   const SizedBox(height: 24),
                   _buildInfoSection('Informations supplémentaires', [
                     _buildInfoRow(
@@ -337,6 +344,134 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMailPhoto(String photoPath) {
+    // Construire l'URL complète de la photo
+    String imageUrl = photoPath;
+    if (!photoPath.startsWith('http')) {
+      // Si le chemin est relatif, construire l'URL complète
+      if (photoPath.startsWith('images/mails/')) {
+        imageUrl = 'https://skf-artluxurybus.com/$photoPath';
+      } else {
+        // Pour les anciens chemins dans storage
+        imageUrl = 'https://skf-artluxurybus.com/storage/$photoPath';
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // Afficher la photo en plein écran
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Stack(
+              children: [
+                Center(
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.image_not_supported,
+                                  color: Colors.grey.shade400, size: 48),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Photo non disponible',
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 40,
+                  right: 20,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(context),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black54,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.grey.shade50,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Image.network(
+            imageUrl,
+            width: double.infinity,
+            height: 300,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 300,
+                alignment: Alignment.center,
+                color: Colors.grey.shade200,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.image_not_supported,
+                        color: Colors.grey.shade400, size: 48),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Photo non disponible',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Appuyez pour réessayer',
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                height: 300,
+                alignment: Alignment.center,
+                color: Colors.grey.shade100,
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }

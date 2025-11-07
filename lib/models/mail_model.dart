@@ -38,12 +38,17 @@ class MailModel {
   // Getter pour obtenir l'URL complète de la photo
   String? get photoUrl {
     if (photo == null || photo!.isEmpty) return null;
+    // Si le chemin commence déjà par http, le retourner tel quel
     if (photo!.startsWith('http')) return photo;
     // Si le chemin commence par "images/mails/", c'est un chemin direct dans public
     if (photo!.startsWith('images/mails/')) {
-      return 'https://skf-artluxurybus.com/$photo';
+      return 'https://skf-artluxurybus.com/${photo}';
     }
-    // Sinon, c'est peut-être un chemin dans storage (ancien système)
+    // Si le chemin commence par "mails/", c'est un ancien chemin dans storage/app/public
+    if (photo!.startsWith('mails/')) {
+      return 'https://skf-artluxurybus.com/storage/${photo}';
+    }
+    // Sinon, essayer avec storage/ pour les anciens chemins
     return 'https://skf-artluxurybus.com/storage/$photo';
   }
 
@@ -82,6 +87,9 @@ class MailModel {
   });
 
   factory MailModel.fromJson(Map<String, dynamic> json) {
+    // Utiliser photo_url de l'API si disponible (URL complète), sinon utiliser photo (chemin relatif)
+    final photoValue = json['photo_url'] ?? json['photo'];
+    
     return MailModel(
       id: json['id'] ?? 0,
       mailNumber: json['mail_number'] ?? '',
@@ -95,7 +103,7 @@ class MailModel {
       packageType: json['package_type'] ?? '',
       receivingAgency: json['receiving_agency'] ?? '',
       description: json['description'],
-      photo: json['photo'],
+      photo: photoValue,
       isCollected: json['is_collected'] == true || json['is_collected'] == 1,
       collectedAt: json['collected_at'] != null
           ? DateTime.parse(json['collected_at'])
