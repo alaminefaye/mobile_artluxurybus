@@ -322,7 +322,7 @@ class DeparturesResultsScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue,
+                  color: Colors.orange,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Center(
