@@ -15,6 +15,9 @@ class Trip {
   final DepartInfo? depart;
   final StopInfo? embarkStop;
   final StopInfo? disembarkStop;
+  final bool isUsed;
+  final String? scannedAt;
+  final String? scannedAtFormatted;
 
   Trip({
     required this.id,
@@ -33,6 +36,9 @@ class Trip {
     this.depart,
     this.embarkStop,
     this.disembarkStop,
+    this.isUsed = false,
+    this.scannedAt,
+    this.scannedAtFormatted,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -72,6 +78,21 @@ class Trip {
       }
     }
 
+    // Gérer is_used qui peut être int (0/1) ou bool, ou si scanned_at existe
+    bool isUsed = false;
+    if (json['is_used'] != null) {
+      if (json['is_used'] is bool) {
+        isUsed = json['is_used'] as bool;
+      } else if (json['is_used'] is int) {
+        isUsed = (json['is_used'] as int) == 1;
+      } else {
+        isUsed = json['is_used'].toString() == '1' || json['is_used'].toString().toLowerCase() == 'true';
+      }
+    } else if (json['scanned_at'] != null && json['scanned_at'].toString().isNotEmpty) {
+      // Si scanned_at existe, le ticket est considéré comme utilisé
+      isUsed = true;
+    }
+
     return Trip(
       id: json['id'] ?? 0,
       nomComplet: json['nom_complet'] ?? '',
@@ -89,6 +110,9 @@ class Trip {
       depart: json['depart'] != null ? DepartInfo.fromJson(json['depart']) : null,
       embarkStop: json['embark_stop'] != null ? StopInfo.fromJson(json['embark_stop']) : null,
       disembarkStop: json['disembark_stop'] != null ? StopInfo.fromJson(json['disembark_stop']) : null,
+      isUsed: isUsed,
+      scannedAt: json['scanned_at']?.toString(),
+      scannedAtFormatted: json['scanned_at_formatted']?.toString(),
     );
   }
 
@@ -110,6 +134,9 @@ class Trip {
       'depart': depart?.toJson(),
       'embark_stop': embarkStop?.toJson(),
       'disembark_stop': disembarkStop?.toJson(),
+      'is_used': isUsed,
+      'scanned_at': scannedAt,
+      'scanned_at_formatted': scannedAtFormatted,
     };
   }
 

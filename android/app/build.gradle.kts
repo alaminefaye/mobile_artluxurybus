@@ -17,14 +17,16 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    
-    // Supprimer les warnings Java 8
-    tasks.withType<JavaCompile> {
-        options.compilerArgs.addAll(listOf("-Xlint:-options"))
-    }
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+    
+    // Supprimer les warnings Java 8 pour toutes les tâches de compilation
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
+        options.compilerArgs.addAll(listOf("-Xlint:-options"))
     }
 
     defaultConfig {

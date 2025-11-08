@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/loyalty_provider.dart';
+import '../services/translation_service.dart';
 import 'loyalty_register_screen.dart';
 import 'loyalty_home_screen.dart';
 
@@ -16,6 +17,11 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
   final _phoneController = TextEditingController();
   final _phoneFocus = FocusNode();
   bool _isKeyboardVisible = false;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -37,8 +43,8 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
   void _checkPoints() async {
     if (_phoneController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez saisir votre numéro de téléphone'),
+        SnackBar(
+          content: Text(t('loyalty.enter_phone_error')),
         ),
       );
       return;
@@ -57,13 +63,13 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Points trouvés ! Bienvenue dans votre dashboard',
+                    t('loyalty.points_found'),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -89,25 +95,25 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         contentPadding: const EdgeInsets.all(16),
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.person_add, 
               color: AppTheme.primaryOrange,
               size: 20,
             ),
-            SizedBox(width: 6),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
-                'Compte non trouvé',
+                t('loyalty.account_not_found'),
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
-        content: const Text(
-          'Aucun compte trouvé. Voulez-vous vous inscrire ?',
+        content: Text(
+          t('loyalty.no_account_found'),
           style: TextStyle(height: 1.4, fontSize: 14),
         ),
         actions: [
@@ -116,8 +122,8 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            child: const Text(
-              'Annuler',
+            child: Text(
+              t('common.cancel'),
               style: TextStyle(fontSize: 13),
             ),
           ),
@@ -136,8 +142,8 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
-            child: const Text(
-              'S\'inscrire',
+            child: Text(
+              t('loyalty.register'),
               style: TextStyle(fontSize: 13),
             ),
           ),
@@ -164,7 +170,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Vérifier mes points'),
+          title: Text(t('loyalty.check_points')),
           backgroundColor: Theme.of(context).brightness == Brightness.dark 
               ? AppTheme.primaryOrange 
               : AppTheme.primaryBlue,
@@ -205,7 +211,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                 
                 // Titre principal en blanc (plus petit si clavier visible)
                 Text(
-                  'Rechercher votre\ncompte',
+                  t('loyalty.search_account').replaceAll(' ', '\n'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: _isKeyboardVisible ? screenWidth * 0.06 : screenWidth * 0.08,
@@ -229,7 +235,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                 // Description en blanc (masquée si clavier visible pour économiser l'espace)
                 if (!_isKeyboardVisible) ...[
                   Text(
-                    'Saisissez votre numéro de téléphone pour consulter vos points de fidélité',
+                    t('loyalty.enter_phone_to_check'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: screenWidth * 0.04,
@@ -286,7 +292,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                     decoration: InputDecoration(
-                      labelText: 'Numéro de téléphone',
+                      labelText: t('loyalty.phone_number'),
                       labelStyle: const TextStyle(fontSize: 13),
                       hintText: '0123456789',
                       hintStyle: const TextStyle(fontSize: 14),
@@ -367,18 +373,18 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
-                        : const Row(
+                        : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.search_rounded,
                                 color: Colors.white,
                                 size: 18,
                               ),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Text(
-                                'RECHERCHER',
-                                style: TextStyle(
+                                t('loyalty.search'),
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
@@ -413,7 +419,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
                         SizedBox(width: screenWidth * 0.03),
                         Expanded(
                           child: Text(
-                            'Utilisez le même numéro que lors de vos réservations',
+                            t('loyalty.use_same_number'),
                             style: TextStyle(
                               fontSize: screenWidth * 0.032,
                               color: Colors.white.withValues(alpha: 0.8),

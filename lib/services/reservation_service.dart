@@ -163,6 +163,16 @@ class ReservationService {
 
       final data = json.decode(response.body);
 
+      // Vérifier si c'est une erreur 429 (Rate Limiting)
+      if (response.statusCode == 429) {
+        return {
+          'success': false,
+          'message': 'Too Many Attempts. Veuillez patienter quelques instants.',
+          'status_code': 429,
+          'details': data,
+        };
+      }
+
       if (response.statusCode == 201) {
         return {
           'success': true,
@@ -175,6 +185,7 @@ class ReservationService {
         return {
           'success': false,
           'message': data['message'] ?? 'Erreur lors de la création de la réservation',
+          'status_code': response.statusCode,
           'details': data['details'], // Détails supplémentaires (reason, expires_at, info, etc.)
           'errors': data['errors'],
         };
@@ -202,6 +213,15 @@ class ReservationService {
 
       final data = json.decode(response.body);
 
+      // Vérifier si c'est une erreur 429 (Rate Limiting)
+      if (response.statusCode == 429) {
+        return {
+          'success': false,
+          'message': 'Too Many Attempts. Veuillez patienter quelques instants.',
+          'status_code': 429,
+        };
+      }
+
       if (response.statusCode == 200) {
         return {
           'success': true,
@@ -212,6 +232,7 @@ class ReservationService {
         return {
           'success': false,
           'message': data['message'] ?? 'Erreur lors de la confirmation de la réservation',
+          'status_code': response.statusCode,
         };
       }
     } catch (e) {
@@ -225,7 +246,7 @@ class ReservationService {
   /// Vérifier un code promotionnel
   static Future<Map<String, dynamic>> verifyPromoCode(String code) async {
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/departs/promo/verify');
+      final uri = Uri.parse('${ApiConfig.baseUrl}/promo-codes/verify');
       
       final headers = {
         ...ApiConfig.defaultHeaders,

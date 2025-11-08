@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../models/mail_model.dart';
 import '../services/mail_api_service.dart';
+import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
 
 class MyMailsScreen extends StatefulWidget {
@@ -17,6 +18,11 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
   String? _errorMessage;
   int _sentCount = 0;
   int _receivedCount = 0;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -55,9 +61,9 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
-          'Mes Courriers',
-          style: TextStyle(
+        title: Text(
+          t('mail.title'),
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
@@ -69,7 +75,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadMails,
-            tooltip: 'Actualiser',
+            tooltip: t('mail.refresh'),
           ),
         ],
       ),
@@ -104,7 +110,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Erreur',
+                t('common.error'),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -124,7 +130,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
               ElevatedButton.icon(
                 onPressed: _loadMails,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Réessayer'),
+                label: Text(t('trips.try_again')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryOrange,
                   foregroundColor: Colors.white,
@@ -158,7 +164,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Aucun courrier',
+                t('mail.no_mails'),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -167,7 +173,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Vous n\'avez pas encore de courriers enregistrés.',
+                t('mail.no_mails_message'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -180,14 +186,14 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                   Navigator.of(context).pop();
                   // Afficher un message informatif
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Pour voir vos courriers, vous devez avoir un profil client associé à votre compte.'),
+                    SnackBar(
+                      content: Text(t('mail.client_profile_required')),
                       duration: Duration(seconds: 4),
                     ),
                   );
                 },
                 icon: const Icon(Icons.info_outline_rounded),
-                label: const Text('Plus d\'informations'),
+                label: Text(t('mail.more_info')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryOrange,
                   foregroundColor: Colors.white,
@@ -238,7 +244,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _mails.length > 1 ? 'Courriers' : 'Courrier',
+                  _mails.length > 1 ? t('mail.mails_count') : t('mail.mail_count'),
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white,
@@ -249,8 +255,8 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatItem('Expédiés', _sentCount, Icons.send_rounded),
-                    _buildStatItem('Reçus', _receivedCount, Icons.inbox_rounded),
+                    _buildStatItem(t('mail.sent'), _sentCount, Icons.send_rounded),
+                    _buildStatItem(t('mail.received'), _receivedCount, Icons.inbox_rounded),
                   ],
                 ),
               ],
@@ -358,7 +364,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              isSentMail ? 'Expédié' : 'Reçu',
+                              isSentMail ? t('mail.sent_label') : t('mail.received_label'),
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -382,7 +388,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Vers ${mail.destination}',
+                          '${t("mail.to")} ${mail.destination}',
                           style: TextStyle(
                             fontSize: 14,
                             color: Theme.of(context)
@@ -418,7 +424,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Collecté',
+                            t('mail.collected'),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -440,7 +446,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                   Expanded(
                     child: _buildInfoItem(
                       icon: isSentMail ? Icons.person_outline_rounded : Icons.person_rounded,
-                      label: isSentMail ? 'Destinataire' : 'Expéditeur',
+                      label: isSentMail ? t('mail.recipient') : t('mail.sender'),
                       value: isSentMail ? mail.recipientName : mail.senderName,
                       color: AppTheme.primaryOrange,
                     ),
@@ -552,7 +558,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
     } else if (difference.inDays == 1) {
       return 'Hier';
     } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays} jours';
+      return t('mail.ago_days').replaceAll('{{days}}', difference.inDays.toString());
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
@@ -573,11 +579,16 @@ class MailDetailScreen extends StatelessWidget {
 
   const MailDetailScreen({super.key, required this.mail});
 
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Détails du courrier'),
+        title: Text(t('mail_detail.title')),
         backgroundColor: AppTheme.primaryOrange,
         foregroundColor: Colors.white,
       ),
@@ -603,7 +614,7 @@ class MailDetailScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Numéro de courrier',
+                            t('mail_detail.mail_number'),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -633,7 +644,7 @@ class MailDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Expéditeur',
+                      t('mail_detail.sender'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -641,8 +652,8 @@ class MailDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildDetailRow('Nom', mail.senderName),
-                    _buildDetailRow('Téléphone', mail.senderPhone),
+                    _buildDetailRow(t('mail_detail.name'), mail.senderName),
+                    _buildDetailRow(t('mail_detail.phone'), mail.senderPhone),
                   ],
                 ),
               ),
@@ -657,7 +668,7 @@ class MailDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Destinataire',
+                      t('mail_detail.recipient'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -665,8 +676,8 @@ class MailDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildDetailRow('Nom', mail.recipientName),
-                    _buildDetailRow('Téléphone', mail.recipientPhone),
+                    _buildDetailRow(t('mail_detail.name'), mail.recipientName),
+                    _buildDetailRow(t('mail_detail.phone'), mail.recipientPhone),
                   ],
                 ),
               ),
@@ -681,7 +692,7 @@ class MailDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Informations du colis',
+                      t('mail_detail.package_info'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -689,13 +700,13 @@ class MailDetailScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _buildDetailRow('Destination', mail.destination),
-                    _buildDetailRow('Type de colis', mail.packageType),
-                    _buildDetailRow('Valeur déclarée', mail.packageValue),
-                    _buildDetailRow('Montant', '${mail.amount.toStringAsFixed(0)} FCFA'),
-                    _buildDetailRow('Agence de réception', mail.receivingAgency),
+                    _buildDetailRow(t('mail_detail.destination'), mail.destination),
+                    _buildDetailRow(t('mail_detail.package_type'), mail.packageType),
+                    _buildDetailRow(t('mail_detail.declared_value'), mail.packageValue),
+                    _buildDetailRow(t('mail_detail.amount'), '${mail.amount.toStringAsFixed(0)} FCFA'),
+                    _buildDetailRow(t('mail_detail.receiving_agency'), mail.receivingAgency),
                     if (mail.description != null)
-                      _buildDetailRow('Description', mail.description!),
+                      _buildDetailRow(t('mail_detail.description'), mail.description!),
                   ],
                 ),
               ),
@@ -710,7 +721,7 @@ class MailDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Statut',
+                      t('mail_detail.status'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -728,7 +739,7 @@ class MailDetailScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          mail.isCollected ? 'Collecté' : 'En attente',
+                          mail.isCollected ? t('mail_detail.collected') : t('mail_detail.pending'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -740,11 +751,11 @@ class MailDetailScreen extends StatelessWidget {
                     if (mail.isCollected && mail.collectedAt != null) ...[
                       const SizedBox(height: 8),
                       _buildDetailRow(
-                        'Date de collecte',
+                        t('mail_detail.collection_date'),
                         '${mail.collectedAt!.day}/${mail.collectedAt!.month}/${mail.collectedAt!.year} à ${mail.collectedAt!.hour}:${mail.collectedAt!.minute.toString().padLeft(2, '0')}',
                       ),
                       if (mail.collectorName != null)
-                        _buildDetailRow('Collecté par', mail.collectorName!),
+                        _buildDetailRow(t('mail_detail.collected_by'), mail.collectorName!),
                     ],
                   ],
                 ),
@@ -769,7 +780,7 @@ class MailDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     _buildDetailRow(
-                      'Date d\'envoi',
+                      t('mail.send_date'),
                       '${mail.createdAt.day}/${mail.createdAt.month}/${mail.createdAt.year} à ${mail.createdAt.hour}:${mail.createdAt.minute.toString().padLeft(2, '0')}',
                     ),
                   ],

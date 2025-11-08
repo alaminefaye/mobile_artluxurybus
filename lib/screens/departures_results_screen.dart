@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../services/translation_service.dart';
 import 'seat_selection_screen.dart';
+import '../services/depart_service.dart';
 
-class DeparturesResultsScreen extends StatelessWidget {
+class DeparturesResultsScreen extends StatefulWidget {
   final List<dynamic> departs;
   final String embarquement;
   final String destination;
@@ -17,55 +20,117 @@ class DeparturesResultsScreen extends StatelessWidget {
   });
 
   @override
+  State<DeparturesResultsScreen> createState() =>
+      _DeparturesResultsScreenState();
+}
+
+class _DeparturesResultsScreenState extends State<DeparturesResultsScreen> {
+  late List<dynamic> _departs;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _departs = widget.departs;
+  }
+
+  Future<void> _refreshDeparts() async {
+    try {
+      final result = await DepartService.searchDeparts(
+        embarquement: widget.embarquement,
+        destination: widget.destination,
+        dateDepart: widget.date,
+      );
+
+      if (result['success'] == true) {
+        setState(() {
+          _departs = result['data'] ?? [];
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? t('departures.refresh_error')),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(t('departures.refresh_error')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Résultats de recherche'),
+        title: Text(t('departures.results_title')),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: departs.isEmpty
-          ? _buildEmptyState(context)
-          : _buildResultsList(context),
+      body: RefreshIndicator(
+        onRefresh: _refreshDeparts,
+        child: _departs.isEmpty
+            ? _buildEmptyState(context)
+            : _buildResultsList(context),
+      ),
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 80,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white54
-                : Colors.grey[400],
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height - 200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 80,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white54
+                    : Colors.grey[400],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                t('departures.no_departures'),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t('departures.modify_criteria'),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Aucun départ trouvé',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Essayez de modifier vos critères de recherche',
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white70
-                  : Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -101,7 +166,7 @@ class DeparturesResultsScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '$embarquement → $destination',
+                      '${widget.embarquement} → ${widget.destination}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -125,7 +190,7 @@ class DeparturesResultsScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Date: $date',
+                    '${t("departures.date")}: ${widget.date}',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context).brightness == Brightness.dark
@@ -135,13 +200,16 @@ class DeparturesResultsScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 16),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryOrange.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${departs.length} ${departs.length == 1 ? 'départ' : 'départs'}',
+                      '${_departs.length} ${_departs.length == 1 ? t("departures.departure") : t("departures.departures")}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -155,19 +223,80 @@ class DeparturesResultsScreen extends StatelessWidget {
           ),
         ),
 
-        // Liste des résultats
+        // Liste des résultats avec pull-to-refresh
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: departs.length,
-            itemBuilder: (context, index) {
-              final depart = departs[index];
-              return _buildDepartCard(context, depart);
-            },
+          child: RefreshIndicator(
+            onRefresh: _refreshDeparts,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _departs.length,
+              itemBuilder: (context, index) {
+                final depart = _departs[index];
+                return _buildDepartCard(context, depart);
+              },
+            ),
           ),
         ),
       ],
     );
+  }
+
+  bool _isDepartTimePassed(Map<String, dynamic> depart) {
+    try {
+      final dateDepart = depart['date_depart'] as String?;
+      final heureDepart = depart['heure_depart'] as String?;
+
+      if (dateDepart == null || heureDepart == null) {
+        return false;
+      }
+
+      // Parser la date et l'heure
+      final dateTimeStr = '$dateDepart $heureDepart';
+      final departDateTime = DateFormat('yyyy-MM-dd HH:mm').parse(dateTimeStr);
+
+      // Ajouter 30 minutes
+      final departDateTimePlus30 = departDateTime.add(
+        const Duration(minutes: 30),
+      );
+
+      // Comparer avec l'heure actuelle
+      return DateTime.now().isAfter(departDateTimePlus30);
+    } catch (e) {
+      // En cas d'erreur de parsing, on considère que le départ n'est pas passé
+      return false;
+    }
+  }
+
+  Color _getButtonColor(Map<String, dynamic> depart) {
+    final isActive = depart['is_active'] == true;
+    final placesDisponibles = depart['places_disponibles'] ?? 0;
+    final isTimePassed = _isDepartTimePassed(depart);
+
+    if (!isActive) {
+      return Colors.grey[400]!;
+    } else if (isTimePassed) {
+      return Colors.grey[400]!;
+    } else if (placesDisponibles <= 0) {
+      return Colors.grey[400]!;
+    } else {
+      return Colors.orange;
+    }
+  }
+
+  String _getButtonText(Map<String, dynamic> depart) {
+    final isActive = depart['is_active'] == true;
+    final placesDisponibles = depart['places_disponibles'] ?? 0;
+    final isTimePassed = _isDepartTimePassed(depart);
+
+    if (!isActive) {
+      return t('departures.only_at_counter');
+    } else if (isTimePassed) {
+      return t('departures.departure_completed');
+    } else if (placesDisponibles <= 0) {
+      return t('departures.departure_full');
+    } else {
+      return t('departures.select');
+    }
   }
 
   Widget _buildDepartCard(BuildContext context, Map<String, dynamic> depart) {
@@ -185,14 +314,19 @@ class DeparturesResultsScreen extends StatelessWidget {
         ],
       ),
       child: InkWell(
-        onTap: (depart['is_active'] == true) ? () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SeatSelectionScreen(depart: depart),
-            ),
-          );
-        } : null,
+        onTap:
+            (depart['is_active'] == true &&
+                (depart['places_disponibles'] ?? 0) > 0 &&
+                !_isDepartTimePassed(depart))
+            ? () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SeatSelectionScreen(depart: depart),
+                  ),
+                );
+              }
+            : null,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -215,7 +349,10 @@ class DeparturesResultsScreen extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryOrange.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
@@ -283,7 +420,7 @@ class DeparturesResultsScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '${depart['places_disponibles']} places disponibles',
+                    '${depart['places_disponibles']}/${depart['nombre_places']} disponible${depart['places_disponibles'] > 1 ? 's' : ''}',
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context).brightness == Brightness.dark
@@ -322,16 +459,12 @@ class DeparturesResultsScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: (depart['is_active'] == true) 
-                      ? Colors.orange 
-                      : Colors.grey[400],
+                  color: _getButtonColor(depart),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Text(
-                    (depart['is_active'] == true) 
-                        ? 'Sélectionner' 
-                        : 'Réservation indisponible',
+                    _getButtonText(depart),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -347,4 +480,3 @@ class DeparturesResultsScreen extends StatelessWidget {
     );
   }
 }
-

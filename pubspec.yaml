@@ -117,6 +117,9 @@ dev_dependencies:
   # Code generation
   build_runner: ^2.10.0
   json_serializable: ^6.9.2
+  
+  # App icons generation
+  flutter_launcher_icons: ^0.14.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -132,6 +135,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - lib/l10n/fr.json
+    - lib/l10n/en.json
     - 12.png
     - art.jpg
     - img1.jpg
@@ -163,3 +168,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuration pour flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon_square.png"
+  min_sdk_android: 21
+  remove_alpha_ios: false
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/images/app_icon_square.png"

@@ -29,18 +29,26 @@ class ClientRegistrationService {
       // Gérer les différents codes de statut
       if (response.statusCode == 200 || response.statusCode == 404) {
         final data = json.decode(response.body);
+        
+        // Log du JSON brut pour débogage
+        debugPrint('🔍 [ClientRegistrationService] JSON brut reçu:');
+        debugPrint('   - has_account dans JSON: ${data['client']?['has_account']}');
+        debugPrint('   - Type de has_account: ${data['client']?['has_account'].runtimeType}');
+        
         final result = ClientSearchResponse.fromJson(data);
         
         debugPrint('🔍 [ClientRegistrationService] Parsing réussi:');
         debugPrint('   - success: ${result.success}');
         debugPrint('   - found: ${result.found}');
         debugPrint('   - hasAccount: ${result.client?.hasAccount ?? "N/A"}');
+        debugPrint('   - Type de hasAccount: ${result.client?.hasAccount.runtimeType ?? "N/A"}');
         
         if (result.success && result.found && result.client != null) {
           debugPrint('✅ [ClientRegistrationService] Client trouvé: ${result.client!.nomComplet}');
           debugPrint('   - ID: ${result.client!.id}');
           debugPrint('   - Téléphone: ${result.client!.telephone}');
           debugPrint('   - A un compte: ${result.client!.hasAccount}');
+          debugPrint('   - hasAccount est true? ${result.client!.hasAccount == true}');
         } else {
           debugPrint('❌ [ClientRegistrationService] Client non trouvé: ${result.message}');
         }

@@ -202,6 +202,49 @@ class AuthService {
     }
   }
 
+  // Sauvegarder les données d'authentification depuis l'inscription
+  // Cette méthode permet de sauvegarder directement le token retourné par l'inscription
+  Future<void> saveAuthDataFromRegistration({
+    required String token,
+    required String tokenType,
+    required Map<String, dynamic> userData,
+  }) async {
+    try {
+      // Convertir les données utilisateur en User
+      final user = User.fromJson(userData);
+      
+      // Créer AuthData
+      final authData = AuthData(
+        user: user,
+        token: token,
+        tokenType: tokenType,
+      );
+      
+      // Sauvegarder les données
+      await _saveAuthData(authData);
+      
+      // Définir le token dans FeedbackApiService
+      FeedbackApiService.setToken(token);
+      
+      // Enregistrer le token FCM sur le serveur
+      try {
+        debugPrint('🔔 [AuthService] Enregistrement token FCM après inscription...');
+        final registered = await NotificationService.registerTokenOnServer();
+        if (registered) {
+          debugPrint('✅ [AuthService] Token FCM enregistré avec succès');
+        } else {
+          debugPrint('⚠️ [AuthService] Token FCM non enregistré (normal si pas encore généré)');
+        }
+      } catch (e) {
+        debugPrint('❌ [AuthService] Erreur enregistrement FCM: $e');
+        // Continuer même en cas d'erreur FCM
+      }
+    } catch (e) {
+      debugPrint('❌ [AuthService] Erreur lors de la sauvegarde des données d\'inscription: $e');
+      rethrow;
+    }
+  }
+
   // Sauvegarder les données d'authentification
   Future<void> _saveAuthData(AuthData authData) async {
     final prefs = await SharedPreferences.getInstance();

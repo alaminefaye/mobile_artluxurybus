@@ -124,31 +124,69 @@ class RechargeService {
       final uri = Uri.parse('$baseUrl/recharge/solde');
 
       debugPrint('💰 [RechargeService] Récupération du solde...');
+      debugPrint('💰 [RechargeService] URL: $uri');
+      debugPrint('💰 [RechargeService] Headers: ${headers.keys.toList()}');
 
       final response = await http.get(
         uri,
         headers: headers,
       ).timeout(const Duration(seconds: 30));
 
-      final data = jsonDecode(response.body);
+      debugPrint('📡 [RechargeService] Réponse - Status: ${response.statusCode}');
+      debugPrint('📡 [RechargeService] Réponse - Body: ${response.body}');
 
-      if (response.statusCode == 200 && data['success'] == true) {
-        debugPrint('✅ [RechargeService] Solde récupéré: ${data['solde']} FCFA');
-        return {
-          'success': true,
-          'solde': data['solde'] ?? 0.0,
-          'client': data['client'],
-        };
-      } else {
-        debugPrint('❌ [RechargeService] Erreur de récupération du solde');
+      // Vérifier si la réponse est vide
+      if (response.body.isEmpty) {
+        debugPrint('❌ [RechargeService] Réponse vide');
         return {
           'success': false,
           'solde': 0.0,
-          'message': data['message'] ?? 'Erreur lors de la récupération du solde',
+          'message': 'Réponse serveur vide',
         };
       }
-    } catch (e) {
+
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (e) {
+        debugPrint('❌ [RechargeService] Erreur de parsing JSON: $e');
+        debugPrint('❌ [RechargeService] Body brut: ${response.body}');
+        return {
+          'success': false,
+          'solde': 0.0,
+          'message': 'Erreur de format de réponse',
+          'error': e.toString(),
+        };
+      }
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        final solde = data['solde'];
+        debugPrint('✅ [RechargeService] Solde récupéré: $solde FCFA (type: ${solde.runtimeType})');
+        return {
+          'success': true,
+          'solde': solde ?? 0.0,
+          'client': data['client'],
+        };
+      } else {
+        final errorMessage = data['message'] ?? 
+            data['error'] ?? 
+            'Erreur lors de la récupération du solde';
+        debugPrint('❌ [RechargeService] Erreur de récupération du solde');
+        debugPrint('❌ [RechargeService] Code status: ${response.statusCode}');
+        debugPrint('❌ [RechargeService] Message: $errorMessage');
+        debugPrint('❌ [RechargeService] Données complètes: $data');
+        
+        return {
+          'success': false,
+          'solde': 0.0,
+          'message': errorMessage.toString(),
+          'error': data['error'],
+          'status_code': response.statusCode,
+        };
+      }
+    } catch (e, stackTrace) {
       debugPrint('❌ [RechargeService] Exception lors de la récupération du solde: $e');
+      debugPrint('❌ [RechargeService] Stack trace: $stackTrace');
       return {
         'success': false,
         'solde': 0.0,

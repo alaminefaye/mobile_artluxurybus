@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/depart_service.dart';
+import '../services/translation_service.dart';
 import 'departures_results_screen.dart';
 
 class ReservationScreen extends StatefulWidget {
@@ -21,6 +22,11 @@ class _ReservationScreenState extends State<ReservationScreen> {
   List<String> _embarquements = [];
   List<String> _destinations = [];
   bool _isLoading = false;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -46,7 +52,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors du chargement des villes: $e')),
+          SnackBar(content: Text('${t("reservation.loading_cities_error")}: $e')),
         );
       }
     }
@@ -59,8 +65,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
     if (_selectedEmbarquement == null || _selectedDestination == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner un embarquement et une destination'),
+        SnackBar(
+          content: Text(t('reservation.select_embarquement_destination')),
           backgroundColor: Colors.red,
         ),
       );
@@ -69,8 +75,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Veuillez sélectionner une date'),
+        SnackBar(
+          content: Text(t('reservation.select_date_error')),
           backgroundColor: Colors.red,
         ),
       );
@@ -118,7 +124,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Erreur lors de la recherche'),
+              content: Text(result['message'] ?? t('reservation.search_error')),
               backgroundColor: Colors.red,
             ),
           );
@@ -131,7 +137,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text('${t("reservation.error")}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -174,7 +180,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Réserver un voyage'),
+        title: Text(t('reservation.title')),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -200,7 +206,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   DropdownButtonFormField<String>(
                     value: _selectedEmbarquement,
                     decoration: InputDecoration(
-                      labelText: 'Embarquement',
+                      labelText: t('reservation.embarquement'),
                       labelStyle: const TextStyle(color: Colors.white70),
                       prefixIcon: const Icon(Icons.location_on, color: Colors.white70),
                       filled: true,
@@ -247,7 +253,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   DropdownButtonFormField<String>(
                     value: _selectedDestination,
                     decoration: InputDecoration(
-                      labelText: 'Destination',
+                      labelText: t('reservation.destination'),
                       labelStyle: const TextStyle(color: Colors.white70),
                       prefixIcon: const Icon(Icons.place, color: Colors.white70),
                       filled: true,
@@ -307,7 +313,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                             child: Text(
                               _selectedDate != null
                                   ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
-                                  : 'Sélectionner une date',
+                                  : t('reservation.select_date'),
                               style: TextStyle(
                                 color: _selectedDate != null ? Colors.white : Colors.white70,
                                 fontSize: 16,
@@ -325,9 +331,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     controller: _nombreSiegesController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: 'Nombre de sièges (optionnel)',
+                      labelText: t('reservation.number_seats'),
                       labelStyle: const TextStyle(color: Colors.white70),
-                      hintText: 'Limite à 5 résultats',
+                      hintText: t('reservation.limit_results'),
                       hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                       prefixIcon: const Icon(Icons.event_seat, color: Colors.white70),
                       filled: true,
@@ -342,7 +348,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       if (value != null && value.isNotEmpty) {
                         final num = int.tryParse(value);
                         if (num == null || num <= 0) {
-                          return 'Nombre invalide';
+                          return t('reservation.invalid_number');
                         }
                       }
                       return null;
@@ -372,9 +378,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
                                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Text(
-                              'Rechercher',
-                              style: TextStyle(
+                          : Text(
+                              t('reservation.search'),
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -401,7 +407,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Remplissez le formulaire et cliquez sur "Rechercher"',
+                      t('reservation.fill_form'),
                       style: TextStyle(
                         fontSize: 16,
                         color: Theme.of(context).brightness == Brightness.dark

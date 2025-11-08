@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../theme/app_theme.dart';
 import '../providers/notification_provider.dart';
+import '../providers/language_provider.dart';
+import '../services/translation_service.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'my_trips_screen.dart';
 import 'loyalty_home_screen.dart';
+import 'my_mails_screen.dart';
 
 class NotificationDetailScreen extends ConsumerStatefulWidget {
   final NotificationModel notification;
@@ -22,6 +25,11 @@ class NotificationDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScreen> {
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,10 +44,9 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Détail notification'),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
+        title: Text(t('notification_detail.title')),
         elevation: 0,
         actions: [
           IconButton(
@@ -119,14 +126,14 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
                 decoration: BoxDecoration(
                   color: widget.notification.isRead 
                     ? Colors.green.withValues(alpha: 0.1)
-                    : AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    : AppTheme.primaryOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  widget.notification.isRead ? 'Lu' : 'Non lu',
+                  widget.notification.isRead ? t('notification_detail.read') : t('notification_detail.unread'),
                   style: TextStyle(
                     fontSize: 10,
-                    color: widget.notification.isRead ? Colors.green[700] : AppTheme.primaryBlue,
+                    color: widget.notification.isRead ? Colors.green[700] : AppTheme.primaryOrange,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -138,9 +145,105 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     );
   }
 
+  /// Traduire le titre et le message d'une notification basé sur son type et ses données
+  Map<String, String> _translateNotification(NotificationModel notification) {
+    final type = notification.type.toLowerCase();
+    final data = notification.data ?? {};
+    
+    String translatedTitle = notification.title;
+    String translatedMessage = notification.message;
+    
+    // Utiliser la même logique que dans home_page.dart
+    switch (type) {
+      case 'new_ticket':
+      case 'ticket_created':
+        translatedTitle = t('notifications.new_ticket_title');
+        String route = '';
+        if (data.containsKey('destination') && data.containsKey('embarquement')) {
+          route = '${data['embarquement']} → ${data['destination']}';
+        } else if (data.containsKey('trajet')) {
+          final trajet = data['trajet'];
+          if (trajet is Map) {
+            route = '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
+          }
+        }
+        if (route.isEmpty) {
+          final message = notification.message;
+          final routeMatch = RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false).firstMatch(message);
+          if (routeMatch != null) {
+            route = routeMatch.group(1)?.trim() ?? '';
+          }
+        }
+        translatedMessage = t('notifications.new_ticket_message').replaceAll('{{route}}', route);
+        break;
+        
+      case 'loyalty_point':
+      case 'points':
+      case 'loyalty':
+        translatedTitle = t('notifications.loyalty_point_title');
+        int points = 1;
+        if (data.containsKey('points_earned')) {
+          points = int.tryParse(data['points_earned'].toString()) ?? 1;
+        } else if (data.containsKey('points')) {
+          points = int.tryParse(data['points'].toString()) ?? 1;
+        }
+        translatedMessage = t('notifications.loyalty_point_message').replaceAll('{{points}}', points.toString());
+        break;
+        
+      case 'new_mail_sender':
+      case 'mail_created':
+        translatedTitle = t('notifications.mail_created_title');
+        String destination = data['destination']?.toString() ?? '';
+        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        translatedMessage = t('notifications.mail_created_message')
+            .replaceAll('{{destination}}', destination)
+            .replaceAll('{{number}}', number);
+        break;
+        
+      case 'new_mail_recipient':
+      case 'mail_received':
+        translatedTitle = t('notifications.mail_received_title');
+        String sender = data['sender']?.toString() ?? data['expediteur']?.toString() ?? '';
+        String destination = data['destination']?.toString() ?? '';
+        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        translatedMessage = t('notifications.mail_received_message')
+            .replaceAll('{{sender}}', sender)
+            .replaceAll('{{destination}}', destination)
+            .replaceAll('{{number}}', number);
+        break;
+        
+      case 'mail_collected':
+        translatedTitle = t('notifications.mail_collected_title');
+        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        translatedMessage = t('notifications.mail_collected_message').replaceAll('{{number}}', number);
+        break;
+        
+      case 'departure_time_changed':
+      case 'departure_modified':
+      case 'departure_updated':
+        translatedTitle = t('notifications.departure_changed_title');
+        String route = data['route']?.toString() ?? '';
+        String time = data['new_time']?.toString() ?? data['heure_depart']?.toString() ?? '';
+        translatedMessage = t('notifications.departure_changed_message')
+            .replaceAll('{{route}}', route)
+            .replaceAll('{{time}}', time);
+        break;
+        
+      default:
+        // Pour les autres types, utiliser les textes originaux
+        break;
+    }
+    
+    return {
+      'title': translatedTitle,
+      'message': translatedMessage,
+    };
+  }
+
   Widget _buildTitle() {
+    final translated = _translateNotification(widget.notification);
     return Text(
-      widget.notification.title,
+      translated['title'] ?? widget.notification.title,
       style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
@@ -150,6 +253,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   }
 
   Widget _buildMessage() {
+    final translated = _translateNotification(widget.notification);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -159,7 +263,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Text(
-        widget.notification.message,
+        translated['message'] ?? widget.notification.message,
         style: TextStyle(
           fontSize: 14,
           height: 1.5,
@@ -176,7 +280,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Informations détaillées',
+          t('notification_detail.detailed_info'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -188,9 +292,12 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.05),
+            color: AppTheme.primaryOrange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.1)),
+            border: Border.all(
+              color: AppTheme.primaryOrange.withValues(alpha: 0.3),
+              width: 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,16 +339,16 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         child: ElevatedButton.icon(
           onPressed: _navigateToTickets,
           icon: const Icon(Icons.confirmation_number, color: Colors.white),
-          label: const Text(
-            'Voir le ticket',
-            style: TextStyle(
+          label: Text(
+            t('notification_detail.view_ticket'),
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryBlue,
+            backgroundColor: AppTheme.primaryOrange,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -259,9 +366,9 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         child: ElevatedButton.icon(
           onPressed: _navigateToLoyalty,
           icon: const Icon(Icons.card_giftcard, color: Colors.white),
-          label: const Text(
-            'Voir mes points',
-            style: TextStyle(
+          label: Text(
+            t('notification_detail.view_points'),
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -279,8 +386,89 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       );
     }
     
+    // Bouton pour les notifications de courrier
+    if (widget.notification.type == 'new_mail_sender' || 
+        widget.notification.type == 'new_mail_recipient' ||
+        widget.notification.type == 'mail_collected' ||
+        widget.notification.type == 'mail_created' ||
+        widget.notification.type == 'mail_received') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _navigateToMails,
+          icon: const Icon(Icons.mail, color: Colors.white),
+          label: Text(
+            t('notification_detail.view_mail'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryOrange,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+      );
+    }
+    
+    // Bouton pour les notifications de modification de départ
+    if (widget.notification.type == 'departure_time_changed' ||
+        widget.notification.type == 'departure_modified' ||
+        widget.notification.type == 'departure_updated' ||
+        widget.notification.type == 'departure_cancelled') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _navigateToTrips,
+          icon: const Icon(Icons.directions_bus, color: Colors.white),
+          label: Text(
+            t('notification_detail.view_trips'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green.shade700,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+      );
+    }
+    
     // Pas de bouton pour les autres types
     return const SizedBox.shrink();
+  }
+  
+  void _navigateToMails() {
+    // Import nécessaire pour MyMailsScreen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) {
+          // Utiliser le nom complet du package pour éviter les erreurs
+          return const MyMailsScreen();
+        },
+      ),
+    );
+  }
+  
+  void _navigateToTrips() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const MyTripsScreen(),
+      ),
+    );
   }
 
   void _navigateToTickets() {
@@ -302,7 +490,12 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   }
 
   Widget _buildTimingInfo() {
-    final formatter = DateFormat('dd/MM/yyyy à HH:mm');
+    // Utiliser le format de date selon la langue
+    final locale = ref.watch(languageProvider);
+    final datePattern = locale.languageCode == 'fr' 
+        ? 'dd/MM/yyyy à HH:mm' 
+        : 'MM/dd/yyyy at HH:mm';
+    final formatter = DateFormat(datePattern);
     
     return Container(
       width: double.infinity,
@@ -315,7 +508,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Informations temporelles',
+            t('notification_detail.timing_info'),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -323,13 +516,41 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
             ),
           ),
           const SizedBox(height: 8),
-          _buildInfoRow('Reçue le', formatter.format(widget.notification.createdAt)),
+          _buildInfoRow(t('notification_detail.received_on'), formatter.format(widget.notification.createdAt)),
           if (widget.notification.readAt != null)
-            _buildInfoRow('Lue le', formatter.format(widget.notification.readAt!)),
-          _buildInfoRow('Il y a', widget.notification.getTimeAgo()),
+            _buildInfoRow(t('notification_detail.read_on'), formatter.format(widget.notification.readAt!)),
+          _buildInfoRow(t('notification_detail.time_ago'), _formatTimeAgo(widget.notification)),
         ],
       ),
     );
+  }
+  
+  String _formatTimeAgo(NotificationModel notification) {
+    final locale = ref.watch(languageProvider);
+    final now = DateTime.now();
+    final difference = now.difference(notification.createdAt);
+    
+    if (locale.languageCode == 'fr') {
+      if (difference.inDays > 0) {
+        return 'Il y a ${difference.inDays}j';
+      } else if (difference.inHours > 0) {
+        return 'Il y a ${difference.inHours}h';
+      } else if (difference.inMinutes > 0) {
+        return 'Il y a ${difference.inMinutes}m';
+      } else {
+        return 'Maintenant';
+      }
+    } else {
+      if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Now';
+      }
+    }
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -462,7 +683,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       
       // Vérifier que le numéro n'est pas vide après nettoyage
       if (cleanNumber.isEmpty) {
-        _showErrorMessage('Numéro de téléphone invalide');
+        _showErrorMessage(t('notification_detail.invalid_phone'));
         return;
       }
       
@@ -504,7 +725,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.blue,
+        backgroundColor: AppTheme.primaryOrange,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -514,12 +735,12 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer la notification'),
-        content: const Text('Êtes-vous sûr de vouloir supprimer cette notification ?'),
+        title: Text(t('notification_detail.delete_title')),
+        content: Text(t('notification_detail.delete_confirmation')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(t('auth.cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -528,7 +749,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
               Navigator.pop(context); // Retourner à la liste
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+            child: Text(t('notification_detail.delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -538,6 +759,12 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
 
   IconData _getTypeIcon() {
     switch (widget.notification.getIconType()) {
+      case 'ticket':
+        return Icons.confirmation_number;
+      case 'mail':
+        return Icons.mail;
+      case 'points':
+        return Icons.card_giftcard;
       case 'feedback':
         return Icons.feedback_outlined;
       case 'status':
@@ -546,8 +773,6 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         return Icons.local_offer;
       case 'travel':
         return Icons.schedule;
-      case 'points':
-        return Icons.card_giftcard;
       case 'alert':
         return Icons.warning_outlined;
       default:
@@ -557,47 +782,89 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
 
   Color _getTypeColor() {
     switch (widget.notification.getIconType()) {
+      case 'ticket':
+        return AppTheme.primaryOrange;
+      case 'mail':
+        return AppTheme.primaryOrange;
+      case 'points':
+        return Colors.amber;
       case 'feedback':
-        return Colors.blue;
+        return AppTheme.primaryOrange;
       case 'status':
         return Colors.orange;
       case 'offer':
         return Colors.purple;
       case 'travel':
         return Colors.green;
-      case 'points':
-        return Colors.amber;
       case 'alert':
         return Colors.red;
       default:
-        return AppTheme.primaryBlue;
+        return AppTheme.primaryOrange;
     }
   }
 
   String _getTypeLabel() {
     switch (widget.notification.type.toLowerCase()) {
       case 'new_ticket':
-        return 'Nouveau ticket';
+        return t('notification_detail.type_new_ticket');
       case 'loyalty_point':
-        return 'Point de fidélité';
+        return t('notification_detail.type_loyalty_point');
       case 'new_feedback':
-        return 'Nouvelle suggestion';
+        return t('notification_detail.type_new_feedback');
       case 'feedback_status':
-        return 'Changement de statut';
+        return t('notification_detail.type_feedback_status');
       case 'promotion':
       case 'offer':
-        return 'Offre promotionnelle';
+        return t('notification_detail.type_promotion');
       case 'reminder':
       case 'travel':
-        return 'Rappel de voyage';
+        return t('notification_detail.type_reminder');
       case 'loyalty':
       case 'points':
-        return 'Programme fidélité';
+        return t('notification_detail.type_loyalty');
       case 'alert':
       case 'urgent':
-        return 'Alerte importante';
+        return t('notification_detail.type_alert');
+      case 'new_mail_sender':
+      case 'mail_created':
+        return t('notification_detail.type_new_mail_sender');
+      case 'new_mail_recipient':
+      case 'mail_received':
+        return t('notification_detail.type_new_mail_recipient');
+      case 'mail_collected':
+        return t('notification_detail.type_mail_collected');
+      case 'departure_time_changed':
+      case 'departure_modified':
+      case 'departure_updated':
+        return t('notification_detail.type_departure_changed');
+      case 'departure_cancelled':
+        return t('notification_detail.type_departure_cancelled');
+      case 'reservation_confirmed':
+        return t('notification_detail.type_reservation_confirmed');
+      case 'reservation_cancelled':
+        return t('notification_detail.type_reservation_cancelled');
+      case 'vidange_alert':
+        return t('notification_detail.type_vidange_alert');
+      case 'vidange_completed':
+        return t('notification_detail.type_vidange_completed');
+      case 'vidange_updated':
+        return t('notification_detail.type_vidange_updated');
+      case 'breakdown_new':
+      case 'new_breakdown':
+        return t('notification_detail.type_breakdown_new');
+      case 'breakdown_updated':
+      case 'breakdown_modified':
+        return t('notification_detail.type_breakdown_updated');
+      case 'breakdown_status':
+      case 'breakdown_status_changed':
+        return t('notification_detail.type_breakdown_status');
+      case 'message_notification':
+      case 'system_message':
+        return t('notification_detail.type_message_notification');
+      case 'system':
+        return t('notification_detail.type_system');
       default:
-        return 'Notification';
+        return t('notification_detail.type_default');
     }
   }
 
@@ -605,89 +872,106 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     switch (key.toLowerCase()) {
       // Tickets
       case 'ticket_id':
-        return 'Ticket Id';
+        return t('notification_detail.data_ticket_id');
       case 'depart_id':
-        return 'Depart Id';
+        return t('notification_detail.data_depart_id');
       case 'seat_number':
-        return 'Numéro siège';
+        return t('notification_detail.data_seat_number');
       case 'embarquement':
-        return 'Embarquement';
+        return t('notification_detail.data_embarquement');
       case 'destination':
-        return 'Destination';
+        return t('notification_detail.data_destination');
       // Loyalty
       case 'points_earned':
-        return 'Points gagnés';
+        return t('notification_detail.data_points_earned');
       case 'total_points':
-        return 'Total points';
+        return t('notification_detail.data_total_points');
       case 'client_profile_id':
-        return 'Client ID';
+        return t('notification_detail.data_client_profile_id');
       case 'description':
-        return 'Description';
+        return t('notification_detail.data_description');
       // Feedback
       case 'feedback_id':
-        return 'ID Suggestion';
+        return t('notification_detail.data_feedback_id');
       case 'customer_name':
-        return 'Nom client';
+        return t('notification_detail.data_customer_name');
       case 'customer_phone':
-        return 'Téléphone client';
+        return t('notification_detail.data_customer_phone');
       case 'priority':
-        return 'Priorité';
+        return t('notification_detail.data_priority');
       case 'subject':
-        return 'Sujet';
+        return t('notification_detail.data_subject');
       case 'source':
-        return 'Source';
+        return t('notification_detail.data_source');
       case 'created_at':
-        return 'Créé le';
+        return t('notification_detail.data_created_at');
       case 'feedback_priority':
-        return 'Priorité';
+        return t('notification_detail.data_feedback_priority');
       case 'feedback_status':
-        return 'Statut';
+        return t('notification_detail.data_feedback_status');
       case 'sent_by':
-        return 'Envoyé par';
+        return t('notification_detail.data_sent_by');
       case 'timestamp':
-        return 'Horodatage';
+        return t('notification_detail.data_timestamp');
       case 'promo_code':
-        return 'Code promo';
+        return t('notification_detail.data_promo_code');
       case 'discount':
-        return 'Réduction';
+        return t('notification_detail.data_discount');
       case 'valid_until':
-        return 'Valide jusqu\'au';
+        return t('notification_detail.data_valid_until');
       case 'departure_time':
-        return 'Heure départ';
+        return t('notification_detail.data_departure_time');
       case 'route':
-        return 'Trajet';
+        return t('notification_detail.data_route');
       case 'maintenance_start':
-        return 'Début maintenance';
+        return t('notification_detail.data_maintenance_start');
       case 'maintenance_end':
-        return 'Fin maintenance';
+        return t('notification_detail.data_maintenance_end');
       // Vidanges
       case 'nombre_en_retard':
       case 'overdue_count':
-        return 'En retard';
+        return t('notification_detail.data_overdue');
       case 'nombre_urgent':
       case 'urgent_count':
-        return 'Urgent';
+        return t('notification_detail.data_urgent');
       case 'nombre_attention':
       case 'warning_count':
-        return 'À surveiller';
+        return t('notification_detail.data_warning');
       case 'nombre_total':
       case 'total_count':
-        return 'Total';
+        return t('notification_detail.data_total');
       case 'bus':
-        return 'Bus concernés';
+        return t('notification_detail.data_bus');
       case 'horodatage':
-        return 'Horodatage';
+        return t('notification_detail.data_timestamp');
       // Vidange effectuée
       case 'bus_id':
-        return 'ID Bus';
+        return t('notification_detail.data_bus_id');
       case 'bus_immatriculation':
-        return 'Immatriculation';
+        return t('notification_detail.data_bus_immatriculation');
       case 'derniere_vidange':
-        return 'Dernière vidange';
+        return t('notification_detail.data_derniere_vidange');
       case 'prochaine_vidange':
-        return 'Prochaine vidange';
+        return t('notification_detail.data_prochaine_vidange');
       case 'jours_restants':
-        return 'Jours restants';
+        return t('notification_detail.data_jours_restants');
+      // Courrier
+      case 'mail_number':
+      case 'number':
+        return t('notification_detail.data_mail_number');
+      case 'sender':
+      case 'expediteur':
+        return t('notification_detail.data_sender');
+      case 'recipient':
+      case 'destinataire':
+        return t('notification_detail.data_recipient');
+      // Départ
+      case 'new_time':
+        return t('notification_detail.data_new_time');
+      case 'old_time':
+        return t('notification_detail.data_old_time');
+      case 'count':
+        return t('notification_detail.data_count');
       default:
         // Remplacer les underscores par des espaces et mettre en forme
         return key.replaceAll('_', ' ')

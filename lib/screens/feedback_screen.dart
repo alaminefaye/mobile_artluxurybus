@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../services/translation_service.dart';
 import '../providers/feedback_provider.dart';
 
 class FeedbackScreen extends ConsumerStatefulWidget {
@@ -26,14 +27,21 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   String? _selectedStation;
   String? _selectedRoute;
   
-  final List<Map<String, dynamic>> _categories = [
-    {'value': 'suggestion', 'label': 'Suggestion d\'amélioration', 'icon': Icons.lightbulb},
-    {'value': 'probleme', 'label': 'Signaler un problème', 'icon': Icons.report_problem},
-    {'value': 'service', 'label': 'Service client', 'icon': Icons.support_agent},
-    {'value': 'securite', 'label': 'Sécurité', 'icon': Icons.security},
-    {'value': 'confort', 'label': 'Confort', 'icon': Icons.airline_seat_recline_extra},
-    {'value': 'autre', 'label': 'Autre', 'icon': Icons.more_horiz},
-  ];
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
+  List<Map<String, dynamic>> _getCategories() {
+    return [
+      {'value': 'suggestion', 'label': t('feedback.suggestion'), 'icon': Icons.lightbulb},
+      {'value': 'probleme', 'label': t('feedback.problem'), 'icon': Icons.report_problem},
+      {'value': 'service', 'label': t('feedback.service'), 'icon': Icons.support_agent},
+      {'value': 'securite', 'label': t('feedback.security'), 'icon': Icons.security},
+      {'value': 'confort', 'label': t('feedback.comfort'), 'icon': Icons.airline_seat_recline_extra},
+      {'value': 'autre', 'label': t('feedback.other'), 'icon': Icons.more_horiz},
+    ];
+  }
 
   final List<String> _stations = [
     'GARE DE BOUAKE',
@@ -95,7 +103,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Suggestions & Préoccupations'),
+        title: Text(t('feedback.title')),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -171,8 +179,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Votre avis compte !',
+                Text(
+                  t('feedback.your_opinion_matters'),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -181,7 +189,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Partagez vos idées pour améliorer nos services',
+                  t('feedback.share_ideas'),
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -200,7 +208,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Type de retour',
+          t('feedback.feedback_type'),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -211,7 +219,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         Wrap(
           spacing: 6,
           runSpacing: 6,
-          children: _categories.map((category) {
+          children: _getCategories().map((category) {
             final isSelected = _selectedCategory == category['value'];
             return GestureDetector(
               onTap: () {
@@ -269,7 +277,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Informations de contact',
+          t('feedback.contact_info'),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -279,12 +287,12 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         const SizedBox(height: 8),
         _buildCompactTextField(
           controller: _nameController,
-          label: 'Nom complet',
+          label: t('mail_detail.full_name'),
           icon: Icons.person_outline,
           isRequired: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Nom requis';
+              return t('feedback.name_required');
             }
             return null;
           },
@@ -292,14 +300,14 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         const SizedBox(height: 12),
         _buildCompactTextField(
           controller: _phoneController,
-          label: 'Téléphone',
+          label: t('feedback.phone'),
           icon: Icons.phone_outlined,
           hint: '+225 XX XX XX XX XX',
           isRequired: true,
           keyboardType: TextInputType.phone,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Téléphone requis';
+              return t('feedback.phone_required');
             }
             return null;
           },
@@ -307,7 +315,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         const SizedBox(height: 12),
         _buildCompactTextField(
           controller: _emailController,
-          label: 'Email (optionnel)',
+          label: '${t("auth.email")} (${t("feedback.optional")})',
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -320,7 +328,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Votre message',
+          t('feedback.your_message'),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -330,13 +338,13 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         const SizedBox(height: 8),
         _buildCompactTextField(
           controller: _subjectController,
-          label: 'Sujet',
+          label: t('feedback.subject'),
           icon: Icons.subject_outlined,
-          hint: 'Résumé de votre message',
+          hint: t('feedback.message_summary'),
           isRequired: true,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Sujet requis';
+              return t('feedback.subject_required');
             }
             return null;
           },
@@ -344,17 +352,17 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         const SizedBox(height: 12),
         _buildCompactTextField(
           controller: _messageController,
-          label: 'Message détaillé',
+          label: t('feedback.detailed_message'),
           icon: Icons.message_outlined,
-          hint: 'Décrivez votre suggestion ou préoccupation...',
+          hint: t('feedback.describe_suggestion'),
           isRequired: true,
           maxLines: 4,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Message requis';
+              return t('feedback.message_required');
             }
             if (value.length < 20) {
-              return 'Message trop court (min 20 caractères)';
+              return t('feedback.message_too_short');
             }
             return null;
           },
@@ -368,7 +376,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Informations de voyage',
+          t('feedback.travel_info'),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -379,7 +387,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         _buildCompactDropdown(
           value: _selectedStation,
           items: _stations,
-          label: 'Gare de départ',
+          label: t('feedback.departure_station'),
           icon: Icons.location_on_outlined,
           onChanged: (value) {
             setState(() {
@@ -391,7 +399,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         _buildCompactDropdown(
           value: _selectedRoute,
           items: _routes,
-          label: 'Itinéraire',
+          label: t('feedback.route'),
           icon: Icons.route_outlined,
           onChanged: (value) {
             setState(() {
@@ -405,17 +413,17 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
             Expanded(
               child: _buildCompactTextField(
                 controller: _seatController,
-                label: 'Numéro de siège',
+                label: t('feedback.seat_number'),
                 icon: Icons.event_seat_outlined,
-                hint: 'Ex: 12',
+                hint: t('feedback.example_seat'),
                 isRequired: true,
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Numéro de siège requis';
+                    return t('feedback.seat_number_required');
                   }
                   if (int.tryParse(value) == null) {
-                    return 'Doit être un nombre';
+                    return t('feedback.must_be_number');
                   }
                   return null;
                 },
@@ -425,17 +433,17 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
             Expanded(
               child: _buildCompactTextField(
                 controller: _departureController,
-                label: 'N° de départ',
+                label: t('feedback.departure_number'),
                 icon: Icons.confirmation_number_outlined,
-                hint: 'Ex: 001',
+                hint: t('feedback.example_departure'),
                 isRequired: true,
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Numéro de départ requis';
+                    return t('feedback.departure_number_required');
                   }
                   if (int.tryParse(value) == null) {
-                    return 'Doit être un nombre';
+                    return t('feedback.must_be_number');
                   }
                   return null;
                 },
@@ -477,7 +485,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
               )
             : const Icon(Icons.send_rounded, size: 18),
         label: Text(
-          feedbackState.isLoading ? 'Envoi...' : 'Envoyer',
+          feedbackState.isLoading ? t('feedback.sending') : t('feedback.send'),
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(

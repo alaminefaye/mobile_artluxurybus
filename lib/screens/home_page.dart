@@ -6,6 +6,9 @@ import 'admin/horaires_list_screen.dart';
 import 'admin/video_advertisements_screen.dart';
 import '../theme/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/language_provider.dart';
+import '../providers/translation_provider.dart';
+import '../services/translation_service.dart';
 import '../models/user.dart';
 import '../services/notification_service.dart';
 import '../services/feedback_api_service.dart';
@@ -30,6 +33,7 @@ import 'bus/bus_dashboard_screen.dart';
 import 'about_screen.dart';
 import 'voice_settings_screen.dart';
 import 'theme_settings_screen.dart';
+import 'language_settings_screen.dart';
 import 'company_info_screen.dart';
 import 'edit_profile_screen.dart';
 import 'security_screen.dart';
@@ -354,6 +358,7 @@ class _HomePageState extends ConsumerState<HomePage>
         child: Consumer(
           builder: (context, ref, child) {
             final unreadCount = ref.watch(unreadNotificationCountProvider);
+            final translationService = TranslationService();
 
             // Tous les utilisateurs ont les mêmes onglets
             return BottomNavigationBar(
@@ -390,27 +395,27 @@ class _HomePageState extends ConsumerState<HomePage>
                 fontSize: 11,
               ),
               items: [
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.home_rounded),
-                  activeIcon: Icon(Icons.home),
-                  label: 'Accueil',
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.home_rounded),
+                  activeIcon: const Icon(Icons.home),
+                  label: translationService.translate('navigation.home'),
                 ),
                 BottomNavigationBarItem(
                   icon: _buildNotificationIcon(
                       Icons.notifications_outlined, unreadCount, false),
                   activeIcon: _buildNotificationIcon(
                       Icons.notifications, unreadCount, true),
-                  label: 'Notifications',
+                  label: translationService.translate('navigation.notifications'),
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.apps_rounded),
-                  activeIcon: Icon(Icons.apps),
-                  label: 'Services',
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.apps_rounded),
+                  activeIcon: const Icon(Icons.apps),
+                  label: translationService.translate('navigation.services'),
                 ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.person_outline),
-                  activeIcon: Icon(Icons.person),
-                  label: 'Profil',
+                BottomNavigationBarItem(
+                  icon: const Icon(Icons.person_outline),
+                  activeIcon: const Icon(Icons.person),
+                  label: translationService.translate('navigation.profile'),
                 ),
               ],
             );
@@ -514,6 +519,400 @@ class _HomePageState extends ConsumerState<HomePage>
     }
 
     return false;
+  }
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
+  /// Traduire le titre et le message d'une notification basé sur son type et ses données
+  Map<String, String> _translateNotification(NotificationModel notification) {
+    final type = notification.type.toLowerCase();
+    final data = notification.data ?? {};
+    
+    String translatedTitle = notification.title;
+    String translatedMessage = notification.message;
+    
+    // Si le titre ou le message contiennent déjà des clés de traduction, les utiliser directement
+    // Sinon, traduire basé sur le type
+    
+    switch (type) {
+      case 'new_ticket':
+      case 'ticket_created':
+        translatedTitle = t('notifications.new_ticket_title');
+        // Extraire les informations de route depuis les données ou le message
+        String route = '';
+        if (data.containsKey('destination') && data.containsKey('embarquement')) {
+          route = '${data['embarquement']} → ${data['destination']}';
+        } else if (data.containsKey('trajet')) {
+          final trajet = data['trajet'];
+          if (trajet is Map) {
+            route = '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
+          }
+        } else {
+          // Essayer d'extraire depuis le message original
+          final message = notification.message;
+          // Pattern pour "pour Abidjan → Bouaké" ou "pour Abidjan -> Bouaké" ou "pour Abidjan → Yamoussoukro"
+          // Rechercher "pour" suivi du texte jusqu'à "a été"
+          final routeMatch1 = RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false).firstMatch(message);
+          if (routeMatch1 != null) {
+            route = routeMatch1.group(1)?.trim() ?? '';
+            // Nettoyer la route (retirer les éventuels caractères indésirables)
+            route = route.replaceAll(RegExp(r'\s+'), ' ').trim();
+          } else {
+            // Essayer de trouver directement "Ville1 → Ville2" dans le message
+            final routeMatch2 = RegExp(r'([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)\s*→\s*([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+)').firstMatch(message);
+            if (routeMatch2 != null) {
+              route = '${routeMatch2.group(1)?.trim()} → ${routeMatch2.group(2)?.trim()}';
+            } else {
+              // Essayer un pattern plus large pour trouver deux villes
+              final routeMatch3 = RegExp(r'([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)\s*(?:→|->|-)\s*([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)').firstMatch(message);
+              if (routeMatch3 != null) {
+                route = '${routeMatch3.group(1)?.trim()} → ${routeMatch3.group(2)?.trim()}';
+              } else {
+                // Si on ne trouve rien, utiliser les données ou le message complet
+                route = data['route']?.toString() ?? 
+                        (message.length > 50 ? message.substring(0, 50) + '...' : message);
+              }
+            }
+          }
+        }
+        translatedMessage = t('notifications.new_ticket_message').replaceAll('{{route}}', route);
+        break;
+        
+      case 'loyalty_point':
+      case 'points':
+      case 'loyalty':
+        translatedTitle = t('notifications.loyalty_point_title');
+        // Extraire le nombre de points
+        int points = 1;
+        if (data.containsKey('points_earned')) {
+          points = int.tryParse(data['points_earned'].toString()) ?? 1;
+        } else if (data.containsKey('points')) {
+          points = int.tryParse(data['points'].toString()) ?? 1;
+        } else {
+          // Essayer d'extraire depuis le message original
+          final message = notification.message;
+          // Patterns pour "1 point" ou "gagné 1 point" ou "1 point de fidélité"
+          final pointsMatch = RegExp(r'(\d+)\s+point').firstMatch(message);
+          if (pointsMatch != null) {
+            points = int.tryParse(pointsMatch.group(1) ?? '1') ?? 1;
+          } else {
+            // Essayer "Vous avez gagné 1 point"
+            final pointsMatch2 = RegExp(r'gagné\s+(\d+)').firstMatch(message);
+            if (pointsMatch2 != null) {
+              points = int.tryParse(pointsMatch2.group(1) ?? '1') ?? 1;
+            }
+          }
+        }
+        translatedMessage = t('notifications.loyalty_point_message').replaceAll('{{points}}', points.toString());
+        break;
+        
+      case 'feedback_status':
+      case 'suggestion_status':
+        translatedTitle = t('notifications.feedback_status_title');
+        String status = data['status']?.toString() ?? '';
+        if (status.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message.toLowerCase();
+          if (message.contains('approuvé') || message.contains('approved')) {
+            status = t('feedback.status_approved');
+          } else if (message.contains('rejeté') || message.contains('rejected')) {
+            status = t('feedback.status_rejected');
+          } else if (message.contains('en attente') || message.contains('pending')) {
+            status = t('feedback.status_pending');
+          } else {
+            status = status.isNotEmpty ? status : 'traité';
+          }
+        }
+        translatedMessage = t('notifications.feedback_status_message').replaceAll('{{status}}', status);
+        break;
+        
+      case 'promotion':
+      case 'offer':
+        translatedTitle = t('notifications.promotion_title');
+        String promoMessage = data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.promotion_message').replaceAll('{{message}}', promoMessage);
+        break;
+        
+      case 'reminder':
+      case 'travel':
+        translatedTitle = t('notifications.travel_reminder_title');
+        String destination = data['destination']?.toString() ?? '';
+        if (destination.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final destMatch = RegExp(r'vers\s+(.+?)(?:\.|$)').firstMatch(message);
+          if (destMatch != null) {
+            destination = destMatch.group(1) ?? '';
+          }
+        }
+        translatedMessage = t('notifications.travel_reminder_message').replaceAll('{{destination}}', destination);
+        break;
+        
+      case 'alert':
+      case 'urgent':
+        translatedTitle = t('notifications.alert_title');
+        String alertMessage = data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.alert_message').replaceAll('{{message}}', alertMessage);
+        break;
+        
+      case 'new_mail_sender':
+      case 'mail_created':
+        translatedTitle = t('notifications.mail_created_title');
+        String destination = data['destination']?.toString() ?? '';
+        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        if (destination.isEmpty || number.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          // Pattern pour destination: "pour Abidjan" ou "destination: Abidjan"
+          final destMatch1 = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          final destMatch2 = RegExp(r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          if (destMatch1 != null) destination = destMatch1.group(1)?.trim() ?? '';
+          if (destination.isEmpty && destMatch2 != null) destination = destMatch2.group(1)?.trim() ?? '';
+          
+          // Pattern pour numéro: "Numéro: MAIL001" ou "Numéro MAIL001" ou simplement un code alphanumérique
+          final numMatch1 = RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
+          if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch2 != null) number = numMatch2.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.mail_created_message')
+            .replaceAll('{{destination}}', destination)
+            .replaceAll('{{number}}', number);
+        break;
+        
+      case 'new_mail_recipient':
+      case 'mail_received':
+        translatedTitle = t('notifications.mail_received_title');
+        String sender = data['sender']?.toString() ?? data['expediteur']?.toString() ?? '';
+        String destination = data['destination']?.toString() ?? '';
+        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        if (sender.isEmpty || destination.isEmpty || number.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          // Pattern pour expéditeur: "de Jean" ou "expéditeur: Jean" ou "Vous avez reçu un courrier de Jean"
+          final senderMatch1 = RegExp(r'de\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)').firstMatch(message);
+          final senderMatch2 = RegExp(r'expéditeur[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)').firstMatch(message);
+          if (senderMatch1 != null) sender = senderMatch1.group(1)?.trim() ?? '';
+          if (sender.isEmpty && senderMatch2 != null) sender = senderMatch2.group(1)?.trim() ?? '';
+          
+          // Pattern pour destination
+          final destMatch1 = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          final destMatch2 = RegExp(r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          if (destMatch1 != null) destination = destMatch1.group(1)?.trim() ?? '';
+          if (destination.isEmpty && destMatch2 != null) destination = destMatch2.group(1)?.trim() ?? '';
+          
+          // Pattern pour numéro
+          final numMatch1 = RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
+          if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch2 != null) number = numMatch2.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.mail_received_message')
+            .replaceAll('{{sender}}', sender)
+            .replaceAll('{{destination}}', destination)
+            .replaceAll('{{number}}', number);
+        break;
+        
+      case 'mail_collected':
+        translatedTitle = t('notifications.mail_collected_title');
+        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        if (number.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          // Pattern pour numéro de courrier: "MAIL001" ou "Numéro: MAIL001" ou "courrier MAIL001"
+          final numMatch1 = RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch2 = RegExp(r'courrier\s+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch3 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
+          if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch2 != null) number = numMatch2.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch3 != null) number = numMatch3.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.mail_collected_message').replaceAll('{{number}}', number);
+        break;
+        
+      case 'departure_time_changed':
+      case 'departure_modified':
+      case 'departure_updated':
+        translatedTitle = t('notifications.departure_changed_title');
+        String route = '';
+        String time = '';
+        if (data.containsKey('route')) {
+          route = data['route'].toString();
+        } else if (data.containsKey('embarquement') && data.containsKey('destination')) {
+          route = '${data['embarquement']} → ${data['destination']}';
+        }
+        if (data.containsKey('new_time')) {
+          time = data['new_time'].toString();
+        } else if (data.containsKey('heure_depart')) {
+          time = data['heure_depart'].toString();
+        }
+        if (route.isEmpty || time.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          final timeMatch = RegExp(r'(\d{1,2}:\d{2})').firstMatch(message);
+          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
+          if (timeMatch != null) time = timeMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.departure_changed_message')
+            .replaceAll('{{route}}', route)
+            .replaceAll('{{time}}', time);
+        break;
+        
+      case 'departure_cancelled':
+        translatedTitle = t('notifications.departure_cancelled_title');
+        String route = data['route']?.toString() ?? '';
+        if (route.isEmpty && data.containsKey('embarquement') && data.containsKey('destination')) {
+          route = '${data['embarquement']} → ${data['destination']}';
+        }
+        if (route.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.departure_cancelled_message').replaceAll('{{route}}', route);
+        break;
+        
+      case 'reservation_confirmed':
+        translatedTitle = t('notifications.reservation_confirmed_title');
+        String route = data['route']?.toString() ?? '';
+        if (route.isEmpty && data.containsKey('embarquement') && data.containsKey('destination')) {
+          route = '${data['embarquement']} → ${data['destination']}';
+        }
+        if (route.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.reservation_confirmed_message').replaceAll('{{route}}', route);
+        break;
+        
+      case 'reservation_cancelled':
+        translatedTitle = t('notifications.reservation_cancelled_title');
+        String route = data['route']?.toString() ?? '';
+        if (route.isEmpty && data.containsKey('embarquement') && data.containsKey('destination')) {
+          route = '${data['embarquement']} → ${data['destination']}';
+        }
+        if (route.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.reservation_cancelled_message').replaceAll('{{route}}', route);
+        break;
+        
+      case 'vidange_alert':
+        translatedTitle = t('notifications.vidange_alert_title');
+        int count = int.tryParse(data['nombre_total']?.toString() ?? data['total_count']?.toString() ?? '0') ?? 0;
+        translatedMessage = t('notifications.vidange_alert_message').replaceAll('{{count}}', count.toString());
+        break;
+        
+      case 'vidange_completed':
+        translatedTitle = t('notifications.vidange_completed_title');
+        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        if (bus.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.vidange_completed_message').replaceAll('{{bus}}', bus);
+        break;
+        
+      case 'vidange_updated':
+        translatedTitle = t('notifications.vidange_updated_title');
+        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        if (bus.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.vidange_updated_message').replaceAll('{{bus}}', bus);
+        break;
+        
+      case 'breakdown_new':
+      case 'new_breakdown':
+        translatedTitle = t('notifications.breakdown_new_title');
+        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        if (bus.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final busMatch = RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.breakdown_new_message').replaceAll('{{bus}}', bus);
+        break;
+        
+      case 'breakdown_updated':
+      case 'breakdown_modified':
+        translatedTitle = t('notifications.breakdown_updated_title');
+        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        if (bus.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final busMatch = RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+        }
+        translatedMessage = t('notifications.breakdown_updated_message').replaceAll('{{bus}}', bus);
+        break;
+        
+      case 'breakdown_status':
+      case 'breakdown_status_changed':
+        translatedTitle = t('notifications.breakdown_status_title');
+        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        String status = data['status']?.toString() ?? '';
+        if (bus.isEmpty || status.isEmpty) {
+          // Essayer d'extraire depuis le message
+          final message = notification.message;
+          final busMatch = RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+          // Le statut peut être dans le message
+          if (status.isEmpty) {
+            final statusMatch = RegExp(r'statut[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
+            if (statusMatch != null) status = statusMatch.group(1)?.trim() ?? '';
+          }
+        }
+        translatedMessage = t('notifications.breakdown_status_message')
+            .replaceAll('{{bus}}', bus)
+            .replaceAll('{{status}}', status);
+        break;
+        
+      case 'message_notification':
+      case 'system_message':
+        translatedTitle = t('notifications.message_notification_title');
+        String messageText = data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.message_notification_message').replaceAll('{{message}}', messageText);
+        break;
+        
+      case 'system':
+        translatedTitle = t('notifications.system_title');
+        String messageText = data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.system_message').replaceAll('{{message}}', messageText);
+        break;
+        
+      case 'general':
+        translatedTitle = t('notifications.general_title');
+        String messageText = data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.general_message').replaceAll('{{message}}', messageText);
+        break;
+        
+      default:
+        // Pour les autres types, utiliser les textes originaux ou essayer de les traduire
+        // On garde les textes originaux s'ils ne correspondent à aucun type connu
+        break;
+    }
+    
+    return {
+      'title': translatedTitle,
+      'message': translatedMessage,
+    };
   }
 
   // Vérifier si l'utilisateur a le rôle de pointage
@@ -637,18 +1036,18 @@ class _HomePageState extends ConsumerState<HomePage>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             // Bienvenue en haut
-                            const Column(
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Bienvenue à',
-                                  style: TextStyle(
+                                  t('home.welcome_to'),
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w400,
                                   ),
                                 ),
-                                Text(
+                                const Text(
                                   'ART LUXURY BUS',
                                   style: TextStyle(
                                     fontSize: 20,
@@ -679,7 +1078,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Text(
-                                          'Solde : ',
+                                          t('home.balance'),
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Colors.white
@@ -752,7 +1151,7 @@ class _HomePageState extends ConsumerState<HomePage>
                             Padding(
                               padding: const EdgeInsets.only(top: 30),
                               child: Text(
-                                'Bonjour, ${user.name.split(' ').first}',
+                                '${t("home.greeting")}, ${user.name.split(' ').first}',
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.white.withValues(alpha: 0.95),
@@ -848,7 +1247,7 @@ class _HomePageState extends ConsumerState<HomePage>
       ),
       child: TextField(
         decoration: InputDecoration(
-          hintText: 'Rechercher un trajet, une ville...',
+          hintText: t('home.search_placeholder'),
           hintStyle: TextStyle(
             color: Theme.of(context)
                 .textTheme
@@ -916,7 +1315,7 @@ class _HomePageState extends ConsumerState<HomePage>
               },
               child: _buildQuickActionItem(
                 icon: Icons.confirmation_number_rounded,
-                label: 'Réserver',
+                label: t('home.book'),
                 color: AppTheme.primaryBlue,
                 useWhiteBackground: true,
               ),
@@ -932,7 +1331,7 @@ class _HomePageState extends ConsumerState<HomePage>
               },
               child: _buildQuickActionItem(
                 icon: Icons.history_rounded,
-                label: 'Mes trajets',
+                label: t('home.my_trips'),
                 color: AppTheme.primaryOrange,
               ),
             ),
@@ -947,7 +1346,7 @@ class _HomePageState extends ConsumerState<HomePage>
               },
               child: _buildQuickActionItem(
                 icon: Icons.info_rounded,
-                label: 'Info',
+                label: t('home.info'),
                 color: Colors.blue,
               ),
             ),
@@ -963,7 +1362,7 @@ class _HomePageState extends ConsumerState<HomePage>
               },
               child: _buildQuickActionItem(
                 icon: Icons.qr_code_scanner_rounded,
-                label: 'Scanner',
+                label: t('common.scanner'),
                 color: Colors.purple,
               ),
             ),
@@ -977,13 +1376,13 @@ class _HomePageState extends ConsumerState<HomePage>
               },
               child: _buildQuickActionItem(
                 icon: Icons.history_rounded,
-                label: 'Historique',
+                label: t('common.history'),
                 color: AppTheme.primaryOrange,
               ),
             ),
             _buildQuickActionItem(
               icon: Icons.access_time_rounded,
-              label: 'Statut',
+              label: t('common.status'),
               color: AppTheme.primaryBlue,
             ),
           ],
@@ -1054,7 +1453,7 @@ class _HomePageState extends ConsumerState<HomePage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Nos Services',
+              t('home.our_services'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -1063,9 +1462,9 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Tout ce dont vous avez besoin',
-              style: TextStyle(
+            Text(
+              t('home.everything_you_need'),
+              style: const TextStyle(
                 fontSize: 13,
                 color: Colors.grey,
                 fontWeight: FontWeight.w400,
@@ -1083,7 +1482,7 @@ class _HomePageState extends ConsumerState<HomePage>
           child: Row(
             children: [
               Text(
-                'Voir tout',
+                t('home.see_all'),
                 style: TextStyle(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white
@@ -1118,7 +1517,7 @@ class _HomePageState extends ConsumerState<HomePage>
         if (_isClient(user)) ...[
           _buildServiceIcon(
             icon: Icons.confirmation_number_rounded,
-            label: 'Réserver',
+            label: t('home.book'),
             color: AppTheme.primaryBlue,
             onTap: () {
               Navigator.push(
@@ -1131,7 +1530,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.card_giftcard_rounded,
-            label: 'Fidélité',
+            label: t('services.loyalty'),
             color: const Color(0xFF9333EA),
             onTap: () {
               Navigator.of(context).push(
@@ -1143,7 +1542,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.local_shipping_rounded,
-            label: 'Courrier',
+            label: t('services.mail'),
             color: AppTheme.primaryOrange,
             onTap: () {
               Navigator.of(context).push(
@@ -1155,7 +1554,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.feedback_rounded,
-            label: 'Feedback',
+            label: t('services.feedback'),
             color: const Color(0xFF14B8A6),
             onTap: () {
               Navigator.of(context).push(
@@ -1170,7 +1569,7 @@ class _HomePageState extends ConsumerState<HomePage>
         else if (_hasAttendanceRole(user)) ...[
           _buildServiceIcon(
             icon: Icons.card_giftcard_rounded,
-            label: 'Fidélité',
+            label: t('services.loyalty'),
             color: const Color(0xFF9333EA),
             onTap: () {
               Navigator.of(context).push(
@@ -1182,7 +1581,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.feedback_rounded,
-            label: 'Feedback',
+            label: t('services.feedback'),
             color: const Color(0xFF14B8A6),
             onTap: () {
               Navigator.of(context).push(
@@ -1197,7 +1596,7 @@ class _HomePageState extends ConsumerState<HomePage>
         else ...[
           _buildServiceIcon(
             icon: Icons.directions_bus_rounded,
-            label: 'Gestion Bus',
+            label: t('services.bus_management'),
             color: AppTheme.primaryBlue,
             onTap: () {
               Navigator.of(context).push(
@@ -1209,7 +1608,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.card_giftcard_rounded,
-            label: 'Fidélité',
+            label: t('services.loyalty'),
             color: const Color(0xFF9333EA),
             onTap: () {
               Navigator.of(context).push(
@@ -1221,7 +1620,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.local_shipping_rounded,
-            label: 'Courrier',
+            label: t('services.mail'),
             color: AppTheme.primaryOrange,
             onTap: () {
               Navigator.of(context).push(
@@ -1233,7 +1632,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.schedule_rounded,
-            label: 'Horaires',
+            label: t('services.schedules'),
             color: const Color(0xFF10B981),
             onTap: () {
               Navigator.push(
@@ -1246,7 +1645,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.feedback_rounded,
-            label: 'Feedback',
+            label: t('services.feedback'),
             color: const Color(0xFF14B8A6),
             onTap: () {
               Navigator.of(context).push(
@@ -1266,7 +1665,7 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
           _buildServiceIcon(
             icon: Icons.payment_rounded,
-            label: 'Paiement',
+            label: t('common.payment'),
             color: const Color(0xFF6366F1),
             onTap: () {
               // TODO: Navigation vers paiement
@@ -1389,7 +1788,7 @@ class _HomePageState extends ConsumerState<HomePage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Slides',
+          t('common.slides'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -1530,30 +1929,29 @@ class _HomePageState extends ConsumerState<HomePage>
   // Old feature card helper removed in favor of modern service card
 
   String _getRoleDisplayName(String? role) {
-    if (role == null) return 'Utilisateur';
+    if (role == null) return t('common.user');
 
     final roleMap = {
-      'admin': 'Administrateur',
-      'administrateur': 'Administrateur',
-      'manager': 'Gestionnaire',
-      'gestionnaire': 'Gestionnaire',
-      'driver': 'Chauffeur',
-      'chauffeur': 'Chauffeur',
-      'agent': 'Agent',
-      'employe': 'Employé',
-      'user': 'Client',
-      'client': 'Client',
+      'admin': t('common.administrator'),
+      'administrateur': t('common.administrator'),
+      'manager': t('common.manager'),
+      'gestionnaire': t('common.manager'),
+      'driver': t('common.driver'),
+      'chauffeur': t('common.driver'),
+      'agent': t('common.agent'),
+      'employe': t('common.employee'),
+      'user': t('common.client'),
+      'client': t('common.client'),
     };
 
-    return roleMap[role.toLowerCase()] ?? 'Utilisateur';
+    return roleMap[role.toLowerCase()] ?? t('common.user');
   }
 
   Widget _buildNotificationsTab(User user) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Notifications'),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
+        title: Text(t('notifications.title')),
         elevation: 0,
         centerTitle: true,
         actions: [
@@ -1574,7 +1972,7 @@ class _HomePageState extends ConsumerState<HomePage>
                     onPressed: () {
                       ref.read(notificationProvider.notifier).markAllAsRead();
                     },
-                    tooltip: 'Tout marquer comme lu',
+                    tooltip: t('notifications.mark_all_read'),
                   ),
                   // Bouton pour supprimer toutes les notifications
                   IconButton(
@@ -1585,16 +1983,16 @@ class _HomePageState extends ConsumerState<HomePage>
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
-                            title: const Text(
-                                'Supprimer toutes les notifications'),
-                            content: const Text(
-                              'Êtes-vous sûr de vouloir supprimer toutes vos notifications ? Cette action est irréversible.',
+                            title: Text(
+                                t('notifications.delete_all_confirmation')),
+                            content: Text(
+                              t('notifications.delete_all_message'),
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () =>
                                     Navigator.of(context).pop(false),
-                                child: const Text('Annuler'),
+                                child: Text(t('notifications.cancel')),
                               ),
                               TextButton(
                                 onPressed: () =>
@@ -1602,7 +2000,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.red,
                                 ),
-                                child: const Text('Supprimer'),
+                                child: Text(t('notifications.delete')),
                               ),
                             ],
                           );
@@ -1639,7 +2037,7 @@ class _HomePageState extends ConsumerState<HomePage>
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(notificationState.error ??
-                                    'Erreur lors de la suppression'),
+                                    t('notifications.delete_error')),
                                 backgroundColor: Colors.red,
                                 duration: const Duration(seconds: 3),
                               ),
@@ -1652,9 +2050,9 @@ class _HomePageState extends ConsumerState<HomePage>
 
                             // Afficher un message de succès
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 content: Text(
-                                    'Toutes les notifications ont été supprimées'),
+                                    t('notifications.all_deleted')),
                                 backgroundColor: Colors.green,
                                 duration: Duration(seconds: 2),
                               ),
@@ -1663,7 +2061,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         }
                       }
                     },
-                    tooltip: 'Supprimer toutes les notifications',
+                    tooltip: t('notifications.delete_all'),
                   ),
                 ],
               );
@@ -1747,7 +2145,7 @@ class _HomePageState extends ConsumerState<HomePage>
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Réessayer'),
+                    child: Text(t('notifications.try_again')),
                   ),
                 ],
               ),
@@ -1766,7 +2164,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Aucune notification',
+                    t('notifications.none'),
                     style: TextStyle(
                       color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 18,
@@ -1775,7 +2173,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Vous n\'avez pas encore reçu de notifications',
+                    t('notifications.none_message'),
                     style: TextStyle(
                       color: Theme.of(context)
                           .textTheme
@@ -1794,7 +2192,7 @@ class _HomePageState extends ConsumerState<HomePage>
                       backgroundColor: AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Actualiser'),
+                    child: Text(t('common.refresh')),
                   ),
                 ],
               ),
@@ -1828,7 +2226,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                 backgroundColor: AppTheme.primaryBlue,
                                 foregroundColor: Colors.white,
                               ),
-                              child: const Text('Charger plus'),
+                              child: Text(t('common.load_more')),
                             ),
                     ),
                   );
@@ -1856,18 +2254,18 @@ class _HomePageState extends ConsumerState<HomePage>
         ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Icon(
+            const Icon(
               Icons.delete_outline,
               color: Colors.white,
               size: 24,
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
-              'Supprimer',
-              style: TextStyle(
+              t('notifications.delete'),
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -1892,9 +2290,9 @@ class _HomePageState extends ConsumerState<HomePage>
                       size: 24,
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      'Supprimer notification',
-                      style: TextStyle(
+                    Text(
+                      t('notifications.delete_notification'),
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1902,7 +2300,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   ],
                 ),
                 content: Text(
-                  'Voulez-vous vraiment supprimer cette notification ?\n\n"${notification.title}"',
+                  t('notifications.delete_notification_message').replaceAll('{{title}}', notification.title),
                   style: TextStyle(
                     fontSize: 14,
                     color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -1912,7 +2310,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
                     child: Text(
-                      'Annuler',
+                      t('auth.cancel'),
                       style: TextStyle(
                         color: Theme.of(context).textTheme.bodyMedium?.color,
                         fontWeight: FontWeight.w500,
@@ -1985,10 +2383,13 @@ class _HomePageState extends ConsumerState<HomePage>
         decoration: BoxDecoration(
           color: notification.isRead
               ? Theme.of(context).cardColor.withValues(alpha: 0.5)
-              : AppTheme.primaryBlue.withValues(alpha: 0.05),
+              : AppTheme.primaryOrange.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+            color: notification.isRead
+                ? Theme.of(context).dividerColor.withValues(alpha: 0.3)
+                : AppTheme.primaryOrange.withValues(alpha: 0.3),
+            width: notification.isRead ? 1 : 1.5,
           ),
           boxShadow: [
             BoxShadow(
@@ -2030,19 +2431,29 @@ class _HomePageState extends ConsumerState<HomePage>
               size: 20,
             ),
           ),
-          title: Text(
-            notification.title,
-            style: TextStyle(
-              fontWeight:
-                  notification.isRead ? FontWeight.w500 : FontWeight.bold,
-              fontSize: 14,
-            ),
+          title: Builder(
+            builder: (context) {
+              final translated = _translateNotification(notification);
+              return Text(
+                translated['title'] ?? notification.title,
+                style: TextStyle(
+                  fontWeight:
+                      notification.isRead ? FontWeight.w500 : FontWeight.bold,
+                  fontSize: 14,
+                ),
+              );
+            },
           ),
-          subtitle: Text(
-            notification.message,
-            style: const TextStyle(fontSize: 12),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          subtitle: Builder(
+            builder: (context) {
+              final translated = _translateNotification(notification);
+              return Text(
+                translated['message'] ?? notification.message,
+                style: const TextStyle(fontSize: 12),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              );
+            },
           ),
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -2066,7 +2477,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: AppTheme.primaryBlue,
+                    color: AppTheme.primaryOrange,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -2079,6 +2490,19 @@ class _HomePageState extends ConsumerState<HomePage>
 
   IconData _getNotificationTypeIcon(String type) {
     switch (type.toLowerCase()) {
+      case 'new_ticket':
+      case 'ticket_created':
+        return Icons.confirmation_number;
+      case 'new_mail_sender':
+      case 'new_mail_recipient':
+      case 'mail_created':
+      case 'mail_received':
+      case 'mail_collected':
+        return Icons.mail;
+      case 'loyalty_point':
+      case 'loyalty':
+      case 'points':
+        return Icons.card_giftcard;
       case 'new_feedback':
         return Icons.feedback_outlined;
       case 'feedback_status':
@@ -2088,10 +2512,10 @@ class _HomePageState extends ConsumerState<HomePage>
         return Icons.local_offer;
       case 'reminder':
       case 'travel':
+      case 'departure_time_changed':
+      case 'departure_modified':
+      case 'departure_updated':
         return Icons.schedule;
-      case 'loyalty':
-      case 'points':
-        return Icons.card_giftcard;
       case 'alert':
       case 'urgent':
         return Icons.warning_outlined;
@@ -2102,8 +2526,21 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Color _getNotificationTypeColor(String type) {
     switch (type.toLowerCase()) {
+      case 'new_ticket':
+      case 'ticket_created':
+        return AppTheme.primaryOrange;
+      case 'new_mail_sender':
+      case 'new_mail_recipient':
+      case 'mail_created':
+      case 'mail_received':
+      case 'mail_collected':
+        return AppTheme.primaryOrange;
+      case 'loyalty_point':
+      case 'loyalty':
+      case 'points':
+        return Colors.amber;
       case 'new_feedback':
-        return Colors.blue;
+        return AppTheme.primaryOrange;
       case 'feedback_status':
         return Colors.orange;
       case 'promotion':
@@ -2111,15 +2548,15 @@ class _HomePageState extends ConsumerState<HomePage>
         return Colors.purple;
       case 'reminder':
       case 'travel':
+      case 'departure_time_changed':
+      case 'departure_modified':
+      case 'departure_updated':
         return Colors.green;
-      case 'loyalty':
-      case 'points':
-        return Colors.amber;
       case 'alert':
       case 'urgent':
         return Colors.red;
       default:
-        return AppTheme.primaryBlue;
+        return AppTheme.primaryOrange;
     }
   }
 
@@ -2180,7 +2617,7 @@ class _HomePageState extends ConsumerState<HomePage>
   Widget _buildServicesTab(User user) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Services'),
+        title: Text(t('common.services')),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -2208,7 +2645,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Tous nos services',
+                    t('home.all_our_services'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -2217,7 +2654,7 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Découvrez tout ce que nous pouvons faire pour vous',
+                    t('home.discover_services'),
                     style: TextStyle(
                       fontSize: 14,
                       color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -2273,8 +2710,8 @@ class _HomePageState extends ConsumerState<HomePage>
     // Services communs (toujours disponibles si permissions activées)
     services.add({
       'icon': Icons.card_giftcard_rounded,
-      'title': 'Programme Fidélité',
-      'subtitle': 'Cumulez des points et avantages',
+      'title': t('services.loyalty_program'),
+      'subtitle': t('services.loyalty_subtitle'),
       'color': const Color(0xFF9333EA),
       'onTap': () => Navigator.push(context,
           MaterialPageRoute(builder: (_) => const LoyaltyHomeScreen())),
@@ -2282,8 +2719,8 @@ class _HomePageState extends ConsumerState<HomePage>
 
     services.add({
       'icon': Icons.feedback_rounded,
-      'title': 'Suggestions',
-      'subtitle': 'Partagez vos idées',
+      'title': t('services.suggestions'),
+      'subtitle': t('services.suggestions_subtitle'),
       'color': const Color(0xFF14B8A6),
       'onTap': () => Navigator.push(
           context, MaterialPageRoute(builder: (_) => const FeedbackScreen())),
@@ -2292,16 +2729,16 @@ class _HomePageState extends ConsumerState<HomePage>
     if (_hasAttendanceRole(user)) {
       services.add({
         'icon': Icons.qr_code_scanner_rounded,
-        'title': 'Scanner QR',
-        'subtitle': 'Pointage rapide',
+        'title': t('services.qr_scanner'),
+        'subtitle': t('services.qr_scanner_subtitle'),
         'color': const Color(0xFF9333EA),
         'onTap': () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const QrScannerScreen())),
       });
       services.add({
         'icon': Icons.history_rounded,
-        'title': 'Historique',
-        'subtitle': 'Vos pointages',
+        'title': t('services.history'),
+        'subtitle': t('services.attendance_history'),
         'color': AppTheme.primaryOrange,
         'onTap': () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen())),
@@ -2310,16 +2747,16 @@ class _HomePageState extends ConsumerState<HomePage>
       // Seulement pour Super Admin, Admin et Chef agence
       services.add({
         'icon': Icons.directions_bus_rounded,
-        'title': 'Gestion Bus',
-        'subtitle': 'Flotte et maintenance',
+        'title': t('services.bus_management'),
+        'subtitle': t('services.bus_fleet'),
         'color': AppTheme.primaryBlue,
         'onTap': () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const BusDashboardScreen())),
       });
       services.add({
         'icon': Icons.schedule_rounded,
-        'title': 'Horaires',
-        'subtitle': 'Consulter les horaires',
+        'title': t('services.schedules'),
+        'subtitle': t('services.view_schedules'),
         'color': const Color(0xFF10B981),
         'onTap': () {
           Navigator.push(
@@ -2332,8 +2769,8 @@ class _HomePageState extends ConsumerState<HomePage>
       });
       services.add({
         'icon': Icons.local_shipping_rounded,
-        'title': 'Courrier',
-        'subtitle': 'Mes courriers',
+        'title': t('services.mail'),
+        'subtitle': t('services.my_mails'),
         'color': AppTheme.primaryOrange,
         'onTap': () {
           Navigator.of(context).push(
@@ -2345,8 +2782,8 @@ class _HomePageState extends ConsumerState<HomePage>
       });
       services.add({
         'icon': Icons.video_library_rounded,
-        'title': 'Mes Vidéos',
-        'subtitle': 'Gérer les vidéos publicitaires',
+        'title': t('services.videos'),
+        'subtitle': t('services.manage_videos'),
         'color': const Color(0xFFE91E63),
         'onTap': () {
           Navigator.of(context).push(
@@ -2360,24 +2797,24 @@ class _HomePageState extends ConsumerState<HomePage>
       // Services pour les clients
       services.add({
         'icon': Icons.confirmation_number_rounded,
-        'title': 'Réserver',
-        'subtitle': 'Réserver un trajet',
+        'title': t('services.reservation'),
+        'subtitle': t('services.book_trip'),
         'color': AppTheme.primaryBlue,
         'onTap': () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const ReservationScreen())),
       });
       services.add({
         'icon': Icons.history_rounded,
-        'title': 'Mes Trajets',
-        'subtitle': 'Voir mes réservations',
+        'title': t('services.my_trips'),
+        'subtitle': t('services.view_trips'),
         'color': AppTheme.primaryOrange,
         'onTap': () => Navigator.push(
             context, MaterialPageRoute(builder: (_) => const MyTripsScreen())),
       });
       services.add({
         'icon': Icons.local_shipping_rounded,
-        'title': 'Courrier',
-        'subtitle': 'Mes courriers',
+        'title': t('services.mail'),
+        'subtitle': t('services.my_mails'),
         'color': AppTheme.primaryOrange,
         'onTap': () {
           Navigator.of(context).push(
@@ -2389,12 +2826,12 @@ class _HomePageState extends ConsumerState<HomePage>
       });
       services.add({
         'icon': Icons.payment_rounded,
-        'title': 'Paiement',
-        'subtitle': 'Effectuer un paiement',
+        'title': t('services.payment'),
+        'subtitle': t('services.payment_subtitle'),
         'color': const Color(0xFF6366F1),
         'onTap': () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Paiement - En développement')),
+            SnackBar(content: Text(t('services.payment_development'))),
           );
         },
       });
@@ -2403,8 +2840,8 @@ class _HomePageState extends ConsumerState<HomePage>
     // Service d'aide toujours disponible
     services.add({
       'icon': Icons.help_center_rounded,
-      'title': 'Aide',
-      'subtitle': 'Centre d\'aide',
+      'title': t('services.help'),
+      'subtitle': t('services.help_center'),
       'color': const Color(0xFF8B5CF6),
       'onTap': () {}, // TODO: Navigation
     });
@@ -2670,20 +3107,31 @@ class _HomePageState extends ConsumerState<HomePage>
           ),
 
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Section Compte
-                  _buildProfileSection(
-                    title: 'Mon Compte',
-                    icon: Icons.person_rounded,
-                    options: [
-                      _buildModernProfileOption(
-                        icon: Icons.person_outline,
-                        title: 'Informations personnelles',
-                        subtitle: 'Modifier vos données',
+            child: Consumer(
+              builder: (context, ref, child) {
+                final locale = ref.watch(languageProvider);
+                final translationNotifier = ref.read(translationLoadingProvider.notifier);
+                final translationService = translationNotifier.translationService;
+                
+                // S'assurer que les traductions sont chargées pour cette langue actuelle
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  translationNotifier.loadTranslations(locale);
+                });
+                
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Section Compte
+                      _buildProfileSection(
+                        title: translationService.translate('profile.my_account'),
+                        icon: Icons.person_rounded,
+                        options: [
+                          _buildModernProfileOption(
+                            icon: Icons.person_outline,
+                            title: translationService.translate('profile.personal_info'),
+                            subtitle: translationService.translate('profile.edit_data'),
                         color: AppTheme.primaryBlue,
                         onTap: () {
                           Navigator.push(
@@ -2696,8 +3144,8 @@ class _HomePageState extends ConsumerState<HomePage>
                       ),
                       _buildModernProfileOption(
                         icon: Icons.security_rounded,
-                        title: 'Sécurité',
-                        subtitle: 'Mot de passe et sécurité',
+                        title: translationService.translate('profile.security'),
+                        subtitle: translationService.translate('profile.password_security'),
                         color: Colors.green,
                         onTap: () {
                           Navigator.push(
@@ -2716,20 +3164,20 @@ class _HomePageState extends ConsumerState<HomePage>
                   // Section Préférences (seulement pour non-pointeurs)
                   if (!_hasAttendanceRole(user)) ...[
                     _buildProfileSection(
-                      title: 'Préférences',
+                      title: translationService.translate('profile.preferences'),
                       icon: Icons.settings_rounded,
                       options: [
                         _buildModernProfileOption(
                           icon: Icons.notifications_outlined,
-                          title: 'Notifications',
-                          subtitle: 'Gérer vos alertes',
+                          title: translationService.translate('profile.notifications'),
+                          subtitle: translationService.translate('profile.manage_alerts'),
                           color: AppTheme.primaryOrange,
                           onTap: () {},
                         ),
                         _buildModernProfileOption(
                           icon: Icons.campaign_rounded,
-                          title: 'Annonces Vocales',
-                          subtitle: 'Configuration des annonces',
+                          title: translationService.translate('profile.voice_announcements'),
+                          subtitle: translationService.translate('profile.announcement_config'),
                           color: Colors.deepPurple,
                           onTap: () {
                             Navigator.of(context).push(
@@ -2742,8 +3190,8 @@ class _HomePageState extends ConsumerState<HomePage>
                         ),
                         _buildModernProfileOption(
                           icon: Icons.palette_outlined,
-                          title: 'Apparence',
-                          subtitle: 'Thème clair, sombre ou système',
+                          title: translationService.translate('profile.appearance'),
+                          subtitle: translationService.translate('profile.theme_description'),
                           color: Colors.amber,
                           onTap: () {
                             Navigator.of(context).push(
@@ -2754,12 +3202,26 @@ class _HomePageState extends ConsumerState<HomePage>
                             );
                           },
                         ),
-                        _buildModernProfileOption(
-                          icon: Icons.language_rounded,
-                          title: 'Langue',
-                          subtitle: 'Français',
-                          color: Colors.purple,
-                          onTap: () {},
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final locale = ref.watch(languageProvider);
+                            final languageNotifier = ref.read(languageProvider.notifier);
+                            final languageName = languageNotifier.getDisplayName(locale);
+                            
+                            return _buildModernProfileOption(
+                              icon: Icons.language_rounded,
+                              title: translationService.translate('profile.language'),
+                              subtitle: languageName,
+                              color: Colors.purple,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const LanguageSettingsScreen(),
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -2768,20 +3230,20 @@ class _HomePageState extends ConsumerState<HomePage>
 
                   // Section Support
                   _buildProfileSection(
-                    title: 'Support',
+                    title: translationService.translate('profile.support'),
                     icon: Icons.help_center_rounded,
                     options: [
                       _buildModernProfileOption(
                         icon: Icons.help_outline,
-                        title: 'Aide et support',
-                        subtitle: 'Contactez notre équipe',
+                        title: translationService.translate('profile.help_support'),
+                        subtitle: translationService.translate('profile.contact_team'),
                         color: Colors.teal,
                         onTap: () {},
                       ),
                       _buildModernProfileOption(
                         icon: Icons.info_outline,
-                        title: 'À propos',
-                        subtitle: 'Infos appareil & version',
+                        title: translationService.translate('profile.about'),
+                        subtitle: translationService.translate('profile.about_info'),
                         color: Colors.indigo,
                         onTap: () {
                           Navigator.of(context).push(
@@ -2795,8 +3257,8 @@ class _HomePageState extends ConsumerState<HomePage>
                       if (kDebugMode)
                         _buildModernProfileOption(
                           icon: Icons.bug_report,
-                          title: 'Outils de débogage',
-                          subtitle: 'Tester les notifications et annonces',
+                          title: translationService.translate('profile.debug_tools'),
+                          subtitle: translationService.translate('profile.test_notifications'),
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.orange
                               : Colors.blue,
@@ -2815,6 +3277,8 @@ class _HomePageState extends ConsumerState<HomePage>
                   const SizedBox(height: 80), // Espace pour bottom nav
                 ],
               ),
+                );
+              },
             ),
           ),
         ],
@@ -2963,22 +3427,22 @@ class _HomePageState extends ConsumerState<HomePage>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                title: const Text(
-                  'Déconnexion',
+                title: Text(
+                  t('auth.logout_title'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                content: const Text(
-                  'Êtes-vous sûr de vouloir vous déconnecter ?',
+                content: Text(
+                  t('auth.logout_message'),
                   style: TextStyle(fontSize: 14),
                 ),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
                     child: Text(
-                      'Annuler',
+                      t('auth.cancel'),
                       style: TextStyle(
                         color: Theme.of(context).textTheme.bodyMedium?.color,
                         fontWeight: FontWeight.w500,
@@ -2994,8 +3458,8 @@ class _HomePageState extends ConsumerState<HomePage>
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text(
-                      'Déconnecter',
+                    child: Text(
+                      t('auth.logout_button'),
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -3019,7 +3483,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Se déconnecter',
+                  t('auth.logout'),
                   style: TextStyle(
                     color: Colors.red[600],
                     fontSize: 14,

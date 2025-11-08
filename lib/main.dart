@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart' as theme_provider;
+import 'providers/language_provider.dart';
+import 'services/translation_service.dart';
 import 'widgets/loading_indicator.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_page.dart';
@@ -38,6 +40,21 @@ void main() async {
 
   try {
     debugPrint('🚀 [Main] Initialisation de l\'application...');
+
+    // Charger les traductions par défaut au démarrage
+    try {
+      debugPrint('🌍 [Main] Chargement des traductions...');
+      final translationService = TranslationService();
+      await translationService.loadTranslations(const Locale('fr', 'FR'));
+      if (translationService.isLoaded) {
+        debugPrint('✅ [Main] Traductions chargées avec succès');
+      } else {
+        debugPrint('⚠️ [Main] Traductions non chargées');
+      }
+    } catch (e, stackTrace) {
+      debugPrint('⚠️ [Main] Erreur lors du chargement des traductions: $e');
+      debugPrint('Stack trace: $stackTrace');
+    }
 
     // Initialiser l'authentification AVANT les notifications
     final authService = AuthService();
@@ -405,6 +422,7 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(theme_provider.themeModeProvider);
+    final locale = ref.watch(languageProvider);
 
     return MaterialApp(
       title: 'Art Luxury Bus',
@@ -417,7 +435,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               ? ThemeMode.dark
               : ThemeMode.light,
       navigatorKey: _navigatorKey,
-      // Configuration des localisations pour supporter le français
+      // Configuration des localisations pour supporter le français et l'anglais
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -427,7 +445,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         Locale('fr', 'FR'), // Français
         Locale('en', 'US'), // Anglais
       ],
-      locale: const Locale('fr', 'FR'), // Langue par défaut
+      locale: locale, // Langue sélectionnée par l'utilisateur
       home: const SplashScreen(),
       routes: {'/debug': (context) => const DebugScreen()},
     );
@@ -486,22 +504,26 @@ class AuthWrapper extends ConsumerWidget {
 
       // Vérifier si l'utilisateur a le rôle "embarquement"
       bool isEmbarkment = false;
-      if (userRole != null && (userRole.contains('embarquement') || userRole.contains('embarkment'))) {
+      if (userRole != null &&
+          (userRole.contains('embarquement') ||
+              userRole.contains('embarkment'))) {
         isEmbarkment = true;
       } else if (user?.displayRole != null &&
           (user!.displayRole!.trim().toLowerCase().contains('embarquement') ||
-           user.displayRole!.trim().toLowerCase().contains('embarkment'))) {
+              user.displayRole!.trim().toLowerCase().contains('embarkment'))) {
         isEmbarkment = true;
       } else if (roles.isNotEmpty) {
         isEmbarkment = roles.any(
-          (r) => r.toString().trim().toLowerCase().contains('embarquement') ||
-                 r.toString().trim().toLowerCase().contains('embarkment'),
+          (r) =>
+              r.toString().trim().toLowerCase().contains('embarquement') ||
+              r.toString().trim().toLowerCase().contains('embarkment'),
         );
       } else if (permissions.isNotEmpty) {
         isEmbarkment = permissions.any(
-          (p) => p.toLowerCase().contains('embarquement') ||
-                 p.toLowerCase().contains('embarkment') ||
-                 p.toLowerCase().contains('scan_ticket'),
+          (p) =>
+              p.toLowerCase().contains('embarquement') ||
+              p.toLowerCase().contains('embarkment') ||
+              p.toLowerCase().contains('scan_ticket'),
         );
       }
 

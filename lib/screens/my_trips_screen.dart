@@ -9,6 +9,7 @@ import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/trip_model.dart';
 import '../services/trip_service.dart';
+import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
 
 class MyTripsScreen extends StatefulWidget {
@@ -23,6 +24,11 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   final ScreenshotController _screenshotController = ScreenshotController();
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -56,21 +62,19 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
-          'Mes Trajets',
-          style: TextStyle(
+        title: Text(
+          t('trips.title'),
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _loadTrips,
-            tooltip: 'Actualiser',
+            tooltip: t('trips.refresh'),
           ),
         ],
       ),
@@ -105,7 +109,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Erreur',
+                t('common.error'),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -125,7 +129,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ElevatedButton.icon(
                 onPressed: _loadTrips,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Réessayer'),
+                label: Text(t('trips.try_again')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,
@@ -159,7 +163,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'Aucun trajet',
+                t('trips.no_trips'),
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -168,7 +172,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Vous n\'avez pas encore de trajets enregistrés.',
+                t('trips.no_trips_registered'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -216,7 +220,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _trips.length > 1 ? 'Trajets' : 'Trajet',
+                  _trips.length > 1 ? t('trips.trips') : t('trips.trip'),
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white,
@@ -299,7 +303,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                         if (trip.depart?.numeroDepart != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Départ #${trip.depart!.numeroDepart}',
+                            t('trips.trip_number').replaceAll('{{number}}', trip.depart!.numeroDepart.toString()),
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(context)
@@ -336,7 +340,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Annulé',
+                            t('trips.cancelled'),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -358,7 +362,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   Expanded(
                     child: _buildInfoItem(
                       icon: Icons.calendar_today_rounded,
-                      label: 'Date',
+                      label: t('trips.date'),
                       value: trip.formattedDate,
                       color: AppTheme.primaryBlue,
                     ),
@@ -369,7 +373,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     Expanded(
                       child: _buildInfoItem(
                         icon: Icons.access_time_rounded,
-                        label: 'Départ',
+                        label: t('trips.departure'),
                         value: trip.depart!.heureDepart!,
                         color: AppTheme.primaryOrange,
                       ),
@@ -386,7 +390,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     Expanded(
                       child: _buildInfoItem(
                         icon: Icons.event_seat_rounded,
-                        label: 'Siège',
+                        label: t('trips.seat'),
                         value: '#${trip.siegeNumber}',
                         color: Colors.green,
                       ),
@@ -396,7 +400,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     Expanded(
                       child: _buildInfoItem(
                         icon: Icons.monetization_on_rounded,
-                        label: 'Prix',
+                        label: t('trips.total_price'),
                         value: '${trip.prix!.toStringAsFixed(0)} FCFA',
                         color: Colors.amber[700]!,
                       ),
@@ -422,7 +426,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Embarquement: ${trip.embarkStop!.name}',
+                            '${t("trips.embarkment_label")}: ${trip.embarkStop!.name}',
                             style: TextStyle(
                               fontSize: 12,
                               color:
@@ -444,7 +448,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Débarquement: ${trip.disembarkStop!.name}',
+                          '${t("trips.disembarkment_label")}: ${trip.disembarkStop!.name}',
                           style: TextStyle(
                             fontSize: 12,
                             color:
@@ -482,7 +486,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Points fidélité',
+                              t('trips.loyalty_points'),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -512,7 +516,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Transit',
+                              t('trips.transit'),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
@@ -629,7 +633,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                         icon: const Icon(Icons.share_rounded),
                         onPressed: () => _shareTicket(trip, shareButtonKey, context),
                         color: AppTheme.primaryBlue,
-                        tooltip: 'Partager le ticket',
+                        tooltip: t('trips.share_ticket'),
                       ),
                       // Bouton Fermer
                       IconButton(
@@ -664,10 +668,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
@@ -675,8 +679,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   color: Colors.white,
                 ),
               ),
-              SizedBox(width: 16),
-              Text('Génération de l\'image...'),
+              const SizedBox(width: 16),
+              Text(t('trips.generating_image')),
             ],
           ),
           duration: Duration(seconds: 2),
@@ -689,8 +693,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       if (imageBytes == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la capture de l\'image'),
+          SnackBar(
+            content: Text(t('trips.image_capture_error')),
             backgroundColor: Colors.red,
           ),
         );
@@ -710,16 +714,16 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       // Construire le message de partage avec toutes les informations
       final dateDepart = trip.depart?.dateDepartFormatted ?? trip.depart?.dateDepart ?? '';
       final heureDepart = trip.depart?.heureDepart ?? '';
-      final siegeInfo = trip.siegeNumber != null ? 'Siège: ${trip.siegeNumber}' : '';
+      final siegeInfo = trip.siegeNumber != null ? '${t("trips.seat")}: ${trip.siegeNumber}' : '';
       
       final shareText = StringBuffer();
-      shareText.writeln('Mon ticket de voyage - ART LUXURY BUS');
+      shareText.writeln(t('trips.my_travel_ticket'));
       shareText.writeln('${trip.routeText}');
       if (dateDepart.isNotEmpty) {
-        shareText.writeln('Date de départ: $dateDepart');
+        shareText.writeln('${t("trips.departure_date")}: $dateDepart');
       }
       if (heureDepart.isNotEmpty) {
-        shareText.writeln('Heure de départ: $heureDepart');
+        shareText.writeln('${t("trips.departure_time_label")}: $heureDepart');
       }
       if (siegeInfo.isNotEmpty) {
         shareText.writeln(siegeInfo);
@@ -729,7 +733,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       shareText.writeln('');
       shareText.writeln('📌 Ce ticket est non remboursable.');
       shareText.writeln('');
-      shareText.writeln('Merci d\'avoir choisi la compagnie ART LUXURY BUS. Nous vous souhaitons un excellent voyage ! 🚌✨');
+      shareText.writeln(t('trips.thank_you_message'));
       
       // Sur iOS, il faut spécifier sharePositionOrigin
       if (Platform.isIOS && shareButtonKey?.currentContext != null) {
@@ -741,7 +745,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           await Share.shareXFiles(
             [XFile(imagePath)],
             text: shareText.toString(),
-            subject: 'Ticket de voyage',
+            subject: t('trips.travel_ticket'),
             sharePositionOrigin: Rect.fromLTWH(
               position.dx,
               position.dy,
@@ -754,7 +758,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           await Share.shareXFiles(
             [XFile(imagePath)],
             text: shareText.toString(),
-            subject: 'Ticket de voyage',
+            subject: t('trips.travel_ticket'),
           );
         }
       } else {
@@ -762,7 +766,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         await Share.shareXFiles(
           [XFile(imagePath)],
           text: shareText.toString(),
-          subject: 'Ticket de voyage',
+          subject: t('trips.travel_ticket'),
         );
       }
 
@@ -779,7 +783,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur: ${e.toString()}'),
+          content: Text('${t("common.error")}: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -864,6 +868,25 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               // Section Header (Blanc)
               _buildBoardingHeader(trip, isLaisserPasser),
 
+              // Afficher "DÉJÀ UTILISÉ" si le ticket a été scanné
+              if (trip.isUsed)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  color: Colors.red.shade50,
+                  child: Center(
+                    child: Text(
+                      'DÉJÀ UTILISÉ',
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ),
+
               // Section FROM/TO (Blanc avec design)
               _buildRouteSection(fromCity, toCity, date, time, isLaisserPasser),
 
@@ -880,11 +903,11 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           ],
                         )
                       : null,
-                  color: isLaisserPasser ? null : AppTheme.primaryBlue,
+                  color: isLaisserPasser ? null : AppTheme.primaryOrange,
                 ),
                 child: Center(
                   child: Text(
-                    isLaisserPasser ? 'LAISSER PASSER' : 'TICKET D\'EMBARQUEMENT',
+                    isLaisserPasser ? t('trips.laisser_passer') : t('trips.boarding_pass'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -930,8 +953,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 ),
               ),
 
-              // QR Code Section
-              _buildQRSection(qrData, trip.id, isLaisserPasser),
+              // QR Code Section ou "DÉJÀ UTILISÉ" si scanné
+              trip.isUsed
+                  ? _buildUsedSection(trip)
+                  : _buildQRSection(qrData, trip.id, isLaisserPasser),
             ],
           ),
         ],
@@ -967,7 +992,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           ],
                         )
                       : null,
-                  color: isLaisserPasser ? null : AppTheme.primaryBlue,
+                  color: isLaisserPasser ? null : AppTheme.primaryOrange,
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: isLaisserPasser
                       ? [
@@ -1009,7 +1034,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                       ],
                     )
                   : null,
-              color: isLaisserPasser ? null : AppTheme.primaryBlue,
+              color: isLaisserPasser ? null : AppTheme.primaryOrange,
               borderRadius: BorderRadius.circular(20),
               boxShadow: isLaisserPasser
                   ? [
@@ -1022,7 +1047,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   : null,
             ),
             child: Text(
-              isLaisserPasser ? 'GRATUIT' : 'STANDARD',
+              isLaisserPasser ? t('trips.free') : t('trips.standard'),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
@@ -1044,7 +1069,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         color: Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: isLaisserPasser ? Colors.orange : AppTheme.primaryBlue,
+            color: isLaisserPasser ? Colors.orange : AppTheme.primaryOrange,
             width: 2,
           ),
         ),
@@ -1055,7 +1080,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           Row(
             children: [
               Text(
-                'DE:',
+                t('trips.from'),
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.grey[600],
@@ -1064,7 +1089,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
               const Spacer(),
               Text(
-                'À:',
+                t('trips.to'),
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.grey[600],
@@ -1097,7 +1122,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Icon(
                   Icons.arrow_forward_rounded,
-                  color: isLaisserPasser ? Colors.orange : AppTheme.primaryBlue,
+                  color: isLaisserPasser ? Colors.orange : AppTheme.primaryOrange,
                   size: 24,
                 ),
               ),
@@ -1160,8 +1185,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   Colors.orange.shade800,
                 ]
               : [
-                  AppTheme.primaryBlue,
-                  AppTheme.accentBlue,
+                  AppTheme.primaryOrange,
+                  AppTheme.primaryOrange.withValues(alpha: 0.8),
                 ],
         ),
       ),
@@ -1175,7 +1200,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Nom du Passager',
+                      t('trips.passenger_name'),
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -1201,7 +1226,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Départ',
+                      t('trips.departure_number'),
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -1231,7 +1256,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Siège',
+                      t('trips.seat_label'),
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -1256,7 +1281,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Bus',
+                        t('trips.bus_label'),
                         style: TextStyle(
                           fontSize: 10,
                           color: Colors.white.withValues(alpha: 0.9),
@@ -1288,7 +1313,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isLaisserPasser ? 'Type' : 'Prix',
+                      isLaisserPasser ? t('trips.type_label') : t('trips.price_label'),
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -1316,7 +1341,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'GRATUIT',
+                              t('trips.free'),
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -1370,9 +1395,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   Colors.orange.shade800,
                 ]
               : [
-                  AppTheme.primaryBlue,
-            AppTheme.accentBlue,
-          ],
+                  AppTheme.primaryOrange,
+                  AppTheme.primaryOrange.withValues(alpha: 0.8),
+                ],
         ),
       ),
       child: Column(
@@ -1394,6 +1419,73 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           const SizedBox(height: 16),
           Text(
             'Ticket #$ticketId',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withValues(alpha: 0.9),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUsedSection(Trip trip) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.red.shade600,
+            Colors.red.shade800,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          // Icône ou message "DÉJÀ UTILISÉ"
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.red.shade700,
+                  size: 80,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'DÉJÀ UTILISÉ',
+                  style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+                if (trip.scannedAtFormatted != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Scanné le: ${trip.scannedAtFormatted}',
+                    style: TextStyle(
+                      color: Colors.red.shade600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Ticket #${trip.id}',
             style: TextStyle(
               fontSize: 12,
               color: Colors.white.withValues(alpha: 0.9),

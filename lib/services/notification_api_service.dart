@@ -45,7 +45,7 @@ class NotificationApiService {
       debugPrint('📄 [API] Body: ${response.body}');
       
       final data = jsonDecode(response.body);
-      
+
       if (response.statusCode == 200) {
         debugPrint('✅ [API] Notifications récupérées avec succès');
         if (data['data'] != null && data['data']['notifications'] != null) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/mail_model.dart';
+import '../services/translation_service.dart';
 import 'package:intl/intl.dart';
 import 'collection_form_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,6 +17,11 @@ class MailDetailScreen extends StatefulWidget {
 class _MailDetailScreenState extends State<MailDetailScreen> {
   late MailModel _mail;
   bool _isLoading = false;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -72,8 +78,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Impossible d\'ouvrir WhatsApp'),
+            SnackBar(
+              content: Text(t('mail_detail.whatsapp_error')),
               backgroundColor: Colors.red,
             ),
           );
@@ -83,7 +89,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text('${t("common.error")}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -95,7 +101,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Détails du Courrier'),
+        title: Text(t('mail_detail.title')),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -106,52 +112,52 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                 children: [
                   _buildStatusBanner(),
                   const SizedBox(height: 24),
-                  _buildInfoSection('Informations générales', [
-                    _buildInfoRow('Numéro', _mail.mailNumber),
-                    _buildInfoRow('Destination', _mail.destination),
-                    _buildInfoRow('Agence de réception', _mail.receivingAgency),
+                  _buildInfoSection(t('mail_detail.general_info'), [
+                    _buildInfoRow(t('mail_detail.number'), _mail.mailNumber),
+                    _buildInfoRow(t('mail_detail.destination'), _mail.destination),
+                    _buildInfoRow(t('mail_detail.receiving_agency'), _mail.receivingAgency),
                     _buildInfoRow(
-                      'Montant',
+                      t('mail_detail.amount'),
                       NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
                           .format(_mail.amount),
                     ),
-                    _buildInfoRow('Type de colis', _mail.packageType),
-                    _buildInfoRow('Valeur du colis', _mail.packageValue),
+                    _buildInfoRow(t('mail_detail.package_type'), _mail.packageType),
+                    _buildInfoRow(t('mail_detail.package_value'), _mail.packageValue),
                   ]),
                   const SizedBox(height: 24),
-                  _buildInfoSection('Expéditeur', [
-                    _buildInfoRow('Nom', _mail.senderName),
-                    _buildInfoRow('Téléphone', _mail.senderPhone),
+                  _buildInfoSection(t('mail_detail.sender'), [
+                    _buildInfoRow(t('mail_detail.name'), _mail.senderName),
+                    _buildInfoRow(t('mail_detail.phone'), _mail.senderPhone),
                   ]),
                   const SizedBox(height: 24),
-                  _buildInfoSection('Destinataire', [
-                    _buildInfoRow('Nom', _mail.recipientName),
-                    _buildInfoRow('Téléphone', _mail.recipientPhone),
+                  _buildInfoSection(t('mail_detail.recipient'), [
+                    _buildInfoRow(t('mail_detail.name'), _mail.recipientName),
+                    _buildInfoRow(t('mail_detail.phone'), _mail.recipientPhone),
                   ]),
                   if (_mail.description != null) ...[
                     const SizedBox(height: 24),
-                    _buildInfoSection('Description', [
+                    _buildInfoSection(t('mail_detail.description'), [
                       Text(_mail.description!),
                     ]),
                   ],
                   if (_mail.photo != null && _mail.photo!.isNotEmpty) ...[
                     const SizedBox(height: 24),
-                    _buildInfoSection('Photo du courrier', [
+                    _buildInfoSection(t('mail_detail.mail_photo'), [
                       const SizedBox(height: 12),
                       _buildMailPhoto(_mail.photoUrl ?? _mail.photo!),
                     ]),
                   ],
                   const SizedBox(height: 24),
-                  _buildInfoSection('Informations supplémentaires', [
+                  _buildInfoSection(t('mail_detail.additional_info'), [
                     _buildInfoRow(
-                      'Date de création',
+                      t('mail_detail.creation_date'),
                       DateFormat('dd/MM/yyyy à HH:mm').format(_mail.createdAt),
                     ),
                     if (_mail.createdByUser != null)
-                      _buildInfoRow('Créé par', _mail.createdByUser!.name),
+                      _buildInfoRow(t('mail_detail.created_by'), _mail.createdByUser!.name),
                     if (_mail.isCollected) ...[
                       _buildInfoRow(
-                        'Date de collection',
+                        t('mail_detail.collection_date'),
                         _mail.collectedAt != null
                             ? DateFormat('dd/MM/yyyy à HH:mm')
                                 .format(_mail.collectedAt!)
@@ -159,7 +165,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       ),
                       if (_mail.collectedByUser != null)
                         _buildInfoRow(
-                            'Agent', _mail.collectedByUser!.name),
+                            t('mail_detail.collected_by'), _mail.collectedByUser!.name),
                     ],
                   ]),
                   if (_mail.isCollected &&
@@ -168,18 +174,18 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                           _mail.collectorIdCard != null ||
                           _mail.collectorSignature != null)) ...[
                     const SizedBox(height: 24),
-                    _buildInfoSection('Informations du collecteur', [
+                    _buildInfoSection(t('mail_detail.collector_info'), [
                       if (_mail.collectorName != null)
-                        _buildInfoRow('Nom complet', _mail.collectorName!),
+                        _buildInfoRow(t('mail_detail.full_name'), _mail.collectorName!),
                       if (_mail.collectorPhone != null)
-                        _buildInfoRow('Téléphone', _mail.collectorPhone!),
+                        _buildInfoRow(t('mail_detail.phone'), _mail.collectorPhone!),
                       if (_mail.collectorIdCard != null)
                         _buildInfoRow(
-                            'Numéro de pièce', _mail.collectorIdCard!),
+                            t('mail_detail.id_card_number'), _mail.collectorIdCard!),
                       if (_mail.collectorSignature != null) ...[
                         const SizedBox(height: 12),
-                        const Text(
-                          'Signature',
+                        Text(
+                          t('mail_detail.signature'),
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
                             color: Colors.grey,
@@ -192,14 +198,14 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                   ],
                   if (_mail.clientProfile != null) ...[
                     const SizedBox(height: 24),
-                    _buildInfoSection('Fidélité', [
-                      _buildInfoRow('Client', _mail.clientProfile!.nom),
+                    _buildInfoSection(t('mail_detail.loyalty'), [
+                      _buildInfoRow(t('mail_detail.client'), _mail.clientProfile!.nom),
                       _buildInfoRow(
-                        'Points fidélité',
+                        t('trips.loyalty_points'),
                         _mail.clientProfile!.points.toString(),
                       ),
                       _buildInfoRow(
-                        'Points courrier',
+                        t('mail_detail.mail_points'),
                         _mail.clientProfile!.mailPoints.toString(),
                       ),
                     ]),
@@ -218,8 +224,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       ),
                       onPressed: _isLoading ? null : _sendTrackingLinkViaWhatsApp,
                       icon: const Icon(Icons.chat, size: 20),
-                      label: const Text(
-                        'Envoyer lien de suivi sur WhatsApp',
+                      label: Text(
+                        t('mail_detail.send_tracking'),
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -236,8 +242,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                         ),
                         onPressed: _isLoading ? null : _toggleCollection,
                         icon: const Icon(Icons.check_circle),
-                        label: const Text(
-                          'Marquer comme collecté',
+                        label: Text(
+                          t('mail_detail.mark_as_collected'),
                           style: TextStyle(fontSize: 16),
                         ),
                       ),
@@ -274,7 +280,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _mail.isCollected ? 'Collecté' : 'En attente',
+                  _mail.isCollected ? t('mail_detail.collected') : t('mail_detail.pending'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -391,7 +397,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                                   color: Colors.grey.shade400, size: 48),
                               const SizedBox(height: 8),
                               Text(
-                                'Photo non disponible',
+                                t('mail_detail.photo_unavailable'),
                                 style: TextStyle(
                                     color: Colors.grey.shade600, fontSize: 14),
                               ),
@@ -449,7 +455,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Appuyez pour réessayer',
+                      t('mail_detail.tap_to_retry'),
                       style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                     ),
                   ],
@@ -508,7 +514,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       color: Colors.grey.shade400, size: 40),
                   const SizedBox(height: 8),
                   Text(
-                    'Signature non disponible',
+                    t('mail_detail.signature_unavailable'),
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                 ],

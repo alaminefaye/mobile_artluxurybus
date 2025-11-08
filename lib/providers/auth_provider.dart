@@ -236,6 +236,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await refreshUserProfile();
   }
 
+  // Mettre à jour l'état après une inscription réussie
+  Future<void> updateAuthAfterRegistration({
+    required User user,
+  }) async {
+    debugPrint('🔄 [AuthProvider] Mise à jour de l\'état après inscription');
+    debugPrint('   - User ID: ${user.id}');
+    debugPrint('   - Email: ${user.email}');
+    debugPrint('   - Rôle: ${user.role}');
+    
+    state = state.copyWith(
+      user: user,
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    );
+    
+    // Définir les tokens pour tous les services
+    await _setTokensForAllServices();
+    
+    debugPrint('✅ [AuthProvider] État mis à jour - Authentifié: ${state.isAuthenticated}');
+  }
+
   // Recharger l'utilisateur depuis SharedPreferences
   Future<void> reloadUserFromStorage() async {
     try {

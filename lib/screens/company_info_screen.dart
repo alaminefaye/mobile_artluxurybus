@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../theme/app_theme.dart';
+import '../services/translation_service.dart';
 
 class CompanyInfoScreen extends StatefulWidget {
   const CompanyInfoScreen({super.key});
@@ -13,6 +14,11 @@ class CompanyInfoScreen extends StatefulWidget {
 
 class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
   int _currentSlide = 0;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,8 +102,8 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
-                            'Votre confort, notre priorité',
+                          Text(
+                            t('company.your_comfort_priority'),
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -161,7 +167,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Tous droits réservés',
+                        t('company.all_rights_reserved'),
                         style: TextStyle(
                           color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                           fontSize: 12,
@@ -188,7 +194,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
           child: _buildContactButton(
             context,
             icon: Icons.phone,
-            label: 'Appeler',
+            label: t('company.call'),
             color: const Color(0xFF10B981),
             onTap: () => _launchPhone('+2250718888807'),
           ),
@@ -198,7 +204,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
           child: _buildContactButton(
             context,
             icon: Icons.email,
-            label: 'Email',
+            label: t('company.email'),
             color: const Color(0xFF3B82F6),
             onTap: () => _launchEmail('info@artluxurybus.com'),
           ),
@@ -208,7 +214,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
           child: _buildContactButton(
             context,
             icon: Icons.language,
-            label: 'Site Web',
+            label: t('company.website_button'),
             color: const Color(0xFF8B5CF6),
             onTap: () => _launchUrl('https://www.artluxurybus.com'),
           ),
@@ -219,21 +225,21 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
 
   // Slider de photos
   Widget _buildPhotoSlider(BuildContext context) {
-    final List<Map<String, String>> slides = [
+    final slides = [
       {
         'image': 'img1.jpg',
-        'title': 'Bus Premium',
-        'description': 'Confort et élégance',
+        'title': t('company.premium_bus'),
+        'description': t('company.comfort_elegance'),
       },
       {
         'image': 'img2.jpg',
-        'title': 'Intérieur Luxueux',
-        'description': 'Sièges spacieux et climatisés',
+        'title': t('company.luxury_interior'),
+        'description': t('company.spacious_seats'),
       },
       {
         'image': 'img3.jpg',
-        'title': 'Service 5 Étoiles',
-        'description': 'Personnel qualifié et accueillant',
+        'title': t('company.five_star_service'),
+        'description': t('company.qualified_staff'),
       },
     ];
 
@@ -452,7 +458,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Nos Services',
+                t('company.our_services'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -525,7 +531,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Horaires d\'Ouverture',
+                t('company.opening_hours'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -605,7 +611,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Nos Adresses',
+                t('company.our_addresses'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -731,7 +737,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
       child: Column(
         children: [
           Text(
-            '✨ Suivez-nous',
+            t('company.follow_us'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,

@@ -13,6 +13,14 @@ allprojects {
         google()
         mavenCentral()
     }
+    
+    // Configuration globale pour forcer Java 17 et supprimer les warnings Java 8
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17.toString()
+        targetCompatibility = JavaVersion.VERSION_17.toString()
+        // Supprimer les warnings sur les options obsolètes
+        options.compilerArgs.addAll(listOf("-Xlint:-options"))
+    }
 }
 
 val newBuildDir: Directory =

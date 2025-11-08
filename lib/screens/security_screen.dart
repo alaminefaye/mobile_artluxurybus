@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
+import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
 
 class SecurityScreen extends ConsumerStatefulWidget {
@@ -22,6 +23,11 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
 
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
   @override
   void dispose() {
     _currentPasswordController.dispose();
@@ -40,7 +46,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       final user = ref.read(authProvider).user;
 
       if (user == null) {
-        throw Exception('Utilisateur non connecté');
+        throw Exception(t('security.user_not_connected'));
       }
 
       // Appeler l'API pour changer le mot de passe
@@ -53,15 +59,27 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       if (mounted) {
         if (response['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Mot de passe modifié avec succès'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(t('profile.password_changed')),
+                  ),
+                ],
+              ),
+              backgroundColor: AppTheme.primaryOrange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              duration: const Duration(seconds: 3),
             ),
           );
           Navigator.pop(context);
         } else {
-          throw Exception(response['message'] ?? 'Erreur lors du changement de mot de passe');
+          throw Exception(response['message'] ?? t('profile.password_error'));
         }
       }
     } catch (e) {
@@ -84,11 +102,10 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Sécurité'),
+        title: Text(t('security.title')),
         elevation: 0,
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -99,48 +116,48 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             children: [
               // En-tête
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primaryBlue.withValues(alpha: 0.1),
-                      AppTheme.primaryBlue.withValues(alpha: 0.05),
-                    ],
-                  ),
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: AppTheme.primaryOrange.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.green,
+                        color: AppTheme.primaryOrange,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.security_rounded,
                         color: Colors.white,
-                        size: 30,
+                        size: 24,
                       ),
                     ),
-                    const SizedBox(width: 15),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Changement de mot de passe',
+                          Text(
+                            t('security.change_password'),
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: Theme.of(context).textTheme.titleLarge?.color,
                             ),
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: 4),
                           Text(
-                            'Protégez votre compte avec un mot de passe fort',
+                            t('security.protect_account'),
                             style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
+                              fontSize: 12,
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -150,29 +167,36 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
               // Mot de passe actuel
               Text(
-                'Mot de passe actuel',
+                t('security.current_password_label'),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               TextFormField(
                 controller: _currentPasswordController,
                 obscureText: _obscureCurrentPassword,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Entrez votre mot de passe actuel',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  hintText: t('security.current_password_hint'),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                  ),
+                  prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryOrange),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureCurrentPassword
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     ),
                     onPressed: () {
                       setState(() {
@@ -180,43 +204,70 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                       });
                     },
                   ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).cardColor
+                      : Colors.white,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer votre mot de passe actuel';
+                    return t('security.current_password_required');
                   }
                   return null;
                 },
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Nouveau mot de passe
               Text(
-                'Nouveau mot de passe',
+                t('security.new_password_label'),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               TextFormField(
                 controller: _newPasswordController,
                 obscureText: _obscureNewPassword,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Entrez votre nouveau mot de passe',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  hintText: t('security.new_password_hint'),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                  ),
+                  prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryOrange),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureNewPassword
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     ),
                     onPressed: () {
                       setState(() {
@@ -224,46 +275,73 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                       });
                     },
                   ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).cardColor
+                      : Colors.white,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un nouveau mot de passe';
+                    return t('security.new_password_required');
                   }
                   if (value.length < 6) {
-                    return 'Le mot de passe doit contenir au moins 6 caractères';
+                    return t('security.password_min_length');
                   }
                   return null;
                 },
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Confirmer le nouveau mot de passe
               Text(
-                'Confirmer le nouveau mot de passe',
+                t('security.confirm_password_label'),
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: _obscureConfirmPassword,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Confirmez votre nouveau mot de passe',
-                  prefixIcon: const Icon(Icons.lock_outline),
+                  hintText: t('security.confirm_password_hint'),
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                  ),
+                  prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryOrange),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureConfirmPassword
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                     ),
                     onPressed: () {
                       setState(() {
@@ -271,70 +349,93 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                       });
                     },
                   ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                   ),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? Theme.of(context).cardColor
+                      : Colors.white,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Veuillez confirmer votre mot de passe';
+                    return t('security.confirm_password_required');
                   }
                   if (value != _newPasswordController.text) {
-                    return 'Les mots de passe ne correspondent pas';
+                    return t('security.passwords_not_match');
                   }
                   return null;
                 },
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
               // Conseils de sécurité
               Container(
-                padding: const EdgeInsets.all(15),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[200]!),
+                  border: Border.all(
+                    color: AppTheme.primaryOrange.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                        Icon(Icons.info_outline, color: AppTheme.primaryOrange, size: 20),
                         const SizedBox(width: 8),
                         Text(
-                          'Conseils pour un mot de passe sûr',
+                          t('security.password_tips_title'),
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue[700],
+                            color: AppTheme.primaryOrange,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    _buildSecurityTip('Au moins 8 caractères'),
-                    _buildSecurityTip('Mélangez lettres, chiffres et symboles'),
-                    _buildSecurityTip('Évitez les mots du dictionnaire'),
-                    _buildSecurityTip('Ne réutilisez pas d\'anciens mots de passe'),
+                    _buildSecurityTip(t('security.password_tip_min_length')),
+                    _buildSecurityTip(t('security.password_tip_mix')),
+                    _buildSecurityTip(t('security.password_tip_dictionary')),
+                    _buildSecurityTip(t('security.password_tip_reuse')),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
               // Bouton de changement
               SizedBox(
                 width: double.infinity,
-                height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _changePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppTheme.primaryOrange,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -349,9 +450,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Changer le mot de passe',
-                          style: TextStyle(
+                      : Text(
+                          t('security.change_password_button'),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -367,17 +468,17 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
   Widget _buildSecurityTip(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(Icons.check_circle, color: Colors.blue[700], size: 16),
+          Icon(Icons.check_circle, color: AppTheme.primaryOrange, size: 16),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
-                fontSize: 13,
-                color: Colors.blue[800],
+                fontSize: 12,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
             ),
           ),

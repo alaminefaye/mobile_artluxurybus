@@ -6,6 +6,7 @@ import '../providers/horaire_riverpod_provider.dart';
 import '../models/simple_loyalty_models.dart';
 import '../widgets/loyalty_card.dart';
 import '../widgets/ad_banner.dart';
+import '../services/translation_service.dart';
 import 'loyalty_check_screen.dart';
 
 class LoyaltyHomeScreen extends ConsumerStatefulWidget {
@@ -20,6 +21,11 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
   Future<LoyaltyProfileResponse?>? _profileFuture;
   final ValueNotifier<bool> _showingDepartures = ValueNotifier<bool>(false);
   int _adBannerKey = 0; // Pour forcer le rafraîchissement de la bannière pub
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -67,7 +73,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Programme Fidélité'),
+          title: Text(t('loyalty.title')),
           backgroundColor: Theme.of(context).brightness == Brightness.dark 
               ? AppTheme.primaryOrange 
               : AppTheme.primaryBlue,
@@ -177,7 +183,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                   ),
                   SizedBox(width: screenWidth * 0.03),
                   Text(
-                    'Vérifier mes points',
+                    t('loyalty.check_points'),
                     style: TextStyle(
                       fontSize: screenWidth * 0.045,
                       fontWeight: FontWeight.bold,
@@ -227,8 +233,8 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                   children: [
                     _buildBenefit(
                       Icons.confirmation_number_rounded,
-                      '10 Points',
-                      'Ticket Gratuit',
+                      '10 ${t("loyalty.points")}',
+                      t('loyalty.free_ticket'),
                       Theme.of(context).brightness == Brightness.dark 
                           ? AppTheme.primaryOrange 
                           : AppTheme.primaryBlue,
@@ -236,8 +242,8 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                     ),
                     _buildBenefit(
                       Icons.mail_rounded,
-                      '10 Points',
-                      'Courrier Gratuit',
+                      '10 ${t("loyalty.points")}',
+                      t('loyalty.free_mail'),
                       AppTheme.primaryOrange,
                       screenWidth,
                     ),
@@ -327,7 +333,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                             ),
                             SizedBox(width: screenWidth * 0.02),
                             Text(
-                              'TICKETS',
+                              t('loyalty.tickets_tab'),
                               style: TextStyle(
                                 color: _selectedCardType == LoyaltyCardType.tickets
                                     ? Colors.white
@@ -374,7 +380,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                             ),
                             SizedBox(width: screenWidth * 0.02),
                             Text(
-                              'COURRIERS',
+                              t('loyalty.mails_tab'),
                               style: TextStyle(
                                 color: _selectedCardType == LoyaltyCardType.courriers
                                     ? Colors.white
@@ -435,8 +441,8 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                         children: [
                           _buildBenefit(
                             Icons.confirmation_number_rounded,
-                            '10 Points',
-                            'Ticket Gratuit',
+                            '10 ${t("loyalty.points")}',
+                            t('loyalty.free_ticket'),
                             Theme.of(context).brightness == Brightness.dark 
                                 ? AppTheme.primaryOrange 
                                 : AppTheme.primaryBlue,
@@ -444,8 +450,8 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                           ),
                           _buildBenefit(
                             Icons.mail_rounded,
-                            '10 Points',
-                            'Courrier Gratuit',
+                            '10 ${t("loyalty.points")}',
+                            t('loyalty.free_mail'),
                             AppTheme.primaryOrange,
                             screenWidth,
                           ),
@@ -623,7 +629,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                 SizedBox(width: screenWidth * 0.03),
                 Expanded(
                   child: Text(
-                    'Aucun historique trouvé pour ce numéro',
+                    t('loyalty.no_history_found'),
                     style: TextStyle(
                       color: Theme.of(context).brightness == Brightness.dark 
                           ? Colors.white.withValues(alpha: 0.7) 
@@ -683,7 +689,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                 ),
                 SizedBox(width: screenWidth * 0.03),
                 Text(
-                  'Historique récent',
+                  t('loyalty.recent_history'),
                   style: TextStyle(
                     fontSize: screenWidth * 0.045,
                     fontWeight: FontWeight.bold,
@@ -701,7 +707,7 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
             Padding(
               padding: EdgeInsets.all(screenWidth * 0.04),
               child: Text(
-                'Aucune activité récente',
+                t('loyalty.no_recent_activity'),
                 style: TextStyle(
                   color: Theme.of(context).brightness == Brightness.dark 
                       ? Colors.white.withValues(alpha: 0.6) 
@@ -738,8 +744,8 @@ class _LoyaltyHomeScreenState extends ConsumerState<LoyaltyHomeScreen> {
                   );
                 } else {
                   final m = items[index] as LoyaltyMail;
-                  final destinataireText = m.destinataire.isNotEmpty ? m.destinataire : 'Destinataire';
-                  final desc = 'Courrier pour $destinataireText → ${m.villeDestination}';
+                  final destinataireText = m.destinataire.isNotEmpty ? m.destinataire : t('loyalty.recipient');
+                  final desc = t('loyalty.mail_for').replaceAll('{{recipient}}', destinataireText).replaceAll('{{destination}}', m.villeDestination);
                   final date = m.createdAt;
                   final isLoyalty = m.isLoyaltyMail;
                   return _historyRow(

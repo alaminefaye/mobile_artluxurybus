@@ -90,6 +90,19 @@ class NotificationModel {
   /// Obtenir l'icône en fonction du type de notification
   String getIconType() {
     switch (type.toLowerCase()) {
+      case 'new_ticket':
+      case 'ticket_created':
+        return 'ticket';
+      case 'new_mail_sender':
+      case 'new_mail_recipient':
+      case 'mail_created':
+      case 'mail_received':
+      case 'mail_collected':
+        return 'mail';
+      case 'loyalty_point':
+      case 'loyalty':
+      case 'points':
+        return 'points';
       case 'new_feedback':
         return 'feedback';
       case 'feedback_status':
@@ -99,10 +112,10 @@ class NotificationModel {
         return 'offer';
       case 'reminder':
       case 'travel':
+      case 'departure_time_changed':
+      case 'departure_modified':
+      case 'departure_updated':
         return 'travel';
-      case 'loyalty':
-      case 'points':
-        return 'points';
       case 'alert':
       case 'urgent':
         return 'alert';

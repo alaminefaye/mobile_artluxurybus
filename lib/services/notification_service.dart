@@ -189,8 +189,7 @@ class NotificationService {
     // Créer le canal sur l'appareil Android
     final androidPlugin = _localNotifications!
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+            AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
@@ -201,8 +200,8 @@ class NotificationService {
       debugPrint('   - Badge activé: ${channel.showBadge}');
 
       // Demander la permission pour Android 13+ (notifications locales)
-      final bool? permissionGranted = await androidPlugin
-          .requestNotificationsPermission();
+      final bool? permissionGranted =
+          await androidPlugin.requestNotificationsPermission();
       if (permissionGranted == true) {
         debugPrint(
           '✅ [NotificationService] Permission notifications locales accordée',
@@ -223,16 +222,16 @@ class NotificationService {
 
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-          requestAlertPermission: true,
-          requestBadgePermission: true,
-          requestSoundPermission: true,
-        );
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsIOS,
-        );
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
 
     await _localNotifications!.initialize(
       initializationSettings,
@@ -341,10 +340,10 @@ class NotificationService {
 
       // Obtenir les informations réelles de l'appareil
       final deviceType = await deviceInfoService.getDeviceType();
-      
+
       // 💾 Récupérer le device_id depuis SharedPreferences en priorité
       String? deviceId = prefs.getString('device_id');
-      
+
       // Si pas dans SharedPreferences, récupérer via DeviceInfoService
       if (deviceId == null) {
         debugPrint(
@@ -355,12 +354,6 @@ class NotificationService {
         debugPrint(
           '💾 [NotificationService] Device ID récupéré du cache: $deviceId',
         );
-      }
-
-      // Si device_id est toujours null après tous les essais, utiliser le token FCM comme fallback
-      if (deviceId == null || (deviceId.isNotEmpty == false)) {
-        debugPrint('⚠️ [NotificationService] Device ID non disponible, utilisation du token FCM comme identifiant');
-        deviceId = token.substring(0, 20); // Utiliser les 20 premiers caractères du token comme ID temporaire
       }
 
       debugPrint('📱 Enregistrement FCM Token avec device_id: $deviceId');
@@ -418,28 +411,19 @@ class NotificationService {
     debugPrint('   - Données: ${message.data}');
     debugPrint('   - Message ID: ${message.messageId}');
     debugPrint('   - Type: ${message.data['type']}');
-    debugPrint('   - msg_type: ${message.data['msg_type']}');
 
     // 🔊 Vérifier si c'est une annonce vocale UNIQUEMENT
-    // IMPORTANT: Les notifications de type "notification" ou "message_notification" 
-    // ne doivent PAS passer par _handleAnnouncementMessage
-    final msgType = message.data['msg_type']?.toString().toLowerCase();
-    if (msgType == 'annonce') {
-      debugPrint('🔊 [NotificationService] Traitement comme annonce vocale');
+    if (message.data['msg_type'] == 'annonce') {
       _handleAnnouncementMessage(message);
-    } else {
-      debugPrint('📢 [NotificationService] Traitement comme notification normale');
     }
 
     // Déterminer le titre et le corps de la notification
-    String title =
-        message.notification?.title ??
+    String title = message.notification?.title ??
         message.data['titre'] ??
         message.data['title'] ??
         'Art Luxury Bus';
 
-    String body =
-        message.notification?.body ??
+    String body = message.notification?.body ??
         message.data['contenu'] ??
         message.data['body'] ??
         message.data['message'] ??
@@ -450,7 +434,6 @@ class NotificationService {
     debugPrint('   - Corps: $body');
 
     // Afficher une notification locale pour TOUTES les notifications
-    // (que ce soit une annonce vocale ou une notification normale)
     _showLocalNotification(title: title, body: body, data: message.data);
 
     // Envoyer via le stream pour TOUTES les notifications
@@ -529,10 +512,8 @@ class NotificationService {
       }
       // Vérifier si l'identifiant est dans une liste séparée par des virgules (comparaison insensible à la casse)
       else if (appareil.contains(',')) {
-        final deviceIds = appareil
-            .split(',')
-            .map((e) => _normalizeDeviceId(e))
-            .toList();
+        final deviceIds =
+            appareil.split(',').map((e) => _normalizeDeviceId(e)).toList();
         final normalizedDeviceId = _normalizeDeviceId(_deviceId);
 
         if (normalizedDeviceId != null &&
@@ -586,36 +567,36 @@ class NotificationService {
     debugPrint('   - Titre: ${message.notification?.title}');
     debugPrint('   - Corps: ${message.notification?.body}');
     debugPrint('   - Données: ${message.data}');
-    
+
     // Les notifications avec 'notification' dans le payload sont affichées automatiquement par Firebase
     // Mais on peut aussi afficher une notification locale pour garantir l'affichage
-    
+
     // Si la notification n'a pas de title/body dans notification, essayer de l'afficher manuellement
-    if (message.notification == null || 
+    if (message.notification == null ||
         message.notification?.title == null ||
         message.notification?.body == null) {
       // Essayer d'afficher une notification locale avec les données disponibles
-      final title = message.data['title'] ?? 
-                    message.data['titre'] ?? 
-                    'Art Luxury Bus';
-      final body = message.data['body'] ?? 
-                   message.data['message'] ?? 
-                   message.data['contenu'] ?? 
-                   'Nouvelle notification';
-      
+      final title =
+          message.data['title'] ?? message.data['titre'] ?? 'Art Luxury Bus';
+      final body = message.data['body'] ??
+          message.data['message'] ??
+          message.data['contenu'] ??
+          'Nouvelle notification';
+
       // Initialiser les notifications locales si nécessaire
       if (_localNotifications == null) {
         _localNotifications = FlutterLocalNotificationsPlugin();
         await _initializeLocalNotifications();
       }
-      
+
       await _showLocalNotification(
         title: title,
         body: body,
         data: message.data,
       );
-      
-      debugPrint('✅ [NotificationService] Notification locale affichée en arrière-plan');
+
+      debugPrint(
+          '✅ [NotificationService] Notification locale affichée en arrière-plan');
     }
   }
 
@@ -657,24 +638,24 @@ class NotificationService {
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-          'art_luxury_bus_channel',
-          'Art Luxury Bus Notifications',
-          channelDescription: 'Notifications de l\'application Art Luxury Bus',
-          importance: Importance.max,
-          priority: Priority.high,
-          showWhen: true,
-          icon: '@mipmap/ic_launcher',
-          playSound: true,
-          enableVibration: true,
-          enableLights: true,
-        );
+      'art_luxury_bus_channel',
+      'Art Luxury Bus Notifications',
+      channelDescription: 'Notifications de l\'application Art Luxury Bus',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: true,
+      icon: '@mipmap/ic_launcher',
+      playSound: true,
+      enableVibration: true,
+      enableLights: true,
+    );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
         DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        );
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,

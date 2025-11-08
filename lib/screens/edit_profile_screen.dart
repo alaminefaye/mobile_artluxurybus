@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
+import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _isLoading = false;
   bool _isUploadingPhoto = false;
   File? _selectedImage;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -62,7 +68,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la sélection: ${e.toString()}'),
+            content: Text('${t("profile.selection_error")}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -74,6 +80,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Future<void> _showImageSourceDialog() async {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -83,7 +90,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Choisir une photo',
+              t('profile.choose_photo'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -95,12 +102,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.photo_library, color: AppTheme.primaryBlue),
+                child: const Icon(Icons.photo_library, color: AppTheme.primaryOrange),
               ),
-              title: const Text('Galerie'),
+              title: Text(
+                t('profile.gallery'),
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.gallery);
@@ -115,7 +127,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 ),
                 child: const Icon(Icons.camera_alt, color: AppTheme.primaryOrange),
               ),
-              title: const Text('Appareil photo'),
+              title: Text(
+                t('profile.camera'),
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera);
@@ -147,13 +164,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Photo de profil mise à jour',
+                      t('profile.photo_updated'),
                       style: TextStyle(fontSize: 14),
                     ),
                   ),
@@ -171,7 +188,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Erreur lors de l\'upload'),
+              content: Text(result['message'] ?? t('profile.upload_error')),
               backgroundColor: Colors.red,
             ),
           );
@@ -234,7 +251,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          result['message'] ?? 'Profil mis à jour avec succès',
+                          result['message'] ?? t('profile.profile_updated'),
                           style: const TextStyle(fontSize: 14),
                         ),
                       ),
@@ -255,7 +272,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message'] ?? 'Erreur lors de la mise à jour'),
+              content: Text(result['message'] ?? t('profile.update_error')),
               backgroundColor: Colors.red,
             ),
           );
@@ -286,9 +303,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Modifier le profil'),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
+        title: Text(t('profile.edit_profile')),
         elevation: 0,
         centerTitle: true,
       ),
@@ -309,7 +324,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             height: 100,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.grey.shade300,
+                              color: Theme.of(context).cardColor,
                             ),
                             child: const Center(
                               child: CircularProgressIndicator(),
@@ -317,7 +332,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           )
                         : CircleAvatar(
                       radius: 50,
-                      backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                      backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.2),
                       backgroundImage: _selectedImage != null
                           ? FileImage(_selectedImage!)
                           : (user?.profilePhotoUrl != null
@@ -328,10 +343,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         user?.name.isNotEmpty == true
                             ? user!.name[0].toUpperCase()
                             : 'U',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryBlue,
+                          color: AppTheme.primaryOrange,
                         ),
                       ) : null,
                     ),
@@ -362,11 +377,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               Center(
                 child: Text(
                   _isUploadingPhoto 
-                      ? 'Upload en cours...'
-                      : 'Toucher l\'icône pour changer',
+                      ? t('security.upload_in_progress')
+                      : t('security.tap_to_change'),
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -375,14 +390,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               // Champ Nom
               _buildTextField(
                 controller: _nameController,
-                label: 'Nom complet',
+                label: t('security.name'),
                 icon: Icons.person_outline,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Le nom est obligatoire';
+                    return t('security.name_required');
                   }
                   if (value.trim().length < 3) {
-                    return 'Le nom doit contenir au moins 3 caractères';
+                    return t('security.name_min_length');
                   }
                   return null;
                 },
@@ -392,16 +407,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               // Champ Email
               _buildTextField(
                 controller: _emailController,
-                label: 'Adresse email',
+                label: t('security.email_address'),
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'L\'email est obligatoire';
+                    return t('security.email_required');
                   }
                   if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                       .hasMatch(value)) {
-                    return 'Email invalide';
+                    return t('security.invalid_email');
                   }
                   return null;
                 },
@@ -412,7 +427,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ElevatedButton(
                 onPressed: _isLoading ? null : _updateProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryBlue,
+                  backgroundColor: AppTheme.primaryOrange,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -430,9 +445,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Text(
-                        'Enregistrer les modifications',
-                        style: TextStyle(
+                    : Text(
+                        t('security.save_changes'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -445,16 +460,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 onPressed: () {
                   // TODO: Navigation vers écran de changement de mot de passe
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Fonctionnalité à venir'),
+                    SnackBar(
+                      content: Text(t('security.feature_coming')),
                     ),
                   );
                 },
                 icon: const Icon(Icons.lock_outline),
-                label: const Text('Changer le mot de passe'),
+                label: Text(t('security.change_password')),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primaryBlue,
-                  side: const BorderSide(color: AppTheme.primaryBlue),
+                  foregroundColor: AppTheme.primaryOrange,
+                  side: const BorderSide(color: AppTheme.primaryOrange),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -479,20 +494,34 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
+      style: TextStyle(
+        color: Theme.of(context).textTheme.bodyLarge?.color,
+      ),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppTheme.primaryBlue),
+        labelStyle: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+        ),
+        prefixIcon: Icon(icon, color: AppTheme.primaryOrange),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade300,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade300,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 2),
+          borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -500,7 +529,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ),
         filled: true,
         fillColor: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
+            ? Theme.of(context).cardColor
             : Colors.white,
       ),
     );

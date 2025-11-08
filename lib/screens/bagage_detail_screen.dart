@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/bagage_model.dart';
+import '../services/translation_service.dart';
 import 'package:intl/intl.dart';
 
 class BagageDetailScreen extends StatefulWidget {
@@ -14,6 +15,11 @@ class BagageDetailScreen extends StatefulWidget {
 class _BagageDetailScreenState extends State<BagageDetailScreen> {
   late BagageModel _bagage;
 
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -26,7 +32,7 @@ class _BagageDetailScreenState extends State<BagageDetailScreen> {
       appBar: AppBar(
         backgroundColor: Colors.orange.shade700,
         foregroundColor: Colors.white,
-        title: const Text('Détails du Bagage'),
+        title: Text(t('bagage_detail.title')),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -35,48 +41,48 @@ class _BagageDetailScreenState extends State<BagageDetailScreen> {
           children: [
             _buildStatusBanner(),
             const SizedBox(height: 24),
-            _buildInfoSection('Informations générales', [
-              _buildInfoRow('Numéro', _bagage.numero),
-              _buildInfoRow('Destination', _bagage.destination),
+            _buildInfoSection(t('bagage_detail.general_info'), [
+              _buildInfoRow(t('bagage_detail.number'), _bagage.numero),
+              _buildInfoRow(t('bagage_detail.destination'), _bagage.destination),
               if (_bagage.poids != null)
-                _buildInfoRow('Poids', '${_bagage.poids} kg'),
+                _buildInfoRow(t('bagage_detail.weight'), '${_bagage.poids} kg'),
               if (_bagage.valeur != null)
                 _buildInfoRow(
-                  'Valeur',
+                  t('bagage_detail.value'),
                   NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
                       .format(_bagage.valeur),
                 ),
               if (_bagage.montant != null)
                 _buildInfoRow(
-                  'Montant payé',
+                  t('bagage_detail.amount_paid'),
                   NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
                       .format(_bagage.montant),
                 ),
             ]),
             const SizedBox(height: 24),
-            _buildInfoSection('Propriétaire', [
-              _buildInfoRow('Nom', _bagage.nom),
-              _buildInfoRow('Prénom', _bagage.prenom),
-              _buildInfoRow('Téléphone', _bagage.telephone),
+            _buildInfoSection(t('bagage_detail.owner'), [
+              _buildInfoRow(t('bagage_detail.name'), _bagage.nom),
+              _buildInfoRow(t('bagage_detail.firstname'), _bagage.prenom),
+              _buildInfoRow(t('bagage_detail.phone'), _bagage.telephone),
             ]),
             if (_bagage.contenu != null) ...[
               const SizedBox(height: 24),
-              _buildInfoSection('Contenu', [
+              _buildInfoSection(t('bagage_detail.content'), [
                 Text(_bagage.contenu!),
               ]),
             ],
             const SizedBox(height: 24),
-            _buildInfoSection('Informations supplémentaires', [
+            _buildInfoSection(t('bagage_detail.additional_info'), [
               _buildInfoRow(
-                'Date d\'enregistrement',
+                t('bagage_detail.registration_date'),
                 DateFormat('dd/MM/yyyy à HH:mm').format(_bagage.createdAt),
               ),
               _buildInfoRow(
-                'Possède un ticket',
-                _bagage.hasTicket ? 'Oui' : 'Non',
+                t('bagage_detail.has_ticket'),
+                _bagage.hasTicket ? t('bagage_detail.yes') : t('bagage_detail.no'),
               ),
               if (_bagage.hasTicket && _bagage.ticketNumber != null)
-                _buildInfoRow('Numéro de ticket', _bagage.ticketNumber!),
+                _buildInfoRow(t('bagage_detail.ticket_number'), _bagage.ticketNumber!),
             ]),
             const SizedBox(height: 32),
           ],
@@ -111,7 +117,7 @@ class _BagageDetailScreenState extends State<BagageDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _bagage.hasTicket ? 'Avec Ticket' : 'Sans Ticket',
+                  _bagage.hasTicket ? t('bagage_detail.with_ticket') : t('bagage_detail.without_ticket'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -120,8 +126,8 @@ class _BagageDetailScreenState extends State<BagageDetailScreen> {
                 ),
                 Text(
                   _bagage.hasTicket
-                      ? 'Ce bagage a un ticket associé'
-                      : 'Ce bagage n\'a pas de ticket',
+                      ? t('bagage_detail.ticket_associated')
+                      : t('bagage_detail.no_ticket'),
                   style: TextStyle(
                     fontSize: 12,
                     color: _bagage.hasTicket
