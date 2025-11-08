@@ -64,10 +64,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       appBar: AppBar(
         title: Text(
           t('trips.title'),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         elevation: 0,
         actions: [
@@ -89,9 +86,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   Widget _buildBody() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(
-          color: AppTheme.primaryBlue,
-        ),
+        child: CircularProgressIndicator(color: AppTheme.primaryBlue),
       );
     }
 
@@ -155,11 +150,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               Icon(
                 Icons.confirmation_number_outlined,
                 size: 80,
-                color: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.color
-                    ?.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
               ),
               const SizedBox(height: 16),
               Text(
@@ -234,19 +227,14 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
         // Liste des trajets
         SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final trip = _trips[index];
-              return _buildTripCard(trip);
-            },
-            childCount: _trips.length,
-          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final trip = _trips[index];
+            return _buildTripCard(trip);
+          }, childCount: _trips.length),
         ),
 
         // Espace en bas
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 16),
-        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 16)),
       ],
     );
   }
@@ -303,7 +291,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                         if (trip.depart?.numeroDepart != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            t('trips.trip_number').replaceAll('{{number}}', trip.depart!.numeroDepart.toString()),
+                            t('trips.trip_number').replaceAll(
+                              '{{number}}',
+                              trip.depart!.numeroDepart.toString(),
+                            ),
                             style: TextStyle(
                               fontSize: 12,
                               color: Theme.of(context)
@@ -429,8 +420,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                             '${t("trips.embarkment_label")}: ${trip.embarkStop!.name}',
                             style: TextStyle(
                               fontSize: 12,
-                              color:
-                                  Theme.of(context).textTheme.bodyMedium?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.color,
                             ),
                           ),
                         ),
@@ -451,8 +443,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           '${t("trips.disembarkment_label")}: ${trip.disembarkStop!.name}',
                           style: TextStyle(
                             fontSize: 12,
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
                           ),
                         ),
                       ),
@@ -550,11 +543,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon,
-            size: 16,
-            color: color,
-          ),
+          child: Icon(icon, size: 16, color: color),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -565,11 +554,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 label,
                 style: TextStyle(
                   fontSize: 10,
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.color
-                      ?.withValues(alpha: 0.7),
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -593,7 +580,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   void _showTripDetails(Trip trip) {
     // GlobalKey pour obtenir la position du bouton de partage (iOS)
     final GlobalKey shareButtonKey = GlobalKey();
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -631,7 +618,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                       IconButton(
                         key: shareButtonKey,
                         icon: const Icon(Icons.share_rounded),
-                        onPressed: () => _shareTicket(trip, shareButtonKey, context),
+                        onPressed: () =>
+                            _shareTicket(trip, shareButtonKey, context),
                         color: AppTheme.primaryBlue,
                         tooltip: t('trips.share_ticket'),
                       ),
@@ -662,7 +650,11 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Future<void> _shareTicket(Trip trip, GlobalKey? shareButtonKey, BuildContext context) async {
+  Future<void> _shareTicket(
+    Trip trip,
+    GlobalKey? shareButtonKey,
+    BuildContext context,
+  ) async {
     try {
       // Afficher un indicateur de chargement
       if (!mounted) return;
@@ -710,12 +702,15 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
       // Partager l'image
       if (!mounted) return;
-      
+
       // Construire le message de partage avec toutes les informations
-      final dateDepart = trip.depart?.dateDepartFormatted ?? trip.depart?.dateDepart ?? '';
+      final dateDepart =
+          trip.depart?.dateDepartFormatted ?? trip.depart?.dateDepart ?? '';
       final heureDepart = trip.depart?.heureDepart ?? '';
-      final siegeInfo = trip.siegeNumber != null ? '${t("trips.seat")}: ${trip.siegeNumber}' : '';
-      
+      final siegeInfo = trip.siegeNumber != null
+          ? '${t("trips.seat")}: ${trip.siegeNumber}'
+          : '';
+
       final shareText = StringBuffer();
       shareText.writeln(t('trips.my_travel_ticket'));
       shareText.writeln('${trip.routeText}');
@@ -729,19 +724,22 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
         shareText.writeln(siegeInfo);
       }
       shareText.writeln('');
-      shareText.writeln('⚠️ Merci de vous présenter à la gare au moins 30 minutes avant le départ.');
+      shareText.writeln(
+        '⚠️ Merci de vous présenter à la gare au moins 30 minutes avant le départ.',
+      );
       shareText.writeln('');
       shareText.writeln('📌 Ce ticket est non remboursable.');
       shareText.writeln('');
       shareText.writeln(t('trips.thank_you_message'));
-      
+
       // Sur iOS, il faut spécifier sharePositionOrigin
       if (Platform.isIOS && shareButtonKey?.currentContext != null) {
-        final RenderBox? renderBox = shareButtonKey!.currentContext?.findRenderObject() as RenderBox?;
+        final RenderBox? renderBox =
+            shareButtonKey!.currentContext?.findRenderObject() as RenderBox?;
         if (renderBox != null) {
           final position = renderBox.localToGlobal(Offset.zero);
           final size = renderBox.size;
-          
+
           await Share.shareXFiles(
             [XFile(imagePath)],
             text: shareText.toString(),
@@ -822,18 +820,16 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     });
 
     // Détecter si c'est un laisser-passer
-    final isLaisserPasser = trip.isPassthrough || trip.isLoyaltyReward || (trip.prix != null && trip.prix == 0);
+    final isLaisserPasser = trip.isPassthrough ||
+        trip.isLoyaltyReward ||
+        (trip.prix != null && trip.prix == 0);
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: isLaisserPasser
-            ? Border.all(
-                color: Colors.orange,
-                width: 3,
-              )
-            : null,
+        border:
+            isLaisserPasser ? Border.all(color: Colors.orange, width: 3) : null,
         boxShadow: [
           BoxShadow(
             color: isLaisserPasser
@@ -855,37 +851,16 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: CustomPaint(
-                    painter: WatermarkPainter(),
-                  ),
+                  child: CustomPaint(painter: WatermarkPainter()),
                 ),
               ),
             ),
-          
+
           // Contenu du ticket
           Column(
             children: [
               // Section Header (Blanc)
               _buildBoardingHeader(trip, isLaisserPasser),
-
-              // Afficher "DÉJÀ UTILISÉ" si le ticket a été scanné
-              if (trip.isUsed)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  color: Colors.red.shade50,
-                  child: Center(
-                    child: Text(
-                      'DÉJÀ UTILISÉ',
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
-                ),
 
               // Section FROM/TO (Blanc avec design)
               _buildRouteSection(fromCity, toCity, date, time, isLaisserPasser),
@@ -903,11 +878,13 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           ],
                         )
                       : null,
-                  color: isLaisserPasser ? null : AppTheme.primaryOrange,
+                  color: isLaisserPasser ? null : AppTheme.primaryBlue,
                 ),
                 child: Center(
                   child: Text(
-                    isLaisserPasser ? t('trips.laisser_passer') : t('trips.boarding_pass'),
+                    isLaisserPasser
+                        ? t('trips.laisser_passer')
+                        : t('trips.boarding_pass'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -928,7 +905,12 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               ),
 
               // Section Informations (Bleu/Orange selon le type)
-              _buildInfoSection(trip, seatNumber, ticketNumber, isLaisserPasser),
+              _buildInfoSection(
+                trip,
+                seatNumber,
+                ticketNumber,
+                isLaisserPasser,
+              ),
 
               // Ligne pointillée de séparation (style boarding pass)
               Container(
@@ -953,10 +935,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 ),
               ),
 
-              // QR Code Section ou "DÉJÀ UTILISÉ" si scanné
-              trip.isUsed
-                  ? _buildUsedSection(trip)
-                  : _buildQRSection(qrData, trip.id, isLaisserPasser),
+              // QR Code Section
+              _buildQRSection(qrData, trip.id, isLaisserPasser, trip.isUsed),
             ],
           ),
         ],
@@ -992,7 +972,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                           ],
                         )
                       : null,
-                  color: isLaisserPasser ? null : AppTheme.primaryOrange,
+                  color: isLaisserPasser ? null : AppTheme.primaryBlue,
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: isLaisserPasser
                       ? [
@@ -1028,13 +1008,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             decoration: BoxDecoration(
               gradient: isLaisserPasser
                   ? LinearGradient(
-                      colors: [
-                        Colors.orange.shade400,
-                        Colors.orange.shade600,
-                      ],
+                      colors: [Colors.orange.shade400, Colors.orange.shade600],
                     )
                   : null,
-              color: isLaisserPasser ? null : AppTheme.primaryOrange,
+              color: isLaisserPasser ? null : AppTheme.primaryBlue,
               borderRadius: BorderRadius.circular(20),
               boxShadow: isLaisserPasser
                   ? [
@@ -1062,14 +1039,19 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   }
 
   Widget _buildRouteSection(
-      String fromCity, String toCity, String date, String time, bool isLaisserPasser) {
+    String fromCity,
+    String toCity,
+    String date,
+    String time,
+    bool isLaisserPasser,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(
           bottom: BorderSide(
-            color: isLaisserPasser ? Colors.orange : AppTheme.primaryOrange,
+            color: isLaisserPasser ? Colors.orange : AppTheme.primaryBlue,
             width: 2,
           ),
         ),
@@ -1122,7 +1104,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Icon(
                   Icons.arrow_forward_rounded,
-                  color: isLaisserPasser ? Colors.orange : AppTheme.primaryOrange,
+                  color: isLaisserPasser ? Colors.orange : AppTheme.primaryBlue,
                   size: 24,
                 ),
               ),
@@ -1172,7 +1154,12 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Widget _buildInfoSection(Trip trip, String seatNumber, String ticketNumber, bool isLaisserPasser) {
+  Widget _buildInfoSection(
+    Trip trip,
+    String seatNumber,
+    String ticketNumber,
+    bool isLaisserPasser,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1180,14 +1167,8 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isLaisserPasser
-              ? [
-                  Colors.orange.shade600,
-                  Colors.orange.shade800,
-                ]
-              : [
-                  AppTheme.primaryOrange,
-                  AppTheme.primaryOrange.withValues(alpha: 0.8),
-                ],
+              ? [Colors.orange.shade600, Colors.orange.shade800]
+              : [AppTheme.primaryBlue, AppTheme.accentBlue],
         ),
       ),
       child: Column(
@@ -1313,7 +1294,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isLaisserPasser ? t('trips.type_label') : t('trips.price_label'),
+                      isLaisserPasser
+                          ? t('trips.type_label')
+                          : t('trips.price_label'),
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -1322,7 +1305,10 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     const SizedBox(height: 4),
                     if (isLaisserPasser)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
@@ -1382,7 +1368,12 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     );
   }
 
-  Widget _buildQRSection(String qrData, int ticketId, bool isLaisserPasser) {
+  Widget _buildQRSection(
+    String qrData,
+    int ticketId,
+    bool isLaisserPasser,
+    bool isUsed,
+  ) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1390,102 +1381,54 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isLaisserPasser
-              ? [
-                  Colors.orange.shade600,
-                  Colors.orange.shade800,
-                ]
-              : [
-                  AppTheme.primaryOrange,
-                  AppTheme.primaryOrange.withValues(alpha: 0.8),
-                ],
+              ? [Colors.orange.shade600, Colors.orange.shade800]
+              : [AppTheme.primaryBlue, AppTheme.accentBlue],
         ),
       ),
       child: Column(
         children: [
-          // QR Code
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: QrImageView(
-              data: qrData,
-              version: QrVersions.auto,
-              size: 160.0,
-              backgroundColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Ticket #$ticketId',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUsedSection(Trip trip) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.red.shade600,
-            Colors.red.shade800,
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          // Icône ou message "DÉJÀ UTILISÉ"
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.red.shade700,
-                  size: 80,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'DÉJÀ UTILISÉ',
-                  style: TextStyle(
-                    color: Colors.red.shade700,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                if (trip.scannedAtFormatted != null) ...[
-                  const SizedBox(height: 8),
+          // Si le ticket est utilisé, afficher "déjà utilisé" au lieu du QR code
+          if (isUsed)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.check_circle, size: 80, color: Colors.green[600]),
+                  const SizedBox(height: 16),
                   Text(
-                    'Scanné le: ${trip.scannedAtFormatted}',
+                    'DÉJÀ UTILISÉ',
                     style: TextStyle(
-                      color: Colors.red.shade600,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
+                      letterSpacing: 2,
                     ),
                   ),
                 ],
-              ],
+              ),
+            )
+          else
+            // QR Code
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: QrImageView(
+                data: qrData,
+                version: QrVersions.auto,
+                size: 160.0,
+                backgroundColor: Colors.white,
+              ),
             ),
-          ),
           const SizedBox(height: 16),
           Text(
-            'Ticket #${trip.id}',
+            'Ticket #$ticketId',
             style: TextStyle(
               fontSize: 12,
               color: Colors.white.withValues(alpha: 0.9),
@@ -1529,7 +1472,10 @@ class WatermarkPainter extends CustomPainter {
 
     // Dessiner le texte en diagonale
     canvas.save();
-    canvas.translate(offset.dx + textPainter.width / 2, offset.dy + textPainter.height / 2);
+    canvas.translate(
+      offset.dx + textPainter.width / 2,
+      offset.dy + textPainter.height / 2,
+    );
     canvas.rotate(-0.5); // Rotation de -30 degrés environ
     canvas.translate(-textPainter.width / 2, -textPainter.height / 2);
     textPainter.paint(canvas, Offset.zero);

@@ -12,12 +12,12 @@ class Trip {
   final String? dateAchatFormatted;
   final bool isCancelled;
   final String? dateAnnulation;
-  final DepartInfo? depart;
-  final StopInfo? embarkStop;
-  final StopInfo? disembarkStop;
   final bool isUsed;
   final String? scannedAt;
   final String? scannedAtFormatted;
+  final DepartInfo? depart;
+  final StopInfo? embarkStop;
+  final StopInfo? disembarkStop;
 
   Trip({
     required this.id,
@@ -33,12 +33,12 @@ class Trip {
     this.dateAchatFormatted,
     this.isCancelled = false,
     this.dateAnnulation,
-    this.depart,
-    this.embarkStop,
-    this.disembarkStop,
     this.isUsed = false,
     this.scannedAt,
     this.scannedAtFormatted,
+    this.depart,
+    this.embarkStop,
+    this.disembarkStop,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -78,7 +78,7 @@ class Trip {
       }
     }
 
-    // Gérer is_used qui peut être int (0/1) ou bool, ou si scanned_at existe
+    // Gérer is_used qui peut être int (0/1) ou bool
     bool isUsed = false;
     if (json['is_used'] != null) {
       if (json['is_used'] is bool) {
@@ -88,9 +88,6 @@ class Trip {
       } else {
         isUsed = json['is_used'].toString() == '1' || json['is_used'].toString().toLowerCase() == 'true';
       }
-    } else if (json['scanned_at'] != null && json['scanned_at'].toString().isNotEmpty) {
-      // Si scanned_at existe, le ticket est considéré comme utilisé
-      isUsed = true;
     }
 
     return Trip(
@@ -107,12 +104,12 @@ class Trip {
       dateAchatFormatted: json['date_achat_formatted'],
       isCancelled: isCancelled,
       dateAnnulation: json['date_annulation'],
+      isUsed: isUsed,
+      scannedAt: json['scanned_at'],
+      scannedAtFormatted: json['scanned_at_formatted'],
       depart: json['depart'] != null ? DepartInfo.fromJson(json['depart']) : null,
       embarkStop: json['embark_stop'] != null ? StopInfo.fromJson(json['embark_stop']) : null,
       disembarkStop: json['disembark_stop'] != null ? StopInfo.fromJson(json['disembark_stop']) : null,
-      isUsed: isUsed,
-      scannedAt: json['scanned_at']?.toString(),
-      scannedAtFormatted: json['scanned_at_formatted']?.toString(),
     );
   }
 
@@ -131,12 +128,12 @@ class Trip {
       'date_achat_formatted': dateAchatFormatted,
       'is_cancelled': isCancelled,
       'date_annulation': dateAnnulation,
-      'depart': depart?.toJson(),
-      'embark_stop': embarkStop?.toJson(),
-      'disembark_stop': disembarkStop?.toJson(),
       'is_used': isUsed,
       'scanned_at': scannedAt,
       'scanned_at_formatted': scannedAtFormatted,
+      'depart': depart?.toJson(),
+      'embark_stop': embarkStop?.toJson(),
+      'disembark_stop': disembarkStop?.toJson(),
     };
   }
 
