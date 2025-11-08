@@ -46,6 +46,8 @@ import '../services/depart_service.dart';
 import '../services/reservation_service.dart';
 import 'recharge_screen.dart';
 import '../services/recharge_service.dart';
+import '../providers/feature_permission_provider.dart';
+import '../models/feature_permission_model.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -1304,51 +1306,78 @@ class _HomePageState extends ConsumerState<HomePage>
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           if (!_hasAttendanceRole(user)) ...[
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReservationScreen(),
+            // Réservation - Vérifier la permission
+            Consumer(
+              builder: (context, ref, child) {
+                final isReservationEnabled = ref.watch(
+                  isFeatureEnabledProvider(FeatureCodes.reservation),
+                );
+                if (!isReservationEnabled) return const SizedBox.shrink();
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ReservationScreen(),
+                      ),
+                    );
+                  },
+                  child: _buildQuickActionItem(
+                    icon: Icons.confirmation_number_rounded,
+                    label: t('home.book'),
+                    color: AppTheme.primaryBlue,
+                    useWhiteBackground: true,
                   ),
                 );
               },
-              child: _buildQuickActionItem(
-                icon: Icons.confirmation_number_rounded,
-                label: t('home.book'),
-                color: AppTheme.primaryBlue,
-                useWhiteBackground: true,
-              ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MyTripsScreen(),
+            // Mes Trajets - Vérifier la permission
+            Consumer(
+              builder: (context, ref, child) {
+                final isMyTripsEnabled = ref.watch(
+                  isFeatureEnabledProvider(FeatureCodes.myTrips),
+                );
+                if (!isMyTripsEnabled) return const SizedBox.shrink();
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MyTripsScreen(),
+                      ),
+                    );
+                  },
+                  child: _buildQuickActionItem(
+                    icon: Icons.history_rounded,
+                    label: t('home.my_trips'),
+                    color: AppTheme.primaryOrange,
                   ),
                 );
               },
-              child: _buildQuickActionItem(
-                icon: Icons.history_rounded,
-                label: t('home.my_trips'),
-                color: AppTheme.primaryOrange,
-              ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CompanyInfoScreen(),
+            // Info - Vérifier la permission
+            Consumer(
+              builder: (context, ref, child) {
+                final isInfoEnabled = ref.watch(
+                  isFeatureEnabledProvider(FeatureCodes.info),
+                );
+                if (!isInfoEnabled) return const SizedBox.shrink();
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CompanyInfoScreen(),
+                      ),
+                    );
+                  },
+                  child: _buildQuickActionItem(
+                    icon: Icons.info_rounded,
+                    label: t('home.info'),
+                    color: Colors.blue,
                   ),
                 );
               },
-              child: _buildQuickActionItem(
-                icon: Icons.info_rounded,
-                label: t('home.info'),
-                color: Colors.blue,
-              ),
             ),
           ],
           if (_hasAttendanceRole(user)) ...[
@@ -1515,118 +1544,199 @@ class _HomePageState extends ConsumerState<HomePage>
       children: [
         // INTERFACE CLIENT - Services spécifiques aux clients
         if (_isClient(user)) ...[
-          _buildServiceIcon(
-            icon: Icons.confirmation_number_rounded,
-            label: t('home.book'),
-            color: AppTheme.primaryBlue,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ReservationScreen(),
-                ),
+          // Réservation
+          Consumer(
+            builder: (context, ref, child) {
+              final isReservationEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.reservation),
+              );
+              if (!isReservationEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.confirmation_number_rounded,
+                label: t('home.book'),
+                color: AppTheme.primaryBlue,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ReservationScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
-          _buildServiceIcon(
-            icon: Icons.card_giftcard_rounded,
-            label: t('services.loyalty'),
-            color: const Color(0xFF9333EA),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const LoyaltyHomeScreen(),
-                ),
+          // Programme de Fidélité
+          Consumer(
+            builder: (context, ref, child) {
+              final isLoyaltyEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.loyalty),
+              );
+              if (!isLoyaltyEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.card_giftcard_rounded,
+                label: t('services.loyalty'),
+                color: const Color(0xFF9333EA),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LoyaltyHomeScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
-          _buildServiceIcon(
-            icon: Icons.local_shipping_rounded,
-            label: t('services.mail'),
-            color: AppTheme.primaryOrange,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const MyMailsScreen(),
-                ),
+          // Courrier
+          Consumer(
+            builder: (context, ref, child) {
+              final isMailEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.mail),
+              );
+              if (!isMailEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.local_shipping_rounded,
+                label: t('services.mail'),
+                color: AppTheme.primaryOrange,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MyMailsScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
-          _buildServiceIcon(
-            icon: Icons.feedback_rounded,
-            label: t('services.feedback'),
-            color: const Color(0xFF14B8A6),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const FeedbackScreen(),
-                ),
+          // Feedback
+          Consumer(
+            builder: (context, ref, child) {
+              final isFeedbackEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.feedback),
+              );
+              if (!isFeedbackEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.feedback_rounded,
+                label: t('services.feedback'),
+                color: const Color(0xFF14B8A6),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const FeedbackScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
         ]
         // INTERFACE POINTAGE - Fidélité et Feedback uniquement
         else if (_hasAttendanceRole(user)) ...[
-          _buildServiceIcon(
-            icon: Icons.card_giftcard_rounded,
-            label: t('services.loyalty'),
-            color: const Color(0xFF9333EA),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const LoyaltyHomeScreen(),
-                ),
+          // Programme de Fidélité
+          Consumer(
+            builder: (context, ref, child) {
+              final isLoyaltyEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.loyalty),
+              );
+              if (!isLoyaltyEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.card_giftcard_rounded,
+                label: t('services.loyalty'),
+                color: const Color(0xFF9333EA),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LoyaltyHomeScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
-          _buildServiceIcon(
-            icon: Icons.feedback_rounded,
-            label: t('services.feedback'),
-            color: const Color(0xFF14B8A6),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const FeedbackScreen(),
-                ),
+          // Feedback
+          Consumer(
+            builder: (context, ref, child) {
+              final isFeedbackEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.feedback),
+              );
+              if (!isFeedbackEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.feedback_rounded,
+                label: t('services.feedback'),
+                color: const Color(0xFF14B8A6),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const FeedbackScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
         ]
         // INTERFACE ADMIN - Tous les services
         else ...[
-          _buildServiceIcon(
-            icon: Icons.directions_bus_rounded,
-            label: t('services.bus_management'),
-            color: AppTheme.primaryBlue,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const BusDashboardScreen(),
-                ),
+          // Gestion des Bus
+          Consumer(
+            builder: (context, ref, child) {
+              final isBusManagementEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.busManagement),
+              );
+              if (!isBusManagementEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.directions_bus_rounded,
+                label: t('services.bus_management'),
+                color: AppTheme.primaryBlue,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const BusDashboardScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
-          _buildServiceIcon(
-            icon: Icons.card_giftcard_rounded,
-            label: t('services.loyalty'),
-            color: const Color(0xFF9333EA),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const LoyaltyHomeScreen(),
-                ),
+          // Programme de Fidélité
+          Consumer(
+            builder: (context, ref, child) {
+              final isLoyaltyEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.loyalty),
+              );
+              if (!isLoyaltyEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.card_giftcard_rounded,
+                label: t('services.loyalty'),
+                color: const Color(0xFF9333EA),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LoyaltyHomeScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
-          _buildServiceIcon(
-            icon: Icons.local_shipping_rounded,
-            label: t('services.mail'),
-            color: AppTheme.primaryOrange,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const MyMailsScreen(),
-                ),
+          // Courrier
+          Consumer(
+            builder: (context, ref, child) {
+              final isMailEnabled = ref.watch(
+                isFeatureEnabledProvider(FeatureCodes.mail),
+              );
+              if (!isMailEnabled) return const SizedBox.shrink();
+              return _buildServiceIcon(
+                icon: Icons.local_shipping_rounded,
+                label: t('services.mail'),
+                color: AppTheme.primaryOrange,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const MyMailsScreen(),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -2667,7 +2777,11 @@ class _HomePageState extends ConsumerState<HomePage>
             const SizedBox(height: 24),
 
             // Grille de services en 2 colonnes
-            _buildServicesGrid(user),
+            Consumer(
+              builder: (context, ref, child) {
+                return _buildServicesGrid(user, ref);
+              },
+            ),
 
             const SizedBox(height: 100), // Espace pour bottom nav
           ],
@@ -2677,8 +2791,8 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   // Grille de services compacte
-  Widget _buildServicesGrid(User user) {
-    final services = _getServicesForUser(user);
+  Widget _buildServicesGrid(User user, WidgetRef ref) {
+    final services = _getServicesForUser(user, ref);
 
     return GridView.builder(
       shrinkWrap: true,
@@ -2704,27 +2818,51 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   // Liste des services selon le rôle et les permissions
-  List<Map<String, dynamic>> _getServicesForUser(User user) {
+  List<Map<String, dynamic>> _getServicesForUser(User user, WidgetRef ref) {
     List<Map<String, dynamic>> services = [];
+    
+    // Récupérer les permissions actuelles
+    final permissionsAsync = ref.read(featurePermissionsProvider);
+    final permissions = permissionsAsync.value?.permissions ?? [];
 
-    // Services communs (toujours disponibles si permissions activées)
-    services.add({
-      'icon': Icons.card_giftcard_rounded,
-      'title': t('services.loyalty_program'),
-      'subtitle': t('services.loyalty_subtitle'),
-      'color': const Color(0xFF9333EA),
-      'onTap': () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => const LoyaltyHomeScreen())),
-    });
+    // Helper pour vérifier si une fonctionnalité est activée
+    bool isFeatureEnabled(String featureCode) {
+      final permission = permissions.firstWhere(
+        (p) => p.featureCode == featureCode,
+        orElse: () => FeaturePermission(
+          featureCode: featureCode,
+          featureName: '',
+          category: 'general',
+          isEnabled: false,
+          requiresAdmin: false,
+        ),
+      );
+      return permission.isEnabled;
+    }
 
-    services.add({
-      'icon': Icons.feedback_rounded,
-      'title': t('services.suggestions'),
-      'subtitle': t('services.suggestions_subtitle'),
-      'color': const Color(0xFF14B8A6),
-      'onTap': () => Navigator.push(
-          context, MaterialPageRoute(builder: (_) => const FeedbackScreen())),
-    });
+    // Programme de Fidélité
+    if (isFeatureEnabled(FeatureCodes.loyalty)) {
+      services.add({
+        'icon': Icons.card_giftcard_rounded,
+        'title': t('services.loyalty_program'),
+        'subtitle': t('services.loyalty_subtitle'),
+        'color': const Color(0xFF9333EA),
+        'onTap': () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const LoyaltyHomeScreen())),
+      });
+    }
+
+    // Feedback
+    if (isFeatureEnabled(FeatureCodes.feedback)) {
+      services.add({
+        'icon': Icons.feedback_rounded,
+        'title': t('services.suggestions'),
+        'subtitle': t('services.suggestions_subtitle'),
+        'color': const Color(0xFF14B8A6),
+        'onTap': () => Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const FeedbackScreen())),
+      });
+    }
 
     if (_hasAttendanceRole(user)) {
       services.add({
@@ -2745,14 +2883,19 @@ class _HomePageState extends ConsumerState<HomePage>
       });
     } else if (_isAdminOrChefAgence(user)) {
       // Seulement pour Super Admin, Admin et Chef agence
-      services.add({
-        'icon': Icons.directions_bus_rounded,
-        'title': t('services.bus_management'),
-        'subtitle': t('services.bus_fleet'),
-        'color': AppTheme.primaryBlue,
-        'onTap': () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const BusDashboardScreen())),
-      });
+      // Gestion des Bus
+      if (isFeatureEnabled(FeatureCodes.busManagement)) {
+        services.add({
+          'icon': Icons.directions_bus_rounded,
+          'title': t('services.bus_management'),
+          'subtitle': t('services.bus_fleet'),
+          'color': AppTheme.primaryBlue,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const BusDashboardScreen())),
+        });
+      }
+      
+      // Horaires (toujours disponible pour admin)
       services.add({
         'icon': Icons.schedule_rounded,
         'title': t('services.schedules'),
@@ -2767,19 +2910,25 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         },
       });
-      services.add({
-        'icon': Icons.local_shipping_rounded,
-        'title': t('services.mail'),
-        'subtitle': t('services.my_mails'),
-        'color': AppTheme.primaryOrange,
-        'onTap': () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const MyMailsScreen(),
-            ),
-          );
-        },
-      });
+      
+      // Courrier
+      if (isFeatureEnabled(FeatureCodes.mail)) {
+        services.add({
+          'icon': Icons.local_shipping_rounded,
+          'title': t('services.mail'),
+          'subtitle': t('services.my_mails'),
+          'color': AppTheme.primaryOrange,
+          'onTap': () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const MyMailsScreen(),
+              ),
+            );
+          },
+        });
+      }
+      
+      // Vidéos (toujours disponible pour admin)
       services.add({
         'icon': Icons.video_library_rounded,
         'title': t('services.videos'),
@@ -2795,46 +2944,58 @@ class _HomePageState extends ConsumerState<HomePage>
       });
     } else if (_isClient(user)) {
       // Services pour les clients
-      services.add({
-        'icon': Icons.confirmation_number_rounded,
-        'title': t('services.reservation'),
-        'subtitle': t('services.book_trip'),
-        'color': AppTheme.primaryBlue,
-        'onTap': () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const ReservationScreen())),
-      });
-      services.add({
-        'icon': Icons.history_rounded,
-        'title': t('services.my_trips'),
-        'subtitle': t('services.view_trips'),
-        'color': AppTheme.primaryOrange,
-        'onTap': () => Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const MyTripsScreen())),
-      });
-      services.add({
-        'icon': Icons.local_shipping_rounded,
-        'title': t('services.mail'),
-        'subtitle': t('services.my_mails'),
-        'color': AppTheme.primaryOrange,
-        'onTap': () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const MyMailsScreen(),
-            ),
-          );
-        },
-      });
-      services.add({
-        'icon': Icons.payment_rounded,
-        'title': t('services.payment'),
-        'subtitle': t('services.payment_subtitle'),
-        'color': const Color(0xFF6366F1),
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(t('services.payment_development'))),
-          );
-        },
-      });
+      // Réservation
+      if (isFeatureEnabled(FeatureCodes.reservation)) {
+        services.add({
+          'icon': Icons.confirmation_number_rounded,
+          'title': t('services.reservation'),
+          'subtitle': t('services.book_trip'),
+          'color': AppTheme.primaryBlue,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const ReservationScreen())),
+        });
+      }
+      
+      // Mes Trajets
+      if (isFeatureEnabled(FeatureCodes.myTrips)) {
+        services.add({
+          'icon': Icons.history_rounded,
+          'title': t('services.my_trips'),
+          'subtitle': t('services.view_trips'),
+          'color': AppTheme.primaryOrange,
+          'onTap': () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const MyTripsScreen())),
+        });
+      }
+      
+      // Courrier
+      if (isFeatureEnabled(FeatureCodes.mail)) {
+        services.add({
+          'icon': Icons.local_shipping_rounded,
+          'title': t('services.mail'),
+          'subtitle': t('services.my_mails'),
+          'color': AppTheme.primaryOrange,
+          'onTap': () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const MyMailsScreen(),
+              ),
+            );
+          },
+        });
+      }
+      
+      // Recharge (si activée)
+      if (isFeatureEnabled(FeatureCodes.recharge)) {
+        services.add({
+          'icon': Icons.account_balance_wallet_rounded,
+          'title': t('services.recharge'),
+          'subtitle': t('services.recharge_subtitle'),
+          'color': const Color(0xFF10B981),
+          'onTap': () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const RechargeScreen())),
+        });
+      }
     }
 
     // Service d'aide toujours disponible

@@ -100,21 +100,16 @@ class FeaturePermissionsResponse {
 class FeatureCodes {
   // Client
   static const String reservation = 'reservation';
-  static const String mesOffres = 'mes_offres';
-  static const String mesTrajets = 'mes_trajets';
+  static const String mail = 'mail';
+  static const String info = 'info';
   static const String loyalty = 'loyalty';
   static const String feedback = 'feedback';
-  static const String gares = 'gares';
-  static const String payment = 'payment';
-  static const String horaires = 'horaires';
-  static const String support = 'support';
+  static const String myTrips = 'my_trips';
+  static const String recharge = 'recharge';
 
   // Admin
   static const String busManagement = 'bus_management';
-  static const String courrier = 'courrier';
-  static const String userManagement = 'user_management';
-  static const String notificationsAdmin = 'notifications_admin';
-  static const String videoAdvertisements = 'video_advertisements';
+  static const String ticketManagement = 'ticket_management';
 
   // Pointage/Attendance
   static const String qrScanner = 'qr_scanner';
