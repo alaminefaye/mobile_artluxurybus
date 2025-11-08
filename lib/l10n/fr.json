@@ -257,7 +257,8 @@
     "seat_label": "Siège",
     "bus_label": "Bus",
     "price_label": "Prix",
-    "type_label": "Type"
+    "type_label": "Type",
+    "already_used": "DÉJÀ UTILISÉ"
   },
   "mail": {
     "title": "Mes Courriers",

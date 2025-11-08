@@ -254,7 +254,8 @@
     "seat_label": "Seat",
     "bus_label": "Bus",
     "price_label": "Price",
-    "type_label": "Type"
+    "type_label": "Type",
+    "already_used": "ALREADY USED"
   },
   "mail": {
     "title": "My Mails",

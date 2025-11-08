@@ -176,6 +176,7 @@ class TranslationService {
       'trips.total_price': 'Prix total',
       'trips.embarkment_label': 'Embarquement',
       'trips.disembarkment_label': 'Débarquement',
+      'trips.already_used': 'DÉJÀ UTILISÉ',
       'security.name': 'Nom',
       'security.email_address': 'Adresse email',
       'security.save_changes': 'Enregistrer les modifications',

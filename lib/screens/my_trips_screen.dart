@@ -1400,7 +1400,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                   Icon(Icons.check_circle, size: 80, color: Colors.green[600]),
                   const SizedBox(height: 16),
                   Text(
-                    'DÉJÀ UTILISÉ',
+                    t('trips.already_used'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
