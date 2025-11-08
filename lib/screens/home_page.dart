@@ -48,6 +48,7 @@ import 'recharge_screen.dart';
 import '../services/recharge_service.dart';
 import '../providers/feature_permission_provider.dart';
 import '../models/feature_permission_model.dart';
+import '../providers/loyalty_provider.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -988,16 +989,106 @@ class _HomePageState extends ConsumerState<HomePage>
   Widget _buildHomeTab(User user) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: RefreshIndicator(
-        onRefresh: () async {
-          // Rafraîchir les données de l'utilisateur
-          debugPrint('🔄 [HomePage] Actualisation de l\'onglet Accueil');
-          await _loadSolde();
-          await _loadSlides();
-          await Future.delayed(const Duration(milliseconds: 500));
-        },
-        color: AppTheme.primaryBlue,
-        child: CustomScrollView(
+      body: Consumer(
+        builder: (context, ref, child) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              // Rafraîchir toutes les données de la page d'accueil
+              debugPrint('🔄 [HomePage] Actualisation complète de l\'onglet Accueil');
+              
+              // Liste des tâches à exécuter en parallèle
+              final futures = <Future>[];
+              
+              // 1. Rafraîchir le solde
+              futures.add(_loadSolde());
+              
+              // 2. Rafraîchir les slides
+              futures.add(_loadSlides());
+              
+              // 3. Rafraîchir les permissions des fonctionnalités
+              futures.add(
+                Future(() async {
+                  debugPrint('🔄 [HomePage] Actualisation des permissions des fonctionnalités');
+                  // Invalider le provider pour forcer le rechargement
+                  ref.invalidate(featurePermissionsProvider);
+                  // Attendre que le provider se recharge en vérifiant son état
+                  try {
+                    await ref.read(featurePermissionsProvider.future);
+                    debugPrint('✅ [HomePage] Permissions des fonctionnalités rechargées');
+                  } catch (e) {
+                    debugPrint('⚠️ [HomePage] Erreur lors du rechargement des permissions: $e');
+                  }
+                }),
+              );
+              
+              // 4. Forcer le rechargement de l'AdBanner
+              futures.add(
+                Future(() async {
+                  if (mounted) {
+                    setState(() {
+                      _adBannerKey++;
+                      debugPrint('🔄 [HomePage] AdBanner rechargé (clé: $_adBannerKey)');
+                    });
+                  }
+                }),
+              );
+              
+              // 5. Rafraîchir le profil utilisateur (sauf pour les clients pour éviter de perdre les données client)
+              // et rafraîchir les données du client si c'est un client
+              futures.add(
+                Future(() async {
+                  final authState = ref.read(authProvider);
+                  final currentUser = authState.user;
+                  
+                  // Vérifier si l'utilisateur est un client
+                  final isClient = currentUser != null && 
+                      (currentUser.role?.toLowerCase().contains('client') ?? false);
+                  
+                  if (isClient) {
+                    // Pour les clients, rafraîchir les données du client dans loyaltyProvider
+                    debugPrint('🔄 [HomePage] Actualisation des données client');
+                    try {
+                      final loyaltyNotifier = ref.read(loyaltyProvider.notifier);
+                      final loyaltyState = ref.read(loyaltyProvider);
+                      
+                      // Si on a déjà un client dans le state, rafraîchir ses données
+                      if (loyaltyState.client?.telephone != null) {
+                        await loyaltyNotifier.refreshClient();
+                        debugPrint('✅ [HomePage] Données client rafraîchies');
+                      } else {
+                        // Sinon, vérifier les points avec le téléphone de l'utilisateur
+                        final phoneNumber = currentUser.phoneNumber;
+                        if (phoneNumber != null && phoneNumber.isNotEmpty) {
+                          await loyaltyNotifier.checkClientPoints(phoneNumber);
+                          debugPrint('✅ [HomePage] Points client vérifiés');
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('⚠️ [HomePage] Erreur lors du rafraîchissement des données client: $e');
+                    }
+                  } else {
+                    // Pour les autres utilisateurs, rafraîchir le profil utilisateur normalement
+                    debugPrint('🔄 [HomePage] Actualisation du profil utilisateur');
+                    try {
+                      await ref.read(authProvider.notifier).refreshUserProfile();
+                      debugPrint('✅ [HomePage] Profil utilisateur rafraîchi');
+                    } catch (e) {
+                      debugPrint('⚠️ [HomePage] Erreur lors du rafraîchissement du profil: $e');
+                    }
+                  }
+                }),
+              );
+              
+              // Exécuter toutes les tâches en parallèle
+              await Future.wait(futures);
+              
+              // Attendre un peu pour que l'UI se mette à jour
+              await Future.delayed(const Duration(milliseconds: 200));
+              
+              debugPrint('✅ [HomePage] Actualisation complète terminée');
+            },
+            color: AppTheme.primaryBlue,
+            child: CustomScrollView(
           slivers: [
             // Header avec image de fond et effet parallax
             SliverAppBar(
@@ -1060,94 +1151,109 @@ class _HomePageState extends ConsumerState<HomePage>
                                 ),
                               ],
                             ),
-                            // Solde en haut à droite avec bouton recharge
-                            Align(
-                              alignment: Alignment.topRight,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.25),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          t('home.balance'),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.white
-                                                .withValues(alpha: 0.9),
-                                            fontWeight: FontWeight.w500,
+                            // Solde en haut à droite avec bouton recharge (affiché seulement si la fonctionnalité recharge est activée)
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final isRechargeEnabled = ref.watch(
+                                  isFeatureEnabledProvider(FeatureCodes.recharge),
+                                );
+                                
+                                // Si la fonctionnalité recharge est désactivée, ne pas afficher le solde
+                                if (!isRechargeEnabled) {
+                                  return const SizedBox.shrink();
+                                }
+                                
+                                return Align(
+                                  alignment: Alignment.topRight,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              Colors.white.withValues(alpha: 0.25),
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              t('home.balance'),
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.white
+                                                    .withValues(alpha: 0.9),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            _isLoadingSolde
+                                                ? const SizedBox(
+                                                    width: 12,
+                                                    height: 12,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      valueColor:
+                                                          AlwaysStoppedAnimation<
+                                                              Color>(Colors.white),
+                                                    ),
+                                                  )
+                                                : Text(
+                                                    '${_solde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Bouton recharger
+                                      GestureDetector(
+                                        onTap: () async {
+                                          debugPrint(
+                                              '🔄 Navigation vers recharge du solde');
+                                          final result = await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const RechargeScreen(),
+                                            ),
+                                          );
+                                          // Recharger le solde après retour de la page de recharge
+                                          if (result == true) {
+                                            _loadSolde();
+                                          }
+                                          // Forcer le rechargement de l'AdBanner après retour
+                                          if (mounted) {
+                                            setState(() {
+                                              _adBannerKey++;
+                                            });
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.primaryOrange,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Icon(
+                                            Icons.add_rounded,
+                                            color: Colors.white,
+                                            size: 16,
                                           ),
                                         ),
-                                        _isLoadingSolde
-                                            ? const SizedBox(
-                                                width: 12,
-                                                height: 12,
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                          Color>(Colors.white),
-                                                ),
-                                              )
-                                            : Text(
-                                                '${_solde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  // Bouton recharger
-                                  GestureDetector(
-                                    onTap: () async {
-                                      debugPrint(
-                                          '🔄 Navigation vers recharge du solde');
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const RechargeScreen(),
-                                        ),
-                                      );
-                                      // Recharger le solde après retour de la page de recharge
-                                      if (result == true) {
-                                        _loadSolde();
-                                      }
-                                      // Forcer le rechargement de l'AdBanner après retour
-                                      setState(() {
-                                        _adBannerKey++;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryOrange,
-                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(
-                                        Icons.add_rounded,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                );
+                              },
                             ),
                             // Bonjour en bas
                             Padding(
@@ -1205,13 +1311,24 @@ class _HomePageState extends ConsumerState<HomePage>
 
                     const SizedBox(height: 24),
 
-                    // Section Services
-                    _buildServicesHeader(user),
-
-                    const SizedBox(height: 16),
-
-                    // Catégories de services
-                    _buildServicesCategories(user),
+                    // Section Services (affichée seulement s'il y a des services actifs)
+                    Consumer(
+                      builder: (context, ref, child) {
+                        // Vérifier s'il y a des services actifs
+                        final hasServices = _hasActiveServices(user, ref);
+                        if (!hasServices) {
+                          return const SizedBox.shrink();
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildServicesHeader(user),
+                            const SizedBox(height: 16),
+                            _buildServicesCategories(user),
+                          ],
+                        );
+                      },
+                    ),
 
                     const SizedBox(height: 24),
 
@@ -1224,7 +1341,9 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             ),
           ],
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -1287,136 +1406,113 @@ class _HomePageState extends ConsumerState<HomePage>
 
   // Quick Actions
   Widget _buildQuickActions(User user) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryBlue.withValues(alpha: 0.1),
-            AppTheme.primaryOrange.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.primaryBlue.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          if (!_hasAttendanceRole(user)) ...[
-            // Réservation - Vérifier la permission
-            Consumer(
-              builder: (context, ref, child) {
-                final isReservationEnabled = ref.watch(
-                  isFeatureEnabledProvider(FeatureCodes.reservation),
-                );
-                if (!isReservationEnabled) return const SizedBox.shrink();
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ReservationScreen(),
-                      ),
-                    );
-                  },
-                  child: _buildQuickActionItem(
-                    icon: Icons.confirmation_number_rounded,
-                    label: t('home.book'),
-                    color: AppTheme.primaryBlue,
-                    useWhiteBackground: true,
-                  ),
-                );
-              },
-            ),
-            // Mes Trajets - Vérifier la permission
-            Consumer(
-              builder: (context, ref, child) {
-                final isMyTripsEnabled = ref.watch(
-                  isFeatureEnabledProvider(FeatureCodes.myTrips),
-                );
-                if (!isMyTripsEnabled) return const SizedBox.shrink();
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const MyTripsScreen(),
-                      ),
-                    );
-                  },
-                  child: _buildQuickActionItem(
-                    icon: Icons.history_rounded,
-                    label: t('home.my_trips'),
-                    color: AppTheme.primaryOrange,
-                  ),
-                );
-              },
-            ),
-            // Info - Vérifier la permission
-            Consumer(
-              builder: (context, ref, child) {
-                final isInfoEnabled = ref.watch(
-                  isFeatureEnabledProvider(FeatureCodes.info),
-                );
-                if (!isInfoEnabled) return const SizedBox.shrink();
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CompanyInfoScreen(),
-                      ),
-                    );
-                  },
-                  child: _buildQuickActionItem(
-                    icon: Icons.info_rounded,
-                    label: t('home.info'),
-                    color: Colors.blue,
-                  ),
-                );
-              },
-            ),
-          ],
-          if (_hasAttendanceRole(user)) ...[
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const QrScannerScreen(),
-                  ),
-                );
-              },
-              child: _buildQuickActionItem(
-                icon: Icons.qr_code_scanner_rounded,
-                label: t('common.scanner'),
-                color: Colors.purple,
+    return Consumer(
+      builder: (context, ref, child) {
+        // Construire la liste des quick actions actives
+        final List<Widget> quickActions = [];
+        
+        if (!_hasAttendanceRole(user)) {
+          // Réservation
+          final isReservationEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.reservation),
+          );
+          if (isReservationEnabled) {
+            quickActions.add(
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ReservationScreen(),
+                    ),
+                  );
+                },
+                child: _buildQuickActionItem(
+                  icon: Icons.confirmation_number_rounded,
+                  label: t('home.book'),
+                  color: AppTheme.primaryBlue,
+                  useWhiteBackground: true,
+                ),
               ),
-            ),
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const AttendanceHistoryScreen(),
-                  ),
-                );
-              },
-              child: _buildQuickActionItem(
-                icon: Icons.history_rounded,
-                label: t('common.history'),
-                color: AppTheme.primaryOrange,
+            );
+          }
+          
+          // Mes Trajets
+          final isMyTripsEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.myTrips),
+          );
+          if (isMyTripsEnabled) {
+            quickActions.add(
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MyTripsScreen(),
+                    ),
+                  );
+                },
+                child: _buildQuickActionItem(
+                  icon: Icons.history_rounded,
+                  label: t('home.my_trips'),
+                  color: AppTheme.primaryOrange,
+                ),
               ),
+            );
+          }
+          
+          // Info
+          final isInfoEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.info),
+          );
+          if (isInfoEnabled) {
+            quickActions.add(
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CompanyInfoScreen(),
+                    ),
+                  );
+                },
+                child: _buildQuickActionItem(
+                  icon: Icons.info_rounded,
+                  label: t('home.info'),
+                  color: Colors.blue,
+                ),
+              ),
+            );
+          }
+        }
+        
+        // Si aucune action active, ne pas afficher la section du tout
+        if (quickActions.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        // Afficher le container avec les actions actives
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.primaryBlue.withValues(alpha: 0.1),
+                AppTheme.primaryOrange.withValues(alpha: 0.05),
+              ],
             ),
-            _buildQuickActionItem(
-              icon: Icons.access_time_rounded,
-              label: t('common.status'),
-              color: AppTheme.primaryBlue,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+              width: 1,
             ),
-          ],
-        ],
-      ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: quickActions,
+          ),
+        );
+      },
     );
   }
 
@@ -1474,6 +1570,22 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   // Header Section Services
+  // Helper pour vérifier s'il y a des services actifs
+  bool _hasActiveServices(User user, WidgetRef ref) {
+    if (_isClient(user)) {
+      return ref.watch(isFeatureEnabledProvider(FeatureCodes.reservation)) ||
+          ref.watch(isFeatureEnabledProvider(FeatureCodes.loyalty)) ||
+          ref.watch(isFeatureEnabledProvider(FeatureCodes.mail)) ||
+          ref.watch(isFeatureEnabledProvider(FeatureCodes.feedback));
+    } else if (_hasAttendanceRole(user)) {
+      return ref.watch(isFeatureEnabledProvider(FeatureCodes.loyalty)) ||
+          ref.watch(isFeatureEnabledProvider(FeatureCodes.feedback));
+    } else {
+      // Admin - toujours au moins les horaires et vidéos
+      return true;
+    }
+  }
+
   Widget _buildServicesHeader(User user) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1534,24 +1646,19 @@ class _HomePageState extends ConsumerState<HomePage>
   }
 
   Widget _buildServicesCategories(User user) {
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 0.9,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 16,
-      children: [
-        // INTERFACE CLIENT - Services spécifiques aux clients
-        if (_isClient(user)) ...[
+    return Consumer(
+      builder: (context, ref, child) {
+        // Construire la liste des services actifs
+        final List<Widget> services = [];
+        
+        if (_isClient(user)) {
           // Réservation
-          Consumer(
-            builder: (context, ref, child) {
-              final isReservationEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.reservation),
-              );
-              if (!isReservationEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isReservationEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.reservation),
+          );
+          if (isReservationEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.confirmation_number_rounded,
                 label: t('home.book'),
                 color: AppTheme.primaryBlue,
@@ -1563,17 +1670,17 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+            );
+          }
+          
           // Programme de Fidélité
-          Consumer(
-            builder: (context, ref, child) {
-              final isLoyaltyEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.loyalty),
-              );
-              if (!isLoyaltyEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isLoyaltyEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.loyalty),
+          );
+          if (isLoyaltyEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.card_giftcard_rounded,
                 label: t('services.loyalty'),
                 color: const Color(0xFF9333EA),
@@ -1584,17 +1691,17 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+            );
+          }
+          
           // Courrier
-          Consumer(
-            builder: (context, ref, child) {
-              final isMailEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.mail),
-              );
-              if (!isMailEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isMailEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.mail),
+          );
+          if (isMailEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.local_shipping_rounded,
                 label: t('services.mail'),
                 color: AppTheme.primaryOrange,
@@ -1605,17 +1712,17 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+            );
+          }
+          
           // Feedback
-          Consumer(
-            builder: (context, ref, child) {
-              final isFeedbackEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.feedback),
-              );
-              if (!isFeedbackEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isFeedbackEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.feedback),
+          );
+          if (isFeedbackEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.feedback_rounded,
                 label: t('services.feedback'),
                 color: const Color(0xFF14B8A6),
@@ -1626,20 +1733,17 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
-        ]
-        // INTERFACE POINTAGE - Fidélité et Feedback uniquement
-        else if (_hasAttendanceRole(user)) ...[
+              ),
+            );
+          }
+        } else if (_hasAttendanceRole(user)) {
           // Programme de Fidélité
-          Consumer(
-            builder: (context, ref, child) {
-              final isLoyaltyEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.loyalty),
-              );
-              if (!isLoyaltyEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isLoyaltyEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.loyalty),
+          );
+          if (isLoyaltyEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.card_giftcard_rounded,
                 label: t('services.loyalty'),
                 color: const Color(0xFF9333EA),
@@ -1650,17 +1754,17 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+            );
+          }
+          
           // Feedback
-          Consumer(
-            builder: (context, ref, child) {
-              final isFeedbackEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.feedback),
-              );
-              if (!isFeedbackEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isFeedbackEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.feedback),
+          );
+          if (isFeedbackEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.feedback_rounded,
                 label: t('services.feedback'),
                 color: const Color(0xFF14B8A6),
@@ -1671,20 +1775,18 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
-        ]
-        // INTERFACE ADMIN - Tous les services
-        else ...[
+              ),
+            );
+          }
+        } else {
+          // INTERFACE ADMIN
           // Gestion des Bus
-          Consumer(
-            builder: (context, ref, child) {
-              final isBusManagementEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.busManagement),
-              );
-              if (!isBusManagementEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isBusManagementEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.busManagement),
+          );
+          if (isBusManagementEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.directions_bus_rounded,
                 label: t('services.bus_management'),
                 color: AppTheme.primaryBlue,
@@ -1695,17 +1797,17 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+            );
+          }
+          
           // Programme de Fidélité
-          Consumer(
-            builder: (context, ref, child) {
-              final isLoyaltyEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.loyalty),
-              );
-              if (!isLoyaltyEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isLoyaltyEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.loyalty),
+          );
+          if (isLoyaltyEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.card_giftcard_rounded,
                 label: t('services.loyalty'),
                 color: const Color(0xFF9333EA),
@@ -1716,17 +1818,17 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+            );
+          }
+          
           // Courrier
-          Consumer(
-            builder: (context, ref, child) {
-              final isMailEnabled = ref.watch(
-                isFeatureEnabledProvider(FeatureCodes.mail),
-              );
-              if (!isMailEnabled) return const SizedBox.shrink();
-              return _buildServiceIcon(
+          final isMailEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.mail),
+          );
+          if (isMailEnabled) {
+            services.add(
+              _buildServiceIcon(
                 icon: Icons.local_shipping_rounded,
                 label: t('services.mail'),
                 color: AppTheme.primaryOrange,
@@ -1737,75 +1839,86 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                   );
                 },
-              );
-            },
-          ),
-          _buildServiceIcon(
-            icon: Icons.schedule_rounded,
-            label: t('services.schedules'),
-            color: const Color(0xFF10B981),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const HorairesListScreen(),
-                ),
-              );
-            },
-          ),
-          _buildServiceIcon(
-            icon: Icons.feedback_rounded,
-            label: t('services.feedback'),
-            color: const Color(0xFF14B8A6),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const FeedbackScreen(),
-                ),
-              );
-            },
-          ),
-          _buildServiceIcon(
-            icon: Icons.location_on_rounded,
-            label: 'Gares',
-            color: const Color(0xFFEF4444),
-            onTap: () {
-              // TODO: Navigation vers gares
-            },
-          ),
-          _buildServiceIcon(
-            icon: Icons.payment_rounded,
-            label: t('common.payment'),
-            color: const Color(0xFF6366F1),
-            onTap: () {
-              // TODO: Navigation vers paiement
-            },
-          ),
-          _buildServiceIcon(
-            icon: Icons.video_library_rounded,
-            label: 'Mes Vidéos',
-            color: const Color(0xFFE91E63),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const VideoAdvertisementsScreen(),
-                ),
-              );
-            },
-          ),
-          _buildServiceIcon(
-            icon: Icons.apps_rounded,
-            label: 'Plus',
-            color: const Color(0xFF64748B),
-            onTap: () {
-              setState(() {
-                // Index 2 pour tous (Services)
-                _currentIndex = 2;
-              });
-            },
-          ),
-        ],
-      ],
+              ),
+            );
+          }
+          
+          // Horaires (toujours disponible pour admin)
+          services.add(
+            _buildServiceIcon(
+              icon: Icons.schedule_rounded,
+              label: t('services.schedules'),
+              color: const Color(0xFF10B981),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const HorairesListScreen(),
+                  ),
+                );
+              },
+            ),
+          );
+          
+          // Feedback
+          final isFeedbackEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.feedback),
+          );
+          if (isFeedbackEnabled) {
+            services.add(
+              _buildServiceIcon(
+                icon: Icons.feedback_rounded,
+                label: t('services.feedback'),
+                color: const Color(0xFF14B8A6),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const FeedbackScreen(),
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+          
+          // Vidéos (toujours disponible pour admin)
+          services.add(
+            _buildServiceIcon(
+              icon: Icons.video_library_rounded,
+              label: 'Mes Vidéos',
+              color: const Color(0xFFE91E63),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const VideoAdvertisementsScreen(),
+                  ),
+                );
+              },
+            ),
+          );
+        }
+        
+        // Si aucun service actif, ne pas afficher la grille
+        if (services.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        // Adapter le nombre de colonnes selon le nombre de services
+        // Minimum 2 colonnes pour un meilleur rendu visuel, maximum 4 colonnes
+        final crossAxisCount = services.length <= 2 
+            ? services.length 
+            : (services.length <= 4 ? services.length : 4);
+        
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 0.9,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 16,
+          children: services,
+        );
+      },
     );
   }
 
