@@ -73,6 +73,18 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
       _log.info('📡 [PROVIDER] Réponse API: success=${response.success}');
       _log.info('📋 [PROVIDER] Nombre de notifications: ${response.notifications.length}');
+      
+      // Log détaillé pour vérifier le statut is_read
+      if (response.notifications.isNotEmpty) {
+        final readCount = response.notifications.where((n) => n.isRead).length;
+        final unreadCount = response.notifications.where((n) => !n.isRead).length;
+        _log.info('📊 [PROVIDER] Notifications lues: $readCount, Non lues: $unreadCount');
+        // Log les 3 premières notifications pour debug
+        for (var i = 0; i < response.notifications.length && i < 3; i++) {
+          final notif = response.notifications[i];
+          _log.info('   - Notification ${notif.id}: isRead=${notif.isRead}, readAt=${notif.readAt}');
+        }
+      }
 
       if (response.success) {
         final newNotifications = refresh 
@@ -80,7 +92,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
           : [...state.notifications, ...response.notifications];
 
         _log.info('✅ [PROVIDER] Mise à jour: ${newNotifications.length} notifications');
-        _log.info('🔢 [PROVIDER] ${response.unreadCount} non lues');
+        _log.info('🔢 [PROVIDER] UnreadCount depuis API: ${response.unreadCount}');
 
         state = state.copyWith(
           notifications: newNotifications,
@@ -126,24 +138,46 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       if (result['success']) {
         _log.info('✅ [PROVIDER] Succès! Mise à jour locale...');
         
-        // Mettre à jour localement
-        final updatedNotifications = state.notifications.map((notif) {
-          if (notif.id == notificationId && !notif.isRead) {
-            return NotificationModel(
-              id: notif.id,
-              type: notif.type,
-              title: notif.title,
-              message: notif.message,
-              data: notif.data,
-              isRead: true,
-              createdAt: notif.createdAt,
-              readAt: DateTime.now(),
+        // Utiliser les données retournées par l'API si disponibles
+        final notificationData = result['data'];
+        NotificationModel? updatedNotification;
+        
+        if (notificationData != null && notificationData is Map) {
+          try {
+            updatedNotification = NotificationModel.fromJson(
+              Map<String, dynamic>.from(notificationData)
             );
+            _log.info('✅ [PROVIDER] Notification mise à jour depuis l\'API: isRead=${updatedNotification.isRead}');
+          } catch (e) {
+            _log.warning('⚠️ [PROVIDER] Erreur parsing notification API: $e');
+          }
+        }
+        
+        // Mettre à jour localement avec les données de l'API ou créer une mise à jour manuelle
+        final updatedNotifications = state.notifications.map((notif) {
+          if (notif.id == notificationId) {
+            if (updatedNotification != null) {
+              // Utiliser les données de l'API
+              return updatedNotification;
+            } else {
+              // Fallback: mettre à jour manuellement
+              return NotificationModel(
+                id: notif.id,
+                type: notif.type,
+                title: notif.title,
+                message: notif.message,
+                data: notif.data,
+                isRead: true,
+                createdAt: notif.createdAt,
+                readAt: DateTime.now(),
+              );
+            }
           }
           return notif;
         }).toList();
 
-        final newUnreadCount = state.unreadCount > 0 ? state.unreadCount - 1 : 0;
+        // Calculer le nouveau compteur en fonction des notifications mises à jour
+        final newUnreadCount = updatedNotifications.where((n) => !n.isRead).length;
 
         state = state.copyWith(
           notifications: updatedNotifications,

@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../providers/theme_provider.dart' as theme_provider;
 import '../widgets/ad_banner.dart';
 import '../services/device_info_service.dart';
+import '../services/translation_service.dart';
 import 'auth/login_screen.dart';
 import 'loyalty_home_screen.dart';
 import 'feedback_screen.dart';
@@ -19,6 +20,11 @@ class PublicScreen extends ConsumerStatefulWidget {
 class _PublicScreenState extends ConsumerState<PublicScreen> {
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
   String? _deviceId;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
@@ -39,10 +45,10 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
     if (_deviceId != null) {
       Clipboard.setData(ClipboardData(text: _deviceId!));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Identifiant copié dans le presse-papiers'),
+        SnackBar(
+          content: Text(t('public.device_id_copied')),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -63,7 +69,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                 color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
               ),
               const SizedBox(width: 8),
-              const Text('Apparence'),
+              Text(t('public.appearance')),
             ],
           ),
           content: Column(
@@ -98,6 +104,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -120,16 +127,24 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
               color: Colors.white,
             ),
             onPressed: _showThemeDialog,
-            tooltip: 'Changer le thème',
+            tooltip: t('public.change_theme'),
           ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  left: 16, 
+                  right: 16, 
+                  top: 12, 
+                  bottom: 100 + bottomPadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
               // Bannière publicitaire en haut (réduite)
               const AdBanner(height: 160),
               
@@ -173,7 +188,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Bienvenue !',
+                            t('public.welcome'),
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -182,7 +197,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Explorez nos fonctionnalités sans connexion',
+                            t('public.welcome_description'),
                             style: TextStyle(
                               fontSize: 12,
                               color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -201,8 +216,8 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
               _buildFeatureCard(
                 context: context,
                 icon: Icons.card_giftcard_rounded,
-                title: 'Points de fidélité',
-                description: 'Consultez et gérez vos points',
+                title: t('public.loyalty_points'),
+                description: t('public.loyalty_points_description'),
                 color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                 onTap: () {
                   Navigator.of(context).push(
@@ -220,8 +235,8 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
               _buildFeatureCard(
                 context: context,
                 icon: Icons.feedback_rounded,
-                title: 'Suggestions et préoccupations',
-                description: 'Partagez votre avis sur nos services',
+                title: t('public.suggestions'),
+                description: t('public.suggestions_description'),
                 color: AppTheme.primaryOrange,
                 onTap: () {
                   Navigator.of(context).push(
@@ -239,13 +254,13 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
               _buildFeatureCard(
                 context: context,
                 icon: Icons.how_to_vote_rounded,
-                title: 'Votes',
-                description: 'Participez aux sondages et votes',
+                title: t('public.votes'),
+                description: t('public.votes_description'),
                 color: Colors.green,
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Connectez-vous pour participer aux votes'),
+                    SnackBar(
+                      content: Text(t('public.votes_login_required')),
                       backgroundColor: AppTheme.primaryOrange,
                     ),
                   );
@@ -300,7 +315,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Plus de fonctionnalités',
+                                t('public.more_features'),
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -309,7 +324,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                'Connectez-vous pour tout débloquer',
+                                t('public.more_features_description'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isDark ? Colors.grey[400] : Colors.grey[600],
@@ -324,73 +339,79 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                     
                     // Affichage du Device ID
                     if (_deviceId != null)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        margin: const EdgeInsets.only(bottom: 14),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryOrange.withValues(alpha: isDark ? 0.15 : 0.05),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppTheme.primaryOrange.withValues(alpha: 0.2),
-                            width: 1,
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryOrange.withValues(alpha: isDark ? 0.15 : 0.05),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppTheme.primaryOrange.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryOrange.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Icons.fingerprint,
+                                  color: AppTheme.primaryOrange,
+                                  size: 16,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.fingerprint,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      t('public.device_identifier'),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    SelectableText(
+                                      _deviceId!,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primaryOrange,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.copy, size: 16),
+                                onPressed: _copyDeviceId,
                                 color: AppTheme.primaryOrange,
-                                size: 16,
+                                tooltip: t('public.copy'),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Identifiant appareil',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _deviceId!,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryOrange,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.copy, size: 16),
-                              onPressed: _copyDeviceId,
-                              color: AppTheme.primaryOrange,
-                              tooltip: 'Copier',
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     
+                    const SizedBox(height: 20),
+                    
                     SizedBox(
                       width: double.infinity,
-                      height: 44,
+                      height: 50,
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
@@ -407,14 +428,14 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.login_rounded, size: 18),
-                            SizedBox(width: 8),
+                            const Icon(Icons.login_rounded, size: 18),
+                            const SizedBox(width: 8),
                             Text(
-                              'Se connecter',
-                              style: TextStyle(
+                              t('public.login'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -426,10 +447,12 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                   ],
                 ),
               ),
-
-              const SizedBox(height: 60),
-            ],
-          ),
+                    SizedBox(height: 200 + bottomPadding),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

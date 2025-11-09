@@ -24,7 +24,15 @@ class TranslationService {
       final jsonString = await rootBundle.loadString('lib/l10n/$languageCode.json');
       _translations = json.decode(jsonString) as Map<String, dynamic>;
       _isLoaded = true;
-      debugPrint('✅ Traductions chargées pour: $languageCode (${_translations.length} sections)');
+      final sectionsCount = _translations.keys.length;
+      debugPrint('✅ Traductions chargées pour: $languageCode ($sectionsCount sections)');
+      // Debug: vérifier que les clés auth existent
+      if (_translations.containsKey('auth')) {
+        final authKeys = (_translations['auth'] as Map<String, dynamic>).keys.length;
+        debugPrint('   - Clés auth trouvées: $authKeys');
+      } else {
+        debugPrint('   - ⚠️ Section "auth" non trouvée dans les traductions');
+      }
     } catch (e) {
       debugPrint('❌ Erreur lors du chargement des traductions: $e');
       // En cas d'erreur, essayer de charger le français par défaut
@@ -57,19 +65,35 @@ class TranslationService {
   /// Obtenir une traduction par clé
   String translate(String key, {Map<String, String>? params}) {
     try {
-      // Si les traductions ne sont pas chargées, utiliser un fallback
-      if (!_isLoaded || _translations.isEmpty) {
-        return _getFrenchFallback(key);
+      // Debug: vérifier l'état des traductions
+      if (!_isLoaded) {
+        debugPrint('⚠️ [TranslationService] Traductions non chargées pour "$key", utilisation du fallback');
+        final fallback = _getFrenchFallback(key);
+        return fallback;
       }
       
+      if (_translations.isEmpty) {
+        debugPrint('⚠️ [TranslationService] Dictionnaire de traductions vide pour "$key", utilisation du fallback');
+        final fallback = _getFrenchFallback(key);
+        return fallback;
+      }
+      
+      // Toujours essayer d'abord avec les traductions chargées
       final keys = key.split('.');
       dynamic value = _translations;
 
       for (final k in keys) {
         if (value is Map<String, dynamic>) {
           value = value[k];
+          if (value == null) {
+            // Clé non trouvée, utiliser le fallback
+            debugPrint('⚠️ [TranslationService] Clé "$key" non trouvée dans les traductions (locale: ${_currentLocale.languageCode})');
+            break;
+          }
         } else {
-          return _getFrenchFallback(key);
+          // Structure invalide, utiliser le fallback
+          value = null;
+          break;
         }
       }
 
@@ -83,11 +107,21 @@ class TranslationService {
         }
         return translation;
       }
-
-      return _getFrenchFallback(key);
+      
+      // Si on arrive ici, utiliser le fallback
+      final fallback = _getFrenchFallback(key);
+      if (fallback != key) {
+        debugPrint('⚠️ [TranslationService] Utilisation du fallback français pour "$key" (locale actuelle: ${_currentLocale.languageCode})');
+        return fallback;
+      }
+      
+      // Si le fallback retourne la clé elle-même
+      debugPrint('⚠️ [TranslationService] Traduction manquante pour "$key" dans les fichiers JSON (locale: ${_currentLocale.languageCode})');
+      return fallback;
     } catch (e) {
       debugPrint('❌ Erreur lors de la traduction de "$key": $e');
-      return _getFrenchFallback(key);
+      final fallback = _getFrenchFallback(key);
+      return fallback;
     }
   }
   
@@ -213,6 +247,146 @@ class TranslationService {
       'seats.reserved': 'Réservé',
       'seats.selected': 'sélectionné',
       'seats.select_your_stops': 'Sélectionnez vos arrêts',
+      'onboarding.select_language': 'Choisissez votre langue',
+      'onboarding.select_language_description': 'Sélectionnez la langue que vous préférez utiliser dans l\'application',
+      'onboarding.select_theme': 'Choisissez votre thème',
+      'onboarding.select_theme_description': 'Personnalisez l\'apparence de l\'application selon vos préférences',
+      'onboarding.theme_light': 'Mode clair',
+      'onboarding.theme_light_description': 'Interface claire et lumineuse',
+      'onboarding.theme_dark': 'Mode sombre',
+      'onboarding.theme_dark_description': 'Interface sombre pour vos yeux',
+      'onboarding.theme_system': 'Mode système',
+      'onboarding.theme_system_description': 'Suit les paramètres de votre appareil',
+      'onboarding.welcome_title': 'Bienvenue !',
+      'onboarding.welcome_description': 'Découvrez tous les services Art Luxury Bus. Réservez vos trajets, gérez vos points de fidélité et bien plus encore.',
+      'onboarding.feature_transport': 'Réservation de trajets en ligne',
+      'onboarding.feature_loyalty': 'Programme de fidélité avec points',
+      'onboarding.feature_notifications': 'Notifications en temps réel',
+      'onboarding.get_started': 'Commencer',
+      'common.next': 'Suivant',
+      // Traductions auth
+      'auth.login': 'Connexion',
+      'auth.logout': 'Déconnexion',
+      'auth.email': 'Email',
+      'auth.password': 'Mot de passe',
+      'auth.forgot_password': 'Mot de passe oublié ?',
+      'auth.remember_me': 'Se souvenir de moi',
+      'auth.welcome': 'Bienvenue !',
+      'auth.connect_to_account': 'Connectez-vous à votre compte',
+      'auth.email_or_phone': 'Email ou Téléphone',
+      'auth.email_or_phone_hint': 'exemple@email.com ou 0771234567',
+      'auth.email_or_phone_required': 'Veuillez saisir votre email ou téléphone',
+      'auth.password_required': 'Veuillez saisir votre mot de passe',
+      'auth.password_min_length': 'Le mot de passe doit contenir au moins 6 caractères',
+      'auth.password_hint': 'Votre mot de passe',
+      'auth.login_button': 'Se connecter',
+      'auth.login_success': 'Connexion réussie !',
+      'auth.login_error': 'Erreur de connexion',
+      'auth.no_account': 'Pas encore de compte ?',
+      'auth.register': 'S\'inscrire',
+      'auth.skip': 'Ignorer',
+      'auth.appearance': 'Apparence',
+      'auth.forgot_password_feature_disabled': 'Fonctionnalité temporairement désactivée',
+      // Traductions register
+      'register.title': 'Inscription',
+      'register.register_client': 'Enregistrer un nouveau client',
+      'register.create_account': 'Créer un compte',
+      'register.create_account_description': 'Rejoignez Art Luxury Bus et profitez de nos avantages',
+      'register.personal_info': 'Informations personnelles',
+      'register.first_name': 'Prénom',
+      'register.last_name': 'Nom',
+      'register.first_name_label': 'Prénom *',
+      'register.last_name_label': 'Nom *',
+      'register.first_name_hint': 'Votre prénom',
+      'register.last_name_hint': 'Votre nom',
+      'register.first_name_required': 'Le prénom est requis',
+      'register.last_name_required': 'Le nom est requis',
+      'register.phone': 'Téléphone',
+      'register.phone_label': 'Téléphone *',
+      'register.phone_hint': '+221 77 123 45 67',
+      'register.phone_required': 'Le numéro de téléphone est requis',
+      'register.phone_invalid': 'Numéro de téléphone invalide',
+      'register.email': 'Email',
+      'register.email_label': 'Email (optionnel)',
+      'register.email_hint': 'votre.email@exemple.com',
+      'register.email_required': 'L\'email est requis',
+      'register.email_invalid': 'Email invalide',
+      'register.date_of_birth': 'Date de naissance',
+      'register.date_of_birth_label': 'Date de naissance (optionnel)',
+      'register.date_of_birth_hint': 'Pour recevoir un cadeau d\'anniversaire 🎂',
+      'register.select_date_of_birth': 'Sélectionnez votre date de naissance',
+      'register.select_date': 'Sélectionnez votre date',
+      'register.security': 'Sécurité',
+      'register.password': 'Mot de passe',
+      'register.password_label': 'Mot de passe *',
+      'register.password_hint': 'Minimum 8 caractères',
+      'register.password_required': 'Le mot de passe est requis',
+      'register.password_min_length': 'Le mot de passe doit contenir au moins 6 caractères',
+      'register.confirm_password': 'Confirmer le mot de passe',
+      'register.confirm_password_label': 'Confirmer le mot de passe *',
+      'register.confirm_password_hint': 'Retapez votre mot de passe',
+      'register.confirm_password_required': 'Veuillez confirmer le mot de passe',
+      'register.passwords_not_match': 'Les mots de passe ne correspondent pas',
+      'register.register_button': 'S\'inscrire',
+      'register.registering': 'Inscription en cours...',
+      'register.register_success': 'Inscription réussie !',
+      'register.register_error': 'Erreur lors de l\'inscription',
+      'register.account_created': 'Compte créé avec succès !',
+      'register.login_to_continue': 'Connectez-vous pour continuer',
+      'register.welcome_message': 'Bienvenue {{name}} ! 🎉',
+      'register.register_error_connection': 'Inscription réussie mais erreur de connexion : {{error}}',
+      // Traductions public screen
+      'public.welcome': 'Bienvenue !',
+      'public.welcome_description': 'Explorez nos fonctionnalités sans connexion',
+      'public.loyalty_points': 'Points de fidélité',
+      'public.loyalty_points_description': 'Consultez et gérez vos points',
+      'public.suggestions': 'Suggestions et préoccupations',
+      'public.suggestions_description': 'Partagez votre avis sur nos services',
+      'public.votes': 'Votes',
+      'public.votes_description': 'Participez aux sondages et votes',
+      'public.votes_login_required': 'Connectez-vous pour participer aux votes',
+      'public.more_features': 'Plus de fonctionnalités',
+      'public.more_features_description': 'Connectez-vous pour tout débloquer',
+      'public.device_identifier': 'Identifiant appareil',
+      'public.device_id_copied': 'Identifiant copié dans le presse-papiers',
+      'public.appearance': 'Apparence',
+      'public.change_theme': 'Changer le thème',
+      'public.copy': 'Copier',
+      'public.login': 'Se connecter',
+      // Traductions create_account
+      'create_account.title': 'Créer votre compte',
+      'create_account.create_password': 'Créez votre mot de passe',
+      'create_account.create_password_description': 'Choisissez un mot de passe sécurisé pour protéger votre compte',
+      'create_account.birth_date': 'Date de naissance (optionnel)',
+      'create_account.birth_date_hint': 'Sélectionnez votre date',
+      'create_account.birth_date_select': 'Sélectionnez votre date de naissance',
+      'create_account.birth_date_not_selected': 'Aucune date sélectionnée',
+      'create_account.password': 'Mot de passe',
+      'create_account.password_hint': 'Minimum 8 caractères',
+      'create_account.confirm_password': 'Confirmer le mot de passe',
+      'create_account.confirm_password_hint': 'Retapez votre mot de passe',
+      'create_account.password_required': 'Veuillez entrer un mot de passe',
+      'create_account.password_min_length': 'Le mot de passe doit contenir au moins 8 caractères',
+      'create_account.confirm_password_required': 'Veuillez confirmer votre mot de passe',
+      'create_account.passwords_not_match': 'Les mots de passe ne correspondent pas',
+      'create_account.create_button': 'Créer mon compte',
+      'create_account.loyalty_points': 'points fidélité',
+      'create_account.cancel': 'Annuler',
+      'create_account.ok': 'OK',
+      'create_account.select_date': 'Sélectionnez votre date',
+      'create_account.welcome': 'Bienvenue',
+      'create_account.account_created_success': 'Compte créé avec succès',
+      'create_account.account_created_error': 'Compte créé mais erreur de connexion',
+      'create_account.advantages_title': 'Vos avantages',
+      'create_account.advantages_loyalty_title': 'Programme de fidélité',
+      'create_account.advantages_loyalty_description': 'Gagnez des points à chaque voyage',
+      'create_account.advantages_free_tickets_title': 'Tickets gratuits',
+      'create_account.advantages_free_tickets_description': '10 points = 1 voyage gratuit',
+      'create_account.advantages_birthday_title': 'Cadeau d\'anniversaire',
+      'create_account.advantages_birthday_description': 'Surprise spéciale le jour J',
+      'create_account.advantages_notifications_title': 'Notifications',
+      'create_account.advantages_notifications_description': 'Restez informé de nos offres',
+      'create_account.birthday_message': 'Nous vous enverrons un cadeau spécial pour votre anniversaire! 🎉',
     };
     
     return fallbacks[key] ?? key;

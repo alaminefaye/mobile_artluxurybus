@@ -9,6 +9,9 @@ import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
 import '../models/user.dart';
 import '../screens/home_page.dart';
+import '../services/translation_service.dart';
+import '../providers/language_provider.dart';
+import '../theme/app_theme.dart';
 
 class CreateAccountScreen extends ConsumerStatefulWidget {
   final ClientSearchData client;
@@ -34,6 +37,11 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   bool _obscureConfirmPassword = true;
   DateTime? _selectedDate;
 
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -56,15 +64,16 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
 
   Future<void> _selectDate() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentLocale = ref.read(languageProvider);
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime(2000),
       firstDate: DateTime(1920),
       lastDate: DateTime.now(),
-      locale: const Locale('fr', 'FR'),
-      helpText: 'Sélectionnez votre date de naissance',
-      cancelText: 'Annuler',
-      confirmText: 'OK',
+      locale: currentLocale,
+      helpText: t('create_account.birth_date_select'),
+      cancelText: t('create_account.cancel'),
+      confirmText: t('create_account.ok'),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -159,7 +168,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Bienvenue ${widget.client.nomComplet}! 🎉'),
+                  child: Text('${t('create_account.welcome')} ${widget.client.nomComplet}! 🎉'),
                 ),
               ],
             ),
@@ -181,7 +190,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         // Afficher l'erreur mais le compte est créé
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Compte créé mais erreur de connexion: $e'),
+            content: Text('${t('create_account.account_created_error')}: $e'),
             backgroundColor: Colors.orange,
             duration: const Duration(seconds: 4),
           ),
@@ -203,7 +212,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Créer votre compte'),
+        title: Text(t('create_account.title')),
         elevation: 0,
       ),
       body: SafeArea(
@@ -215,111 +224,135 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Carte informations client
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue[700]!, Colors.blue[500]!],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blue.withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      const CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.blue,
+                Builder(
+                  builder: (context) {
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [
+                                  primaryColor.withValues(alpha: 0.3),
+                                  primaryColor.withValues(alpha: 0.2),
+                                ]
+                              : [
+                                  AppTheme.primaryBlue,
+                                  AppTheme.primaryBlue.withValues(alpha: 0.8),
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        widget.client.nomComplet,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: primaryColor.withValues(alpha: 0.3),
+                          width: 1.5,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.client.telephone,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                      if (widget.client.email != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.client.email!,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primaryColor.withValues(alpha: 0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              color: Colors.amber,
-                              size: 20,
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundColor: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.2)
+                                : Colors.white,
+                            child: Icon(
+                              Icons.person,
+                              size: 50,
+                              color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                             ),
-                            const SizedBox(width: 8),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            widget.client.nomComplet,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.client.telephone,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.9),
+                            ),
+                          ),
+                          if (widget.client.email != null) ...[
+                            const SizedBox(height: 4),
                             Text(
-                              '${widget.client.points} points fidélité',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
+                              widget.client.email!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                               ),
                             ),
                           ],
-                        ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (isDark ? AppTheme.primaryOrange : Colors.white).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: primaryColor.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.star,
+                                  color: Colors.amber,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${widget.client.points} ${t('create_account.loyalty_points')}',
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 32),
 
-                const Text(
-                  'Créez votre mot de passe',
+                Text(
+                  t('create_account.create_password'),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
                 Text(
-                  'Choisissez un mot de passe sécurisé pour protéger votre compte',
+                  t('create_account.create_password_description'),
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                 ),
 
@@ -330,24 +363,54 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                   onTap: _selectDate,
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Date de naissance (optionnel)',
-                      hintText: 'Sélectionnez votre date',
-                      prefixIcon: const Icon(Icons.cake),
-                      suffixIcon: const Icon(Icons.calendar_today),
+                      labelText: t('create_account.birth_date'),
+                      hintText: t('create_account.birth_date_hint'),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      labelStyle: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.cake,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue,
+                      ),
+                      suffixIcon: Icon(
+                        Icons.calendar_today,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue,
+                      ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       filled: true,
-                      fillColor: Colors.grey[50],
+                      fillColor: Theme.of(context).cardColor,
+                      isDense: true,
                     ),
                     child: Text(
                       _selectedDate != null
                           ? DateFormat('dd/MM/yyyy').format(_selectedDate!)
-                          : 'Aucune date sélectionnée',
+                          : t('create_account.birth_date_not_selected'),
                       style: TextStyle(
+                        fontSize: 14,
                         color: _selectedDate != null
-                            ? Colors.black87
-                            : Colors.grey[600],
+                            ? Theme.of(context).textTheme.bodyLarge?.color
+                            : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -359,32 +422,78 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe',
-                    hintText: 'Minimum 8 caractères',
-                    prefixIcon: const Icon(Icons.lock),
+                    labelText: t('create_account.password'),
+                    hintText: t('create_account.password_hint'),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    labelStyle: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryBlue,
+                    ),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.lock,
+                      size: 20,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryBlue,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_off
                             : Icons.visibility,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
                       },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue,
+                        width: 2,
+                      ),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).cardColor,
+                    isDense: true,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer un mot de passe';
+                      return t('create_account.password_required');
                     }
                     if (value.length < 8) {
-                      return 'Le mot de passe doit contenir au moins 8 caractères';
+                      return t('create_account.password_min_length');
                     }
                     return null;
                   },
@@ -396,33 +505,79 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
                   decoration: InputDecoration(
-                    labelText: 'Confirmer le mot de passe',
-                    hintText: 'Retapez votre mot de passe',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    labelText: t('create_account.confirm_password'),
+                    hintText: t('create_account.confirm_password_hint'),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    labelStyle: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryBlue,
+                    ),
+                    hintStyle: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                    ),
+                    prefixIcon: Icon(
+                      Icons.lock_outline,
+                      size: 20,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryBlue,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
                             ? Icons.visibility_off
                             : Icons.visibility,
+                        size: 20,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue,
                       ),
                       onPressed: () {
                         setState(() =>
                             _obscureConfirmPassword = !_obscureConfirmPassword);
                       },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue,
+                        width: 2,
+                      ),
                     ),
                     filled: true,
-                    fillColor: Colors.grey[50],
+                    fillColor: Theme.of(context).cardColor,
+                    isDense: true,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez confirmer votre mot de passe';
+                      return t('create_account.confirm_password_required');
                     }
                     if (value != _passwordController.text) {
-                      return 'Les mots de passe ne correspondent pas';
+                      return t('create_account.passwords_not_match');
                     }
                     return null;
                   },
@@ -431,26 +586,49 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                 const SizedBox(height: 32),
 
                 // Bouton créer compte
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _createAccount,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.accentGradient
+                        : AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (Theme.of(context).brightness == Brightness.dark
+                                ? AppTheme.primaryOrange
+                                : AppTheme.primaryBlue)
+                            .withValues(alpha: 0.3),
+                        spreadRadius: 1,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: _isLoading
-                      ? LoadingIndicator(
-                          size: 20,
-                          strokeWidth: 2,
-                        )
-                      : const Text(
-                          'Créer mon compte',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _createAccount,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? LoadingIndicator(
+                            size: 20,
+                            strokeWidth: 2,
+                          )
+                        : Text(
+                            t('create_account.create_button'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -460,33 +638,168 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
+                      color: AppTheme.primaryOrange.withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.1,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.orange.withValues(alpha: 0.3),
+                        color: AppTheme.primaryOrange.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.cake, color: Colors.orange[700]),
+                        Icon(
+                          Icons.cake,
+                          color: AppTheme.primaryOrange,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Nous vous enverrons un cadeau spécial pour votre anniversaire! 🎉',
+                            t('create_account.birthday_message'),
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.orange[900],
+                              color: Theme.of(context).textTheme.bodyLarge?.color,
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
+
+                const SizedBox(height: 24),
+
+                // Avantages
+                Builder(
+                  builder: (context) {
+                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.orange.withValues(alpha: 0.1),
+                            primaryColor.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: primaryColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.card_giftcard, color: Colors.orange[700]),
+                              const SizedBox(width: 8),
+                              Text(
+                                t('create_account.advantages_title'),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildAdvantageItem(
+                            context,
+                            Icons.star,
+                            t('create_account.advantages_loyalty_title'),
+                            t('create_account.advantages_loyalty_description'),
+                            isDark,
+                            primaryColor,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildAdvantageItem(
+                            context,
+                            Icons.confirmation_number,
+                            t('create_account.advantages_free_tickets_title'),
+                            t('create_account.advantages_free_tickets_description'),
+                            isDark,
+                            primaryColor,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildAdvantageItem(
+                            context,
+                            Icons.cake,
+                            t('create_account.advantages_birthday_title'),
+                            t('create_account.advantages_birthday_description'),
+                            isDark,
+                            primaryColor,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildAdvantageItem(
+                            context,
+                            Icons.notifications_active,
+                            t('create_account.advantages_notifications_title'),
+                            t('create_account.advantages_notifications_description'),
+                            isDark,
+                            primaryColor,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAdvantageItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    bool isDark,
+    Color primaryColor,
+  ) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isDark ? AppTheme.primaryOrange : Colors.blue[700],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
