@@ -107,7 +107,23 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
         if (mounted && !_isDisposed) {
           setState(() {
-            _availableSeats = newAvailableSeats;
+            // IMPORTANT: Conserver les sièges sélectionnés dans availableSeats s'ils ne sont pas réservés par d'autres
+            // Cela évite que les sièges sélectionnés disparaissent lors du rafraîchissement
+            final seatsToKeep = _selectedSeats.where((seat) => 
+              !newReservedSeats.contains(seat) // Si le siège n'est pas réservé par un autre utilisateur
+            ).toList();
+            
+            // Ajouter les sièges sélectionnés à la liste des disponibles si ils n'y sont pas déjà
+            final updatedAvailableSeats = List<int>.from(newAvailableSeats);
+            for (var seat in seatsToKeep) {
+              if (!updatedAvailableSeats.contains(seat)) {
+                updatedAvailableSeats.add(seat);
+                debugPrint('🔄 [SeatSelection] Siège $seat conservé dans availableSeats (sélectionné par l\'utilisateur)');
+              }
+            }
+            updatedAvailableSeats.sort();
+            
+            _availableSeats = updatedAvailableSeats;
             _reservedSeats = newReservedSeats;
             _lastSeatsRefresh = DateTime.now();
             _isLoading = false;
@@ -993,17 +1009,22 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           final isSelected = _selectedSeats.contains(seatNumber);
 
           // Logique des couleurs
+          // PRIORITÉ 1: Siège réservé par un autre utilisateur (orange)
+          // PRIORITÉ 2: Siège sélectionné par l'utilisateur actuel (vert) - même s'il n'est plus dans availableSeats
+          // PRIORITÉ 3: Siège disponible (gris/blanc)
+          // PRIORITÉ 4: Siège occupé (rouge)
+          
           Color seatColor;
           Color backgroundColor;
           Color borderColor;
 
-          if (isReserved) {
-            // Réservé ou laisser passer : orange
+          if (isReserved && !isSelected) {
+            // Réservé par un autre utilisateur (et pas sélectionné par l'utilisateur actuel) : orange
             seatColor = AppTheme.primaryOrange;
             backgroundColor = AppTheme.primaryOrange.withValues(alpha: 0.2);
             borderColor = AppTheme.primaryOrange;
           } else if (isSelected) {
-            // Choisi : vert
+            // Choisi par l'utilisateur actuel : vert (priorité sur tout sauf réservé par autres)
             seatColor = Colors.green;
             backgroundColor = Colors.green;
             borderColor = Colors.green;
@@ -1014,7 +1035,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             backgroundColor = isDark ? Colors.grey[800]! : Colors.white;
             borderColor = isDark ? Colors.grey[600]! : Colors.grey.shade300;
           } else {
-            // Occupé : rouge
+            // Occupé ou non disponible : rouge
             seatColor = Colors.red;
             backgroundColor = Colors.red.withValues(alpha: 0.2);
             borderColor = Colors.red;
