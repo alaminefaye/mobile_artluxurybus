@@ -655,6 +655,11 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
 
           // Utiliser la première réservation pour les données communes
           final firstReservation = createdReservations[0];
+          
+          // Extraire les sièges des réservations créées (seulement ceux qui ont réussi)
+          final successfulSeats = createdReservations
+              .map((r) => r['seat_number'] as int)
+              .toList();
 
           Navigator.push(
             context,
@@ -665,16 +670,15 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                     'mobile_${clientProfileId}_${DateTime.now().millisecondsSinceEpoch}',
                 amount: totalAmount,
                 depart: widget.depart,
-                seatNumber: widget.selectedSeats
-                    .first, // Pour compatibilité avec PaymentScreen actuel
-                selectedSeats: widget.selectedSeats,
+                seatNumber: successfulSeats.first, // Premier siège réservé avec succès
+                selectedSeats: successfulSeats, // Seulement les sièges avec réservations réussies
                 expiresAt: expiresAt ??
                     DateTime.now()
                         .add(const Duration(minutes: 5))
                         .toIso8601String(),
                 countdownSeconds: countdownSeconds ?? 300,
                 reservations:
-                    createdReservations, // Liste de toutes les réservations
+                    createdReservations, // Liste de toutes les réservations créées avec succès
               ),
             ),
           );
