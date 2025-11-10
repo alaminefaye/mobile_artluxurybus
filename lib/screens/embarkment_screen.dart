@@ -5,6 +5,7 @@ import '../services/embarkment_service.dart';
 import '../services/depart_service.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 import 'embarkment_detail_screen.dart';
 
 class EmbarkmentScreen extends ConsumerStatefulWidget {
@@ -147,8 +148,13 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
         });
       }
     } catch (e) {
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'charger',
+        error: e,
+        customMessage: 'Impossible de charger les départs. Veuillez réessayer.',
+      );
       setState(() {
-        _errorMessage = 'Erreur: ${e.toString()}';
+        _errorMessage = errorMessage;
         _isLoading = false;
       });
     }
@@ -179,7 +185,7 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem<String>(
+              const PopupMenuItem<String>(
                 value: 'logout',
                 child: Row(
                   children: [
@@ -188,8 +194,8 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                       color: Colors.red,
                       size: 20,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
+                    SizedBox(width: 12),
+                    Text(
                       'Se déconnecter',
                       style: TextStyle(
                         color: Colors.red,
@@ -590,7 +596,7 @@ class _EmbarkmentScreenState extends ConsumerState<EmbarkmentScreen> {
                         const SizedBox(height: 4),
                         Text(
                           'Départ #${depart.numeroDepart ?? depart.id}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             color: AppTheme.primaryOrange,
                             fontWeight: FontWeight.w600,

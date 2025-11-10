@@ -104,7 +104,7 @@ class _CompanyInfoScreenState extends State<CompanyInfoScreen> {
                           const SizedBox(height: 16),
                           Text(
                             t('company.your_comfort_priority'),
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w300,

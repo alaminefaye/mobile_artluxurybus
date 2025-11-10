@@ -9,6 +9,7 @@ import '../models/user.dart';
 import '../utils/api_config.dart';
 import 'notification_service.dart';
 import 'feedback_api_service.dart';
+import '../utils/error_message_helper.dart';
 
 class AuthService {
   static const String tokenKey = 'auth_token';
@@ -94,9 +95,15 @@ class AuthService {
 
       return authResponse;
     } catch (e) {
+      // Utiliser ErrorMessageHelper pour convertir l'erreur technique en message user-friendly
+      final userFriendlyError = ErrorMessageHelper.getUserFriendlyError(
+        e,
+        defaultMessage: 'Impossible de se connecter. Vérifiez vos identifiants et votre connexion internet.',
+      );
+      
       return AuthResponse(
         success: false,
-        message: 'Erreur de connexion: $e',
+        message: userFriendlyError,
       );
     }
   }
@@ -339,7 +346,10 @@ class AuthService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'Erreur de connexion: ${e.toString()}',
+        'message': ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Une erreur est survenue. Veuillez réessayer.',
+        ),
       };
     }
   }
@@ -381,7 +391,10 @@ class AuthService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'Erreur de connexion: ${e.toString()}',
+        'message': ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Une erreur est survenue. Veuillez réessayer.',
+        ),
       };
     }
   }
@@ -441,7 +454,10 @@ class AuthService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'Erreur de connexion: ${e.toString()}',
+        'message': ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Une erreur est survenue. Veuillez réessayer.',
+        ),
       };
     }
   }

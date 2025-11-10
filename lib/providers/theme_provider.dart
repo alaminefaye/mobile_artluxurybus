@@ -3,16 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Enum pour les modes de thème
-enum ThemeMode {
-  light,
-  dark,
-  system,
-}
+enum ThemeMode { light, dark, system }
 
 /// Provider pour gérer le mode de thème
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   static const String _themeModeKey = 'theme_mode';
-  
+
   ThemeModeNotifier() : super(ThemeMode.system) {
     _loadThemeMode();
   }
@@ -22,7 +18,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final themeModeString = prefs.getString(_themeModeKey);
-      
+
       if (themeModeString != null) {
         state = ThemeMode.values.firstWhere(
           (mode) => mode.toString() == themeModeString,
@@ -38,9 +34,13 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   Future<void> setThemeMode(ThemeMode mode) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // Sauvegarder d'abord
       await prefs.setString(_themeModeKey, mode.toString());
+      // Puis mettre à jour le state (cela notifie les listeners)
       state = mode;
       debugPrint('✅ Mode thème changé: $mode');
+      // Forcer un petit délai pour s'assurer que la sauvegarde est complète
+      await Future.delayed(const Duration(milliseconds: 50));
     } catch (e) {
       debugPrint('❌ Erreur lors de la sauvegarde du mode thème: $e');
     }
@@ -79,12 +79,13 @@ final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
 /// Provider pour savoir si le thème sombre est actif
 final isDarkModeProvider = Provider<bool>((ref) {
   final themeMode = ref.watch(themeModeProvider);
-  
+
   if (themeMode == ThemeMode.system) {
     // Utiliser le thème du système
-    final brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final brightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
     return brightness == Brightness.dark;
   }
-  
+
   return themeMode == ThemeMode.dark;
 });

@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/attendance_models.dart';
 import '../services/attendance_api_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 import 'attendance_history_screen.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -136,15 +137,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
       // Afficher l'erreur
       if (mounted) {
-        String errorMsg = e.toString();
-        // Nettoyer le message d'erreur si c'est une exception
-        if (errorMsg.startsWith('Exception: ')) {
-          errorMsg = errorMsg.substring(11);
-        }
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'scanner',
+          error: e,
+          customMessage: 'Impossible de traiter le QR code. Veuillez réessayer.',
+        );
         
         _showResultDialog(
           success: false,
-          message: errorMsg,
+          message: errorMessage,
           data: null,
         );
       }

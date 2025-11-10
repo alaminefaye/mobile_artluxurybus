@@ -4,12 +4,6 @@ import '../utils/api_config.dart';
 import 'auth_service.dart';
 
 class EmbarkmentService {
-  static String? _token;
-
-  static void setToken(String? token) {
-    _token = token;
-  }
-
   /// Récupérer le token d'authentification (dynamique)
   static Future<String?> _getToken() async {
     final authService = AuthService();

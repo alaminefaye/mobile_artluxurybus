@@ -517,17 +517,17 @@ class _BagageListViewState extends State<BagageListView> {
             decoration: InputDecoration(
               hintText: 'Rechercher...',
               hintStyle: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: Icon(
                         Icons.clear,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       onPressed: () {
                         _searchController.clear();

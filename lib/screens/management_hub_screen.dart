@@ -29,7 +29,7 @@ class _ManagementHubScreenState extends State<ManagementHubScreen> {
           });
         },
         selectedItemColor: Colors.orange,
-        unselectedItemColor: Colors.orange.withOpacity(0.6),
+        unselectedItemColor: Colors.orange.withValues(alpha: 0.6),
         backgroundColor: Theme.of(context).bottomNavigationBarTheme.backgroundColor ?? Theme.of(context).cardColor,
         items: const [
           BottomNavigationBarItem(

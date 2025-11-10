@@ -161,14 +161,14 @@ class NotificationResponse {
     final notificationsList = json['data']?['notifications'] ?? json['notifications'] ?? [];
     
     // Helper pour convertir en int
-    int _toInt(dynamic value) {
+    int toInt(dynamic value) {
       if (value is int) return value;
       if (value is String) return int.tryParse(value) ?? 0;
       return 0;
     }
     
     // Helper pour parser les notifications
-    List<NotificationModel> _parseNotifications(List list) {
+    List<NotificationModel> parseNotifications(List list) {
       return list.map((notif) {
         if (notif is Map) {
           return NotificationModel.fromJson(Map<String, dynamic>.from(notif));
@@ -189,9 +189,9 @@ class NotificationResponse {
     return NotificationResponse(
       success: NotificationModel._toBool(json['success']),
       message: json['message']?.toString() ?? '',
-      notifications: _parseNotifications(notificationsList as List),
-      total: _toInt(dataTotal),
-      unreadCount: _toInt(dataUnreadCount),
+      notifications: parseNotifications(notificationsList as List),
+      total: toInt(dataTotal),
+      unreadCount: toInt(dataUnreadCount),
     );
   }
 }

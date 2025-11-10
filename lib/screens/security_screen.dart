@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 
 class SecurityScreen extends ConsumerStatefulWidget {
   const SecurityScreen({super.key});
@@ -26,6 +27,13 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   // Helper pour les traductions
   String t(String key) {
     return TranslationService().translate(key);
+  }
+
+  // Fonction helper pour obtenir la couleur primaire selon le thème
+  // Orange en mode dark, bleu en mode light
+  Color _getPrimaryColor() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
   }
 
   @override
@@ -69,7 +77,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   ),
                 ],
               ),
-              backgroundColor: AppTheme.primaryOrange,
+              backgroundColor: _getPrimaryColor(),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -84,9 +92,14 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'changer',
+          error: e,
+          customMessage: 'Impossible de changer le mot de passe. Veuillez vérifier vos informations et réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),
@@ -115,30 +128,33 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // En-tête
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(
-                    color: AppTheme.primaryOrange.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryOrange,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.security_rounded,
-                        color: Colors.white,
-                        size: 24,
+              Builder(
+                builder: (context) {
+                  final primaryColor = _getPrimaryColor();
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: 0.2),
+                        width: 1,
                       ),
                     ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: primaryColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.security_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -165,6 +181,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                     ),
                   ],
                 ),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
@@ -190,7 +208,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   hintStyle: TextStyle(
                     color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                   ),
-                  prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryOrange),
+                  prefixIcon: Builder(
+                    builder: (context) => Icon(Icons.lock_outline, color: _getPrimaryColor()),
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureCurrentPassword
@@ -223,7 +243,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                    borderSide: BorderSide(color: _getPrimaryColor(), width: 2),
                   ),
                   filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
@@ -261,7 +281,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   hintStyle: TextStyle(
                     color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                   ),
-                  prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryOrange),
+                  prefixIcon: Builder(
+                    builder: (context) => Icon(Icons.lock_outline, color: _getPrimaryColor()),
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureNewPassword
@@ -294,7 +316,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                    borderSide: BorderSide(color: _getPrimaryColor(), width: 2),
                   ),
                   filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
@@ -335,7 +357,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   hintStyle: TextStyle(
                     color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                   ),
-                  prefixIcon: Icon(Icons.lock_outline, color: AppTheme.primaryOrange),
+                  prefixIcon: Builder(
+                    builder: (context) => Icon(Icons.lock_outline, color: _getPrimaryColor()),
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureConfirmPassword
@@ -368,7 +392,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                    borderSide: BorderSide(color: _getPrimaryColor(), width: 2),
                   ),
                   filled: true,
                   fillColor: Theme.of(context).brightness == Brightness.dark
@@ -389,58 +413,66 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               const SizedBox(height: 24),
 
               // Conseils de sécurité
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primaryOrange.withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+              Builder(
+                builder: (context) {
+                  final primaryColor = _getPrimaryColor();
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline, color: AppTheme.primaryOrange, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          t('security.password_tips_title'),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryOrange,
-                          ),
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, color: primaryColor, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              t('security.password_tips_title'),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: primaryColor,
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 10),
+                        _buildSecurityTip(t('security.password_tip_min_length')),
+                        _buildSecurityTip(t('security.password_tip_mix')),
+                        _buildSecurityTip(t('security.password_tip_dictionary')),
+                        _buildSecurityTip(t('security.password_tip_reuse')),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    _buildSecurityTip(t('security.password_tip_min_length')),
-                    _buildSecurityTip(t('security.password_tip_mix')),
-                    _buildSecurityTip(t('security.password_tip_dictionary')),
-                    _buildSecurityTip(t('security.password_tip_reuse')),
-                  ],
-                ),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
 
               // Bouton de changement
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _changePassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
+              Builder(
+                builder: (context) {
+                  final primaryColor = _getPrimaryColor();
+                  return SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _changePassword,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
                   child: _isLoading
                       ? const SizedBox(
                           height: 20,
@@ -455,9 +487,11 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                          ),
                         ),
-                ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -467,23 +501,28 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   }
 
   Widget _buildSecurityTip(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Icon(Icons.check_circle, color: AppTheme.primaryOrange, size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 12,
-                color: Theme.of(context).textTheme.bodyMedium?.color,
+    return Builder(
+      builder: (context) {
+        final primaryColor = _getPrimaryColor();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle, color: primaryColor, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/safe_auth_response.dart';
 import '../models/login_request.dart';
 import '../services/safe_auth_service.dart';
+import '../utils/error_message_helper.dart';
 
 // Service provider
 final safeAuthServiceProvider = Provider<SafeAuthService>((ref) => SafeAuthService());
@@ -96,7 +97,10 @@ class SafeAuthNotifier extends StateNotifier<SafeAuthState> {
       }
     } catch (e) {
       state = state.copyWith(
-        error: 'Erreur de connexion: $e',
+        error: ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Impossible de se connecter. Vérifiez vos identifiants et votre connexion internet.',
+        ),
         isLoading: false,
         isAuthenticated: false,
       );

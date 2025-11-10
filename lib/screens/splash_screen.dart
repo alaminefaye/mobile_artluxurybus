@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../main.dart';
+import '../services/onboarding_service.dart';
+import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,42 +22,33 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Animation du logo
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
+
     // Animation du texte
     _textController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
-    _logoAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _logoController,
-      curve: Curves.elasticOut,
-    ));
+    _logoAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
+    );
 
-    _textAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _textController,
-      curve: Curves.easeInOut,
-    ));
+    _textAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _textController, curve: Curves.easeInOut),
+    );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _textController,
-      curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _textController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
+      ),
+    );
 
     // Démarrer les animations
     _startAnimations();
@@ -64,23 +57,46 @@ class _SplashScreenState extends State<SplashScreen>
   void _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 500));
     _logoController.forward();
-    
+
     await Future.delayed(const Duration(milliseconds: 800));
     _textController.forward();
-    
+
     // Navigation après animations
     await Future.delayed(const Duration(milliseconds: 3000));
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              const AuthWrapper(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 800),
-        ),
-      );
+      // Vérifier si l'onboarding a été complété
+      final isOnboardingCompleted =
+          await OnboardingService.isOnboardingCompleted();
+
+      if (isOnboardingCompleted) {
+        // Si l'onboarding est complété, aller vers AuthWrapper
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const AuthWrapper(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        );
+      } else {
+        // Si c'est la première fois, aller vers l'onboarding
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const OnboardingScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
+        );
+      }
     }
   }
 
@@ -136,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen>
                 },
               ),
             ),
-            
+
             Positioned(
               bottom: -100,
               left: -80,
@@ -161,7 +177,7 @@ class _SplashScreenState extends State<SplashScreen>
                 },
               ),
             ),
-            
+
             // Points décoratifs flottants
             Positioned(
               top: 120,
@@ -186,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen>
                 },
               ),
             ),
-            
+
             Positioned(
               top: 200,
               right: 80,
@@ -210,7 +226,7 @@ class _SplashScreenState extends State<SplashScreen>
                 },
               ),
             ),
-            
+
             Positioned(
               bottom: 150,
               right: 40,
@@ -231,7 +247,7 @@ class _SplashScreenState extends State<SplashScreen>
                 },
               ),
             ),
-            
+
             // Contenu principal
             Center(
               child: Padding(
@@ -240,166 +256,176 @@ class _SplashScreenState extends State<SplashScreen>
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                // Logo animé - parfaitement centré
-                AnimatedBuilder(
-                  animation: _logoAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoAnimation.value,
-                      child: Transform.rotate(
-                        angle: (1 - _logoAnimation.value) * 0.5,
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          padding: const EdgeInsets.all(15),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(35),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.25),
-                                spreadRadius: 8,
-                                blurRadius: 25,
-                                offset: const Offset(0, 12),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.asset(
-                              '12.png',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 35),
-                
-                // Texte animé - centré
-                AnimatedBuilder(
-                  animation: _textAnimation,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 50 * (1 - _textAnimation.value)),
-                      child: Opacity(
-                        opacity: _textAnimation.value,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Nom de l'application
-                            const Text(
-                              'ART LUXURY BUS',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
+                    // Logo animé - parfaitement centré
+                    AnimatedBuilder(
+                      animation: _logoAnimation,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _logoAnimation.value,
+                          child: Transform.rotate(
+                            angle: (1 - _logoAnimation.value) * 0.5,
+                            child: Container(
+                              width: 120,
+                              height: 120,
+                              padding: const EdgeInsets.all(15),
+                              decoration: BoxDecoration(
                                 color: Colors.white,
-                                letterSpacing: 2.0,
-                                shadows: [
-                                  Shadow(
-                                    blurRadius: 12.0,
-                                    color: Colors.black26,
-                                    offset: Offset(2, 4),
+                                borderRadius: BorderRadius.circular(35),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.25),
+                                    spreadRadius: 8,
+                                    blurRadius: 25,
+                                    offset: const Offset(0, 12),
                                   ),
                                 ],
                               ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Image.asset(
+                                  '12.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
                             ),
-                            
-                            const SizedBox(height: 18),
-                            
-                            // Slogan
-                            AnimatedBuilder(
-                              animation: _fadeAnimation,
-                              builder: (context, child) {
-                                return Opacity(
-                                  opacity: _fadeAnimation.value,
-                                  child: Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 16),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 14,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.25),
-                                      borderRadius: BorderRadius.circular(30),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.4),
-                                        width: 1.5,
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 35),
+
+                    // Texte animé - centré
+                    AnimatedBuilder(
+                      animation: _textAnimation,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(0, 50 * (1 - _textAnimation.value)),
+                          child: Opacity(
+                            opacity: _textAnimation.value,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Nom de l'application
+                                const Text(
+                                  'ART LUXURY BUS',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 2.0,
+                                    shadows: [
+                                      Shadow(
+                                        blurRadius: 12.0,
+                                        color: Colors.black26,
+                                        offset: Offset(2, 4),
                                       ),
-                                    ),
-                                    child: const Text(
-                                      'Service de transport de classe nationale',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                        letterSpacing: 0.8,
-                                        height: 1.4,
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 18),
+
+                                // Slogan
+                                AnimatedBuilder(
+                                  animation: _fadeAnimation,
+                                  builder: (context, child) {
+                                    return Opacity(
+                                      opacity: _fadeAnimation.value,
+                                      child: Container(
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 24,
+                                          vertical: 14,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            30,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.4,
+                                            ),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Service de transport de classe nationale',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                            letterSpacing: 0.8,
+                                            height: 1.4,
+                                          ),
+                                        ),
                                       ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 60),
+
+                    // Indicateur de chargement - centré
+                    AnimatedBuilder(
+                      animation: _fadeAnimation,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _fadeAnimation.value,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3.0,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
                                     ),
                                   ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                
-                const SizedBox(height: 60),
-                
-                // Indicateur de chargement - centré
-                AnimatedBuilder(
-                  animation: _fadeAnimation,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _fadeAnimation.value,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(25),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                width: 1,
+                                ),
                               ),
-                            ),
-                            child: const SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3.0,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              const SizedBox(height: 20),
+                              const Text(
+                                'Chargement...',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                  letterSpacing: 1.0,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Chargement...',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

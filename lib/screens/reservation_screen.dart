@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/depart_service.dart';
 import '../services/translation_service.dart';
+import '../utils/error_message_helper.dart';
 import 'departures_results_screen.dart';
 
 class ReservationScreen extends StatefulWidget {
@@ -51,8 +52,13 @@ class _ReservationScreenState extends State<ReservationScreen> {
       });
     } catch (e) {
       if (mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'charger',
+          error: e,
+          customMessage: 'Impossible de charger les villes. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${t("reservation.loading_cities_error")}: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     }
@@ -135,9 +141,14 @@ class _ReservationScreenState extends State<ReservationScreen> {
         _isLoading = false;
       });
       if (mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'rechercher',
+          error: e,
+          customMessage: 'Impossible de rechercher les départs. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${t("reservation.error")}: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -193,9 +204,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
             // Formulaire de recherche
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.primaryBlue,
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
                 ),
@@ -204,7 +215,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 children: [
                   // Embarquement
                   DropdownButtonFormField<String>(
-                    value: _selectedEmbarquement,
+                    initialValue: _selectedEmbarquement,
                     decoration: InputDecoration(
                       labelText: t('reservation.embarquement'),
                       labelStyle: const TextStyle(color: Colors.white70),
@@ -251,7 +262,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
                   // Destination
                   DropdownButtonFormField<String>(
-                    value: _selectedDestination,
+                    initialValue: _selectedDestination,
                     decoration: InputDecoration(
                       labelText: t('reservation.destination'),
                       labelStyle: const TextStyle(color: Colors.white70),

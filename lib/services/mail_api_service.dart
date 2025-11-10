@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/mail_model.dart';
@@ -176,8 +175,9 @@ class MailApiService {
       if (description != null) request.fields['description'] = description;
       request.fields['is_loyalty_mail'] = isLoyaltyMail ? '1' : '0';
       if (loyaltyNotes != null) request.fields['loyalty_notes'] = loyaltyNotes;
-      if (clientProfileId != null)
+      if (clientProfileId != null) {
         request.fields['client_profile_id'] = clientProfileId.toString();
+      }
 
       // Ajouter la photo si présente
       if (photo != null) {
@@ -235,15 +235,18 @@ class MailApiService {
       if (destination != null) request.fields['destination'] = destination;
       if (senderName != null) request.fields['sender_name'] = senderName;
       if (senderPhone != null) request.fields['sender_phone'] = senderPhone;
-      if (recipientName != null)
+      if (recipientName != null) {
         request.fields['recipient_name'] = recipientName;
-      if (recipientPhone != null)
+      }
+      if (recipientPhone != null) {
         request.fields['recipient_phone'] = recipientPhone;
+      }
       if (amount != null) request.fields['amount'] = amount.toString();
       if (packageValue != null) request.fields['package_value'] = packageValue;
       if (packageType != null) request.fields['package_type'] = packageType;
-      if (receivingAgency != null)
+      if (receivingAgency != null) {
         request.fields['receiving_agency'] = receivingAgency;
+      }
       if (description != null) request.fields['description'] = description;
 
       // Ajouter la nouvelle photo si présente

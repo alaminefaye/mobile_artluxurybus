@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/safe_auth_response.dart';
 import '../models/login_request.dart';
 import '../utils/api_config.dart';
+import '../utils/error_message_helper.dart';
 
 class SafeAuthService {
   static const String tokenKey = 'auth_token';
@@ -60,7 +61,10 @@ class SafeAuthService {
     } catch (e) {
       return SafeAuthResponse(
         success: false,
-        message: 'Erreur de connexion: $e',
+        message: ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Impossible de se connecter. Vérifiez vos identifiants et votre connexion internet.',
+        ),
       );
     }
   }

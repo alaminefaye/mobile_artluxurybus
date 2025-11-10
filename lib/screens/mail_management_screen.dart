@@ -276,7 +276,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey.shade600,
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey.shade600,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -608,7 +608,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey,
           ),
         ),
       ],
@@ -1015,17 +1015,17 @@ class _MailListViewState extends State<MailListView> {
             decoration: InputDecoration(
               hintText: 'Rechercher un courrier...',
               hintStyle: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: Icon(
                         Icons.clear,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       onPressed: () {
                         _searchController.clear();
@@ -1096,14 +1096,14 @@ class _MailListViewState extends State<MailListView> {
             Icon(
               Icons.inbox,
               size: 64,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.4) ?? Colors.grey.shade400,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.4) ?? Colors.grey.shade400,
             ),
             const SizedBox(height: 16),
             Text(
               'Aucun courrier',
               style: TextStyle(
                 fontSize: 18,
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey.shade600,
+                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey.shade600,
               ),
             ),
           ],
@@ -1202,7 +1202,7 @@ class _MailListViewState extends State<MailListView> {
                   DateFormat('dd/MM/yy').format(mail.createdAt),
                   style: TextStyle(
                     fontSize: 11,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6) ?? Colors.grey,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey,
                   ),
                 ),
               ],

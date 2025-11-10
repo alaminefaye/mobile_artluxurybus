@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../services/translation_service.dart';
 import '../providers/feedback_provider.dart';
+import '../utils/error_message_helper.dart';
 
 class FeedbackScreen extends ConsumerStatefulWidget {
   const FeedbackScreen({super.key});
@@ -90,9 +91,13 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           }
         },
         error: (error, stackTrace) {
+          final errorMessage = ErrorMessageHelper.getUserFriendlyError(
+            error,
+            defaultMessage: 'Impossible d\'envoyer le feedback. Veuillez réessayer.',
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(error.toString()),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
             ),
@@ -181,7 +186,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
               children: [
                 Text(
                   t('feedback.your_opinion_matters'),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryBlue,

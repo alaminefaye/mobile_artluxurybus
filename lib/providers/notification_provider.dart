@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/notification_model.dart';
 import '../services/notification_api_service.dart';
+import '../utils/error_message_helper.dart';
 import 'auth_provider.dart';
 import 'package:logging/logging.dart';
 
@@ -104,17 +105,27 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         );
       } else {
         _log.warning('❌ [PROVIDER] Erreur API: ${response.message}');
-        // Afficher l'erreur réelle sans fallback
+        // Afficher l'erreur user-friendly
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'charger',
+          error: response.message,
+          customMessage: 'Impossible de charger les notifications. Veuillez réessayer.',
+        );
         state = state.copyWith(
           isLoading: false,
-          error: response.message,
+          error: errorMessage,
         );
       }
     } catch (e) {
       _log.severe('❌ [PROVIDER] Exception lors du chargement des notifications', e);
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'charger',
+        error: e,
+        customMessage: 'Impossible de charger les notifications. Vérifiez votre connexion et réessayez.',
+      );
       state = state.copyWith(
         isLoading: false,
-        error: 'Erreur de connexion: $e',
+        error: errorMessage,
       );
     }
   }
@@ -250,7 +261,12 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(error: 'Erreur suppression: $e');
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'supprimer',
+        error: e,
+        customMessage: 'Impossible de supprimer la notification. Veuillez réessayer.',
+      );
+      state = state.copyWith(error: errorMessage);
     }
   }
 
@@ -277,11 +293,20 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         _log.info('✅ [PROVIDER] État mis à jour - notifications vidées');
       } else {
         _log.warning("❌ [PROVIDER] Échec: ${result['message']}");
-        state = state.copyWith(error: result['message'] ?? 'Erreur lors de la suppression');
+        final errorMessage = ErrorMessageHelper.getUserFriendlyError(
+          result['message'],
+          defaultMessage: 'Impossible de supprimer toutes les notifications. Veuillez réessayer.',
+        );
+        state = state.copyWith(error: errorMessage);
       }
     } catch (e, stackTrace) {
       _log.severe('❌ [PROVIDER] Exception lors de la suppression', e, stackTrace);
-      state = state.copyWith(error: 'Erreur suppression: $e');
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'supprimer',
+        error: e,
+        customMessage: 'Impossible de supprimer les notifications. Veuillez réessayer.',
+      );
+      state = state.copyWith(error: errorMessage);
     }
   }
 

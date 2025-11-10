@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/client_registration_models.dart';
 import '../utils/api_config.dart';
+import '../utils/error_message_helper.dart';
 
 class ClientRegistrationService {
   // Headers par défaut
@@ -11,7 +12,7 @@ class ClientRegistrationService {
   /// Rechercher un client par numéro de téléphone
   Future<ClientSearchResponse> searchClient(String telephone) async {
     try {
-      final url = '${ApiConfig.baseUrl}/clients/search';
+      const url = '${ApiConfig.baseUrl}/clients/search';
       final body = json.encode({'telephone': telephone});
       
       debugPrint('🔍 [ClientRegistrationService] Recherche client avec numéro: $telephone');
@@ -69,7 +70,10 @@ class ClientRegistrationService {
       return ClientSearchResponse(
         success: false,
         found: false,
-        message: 'Erreur de connexion: $e',
+        message: ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+        ),
       );
     }
   }
@@ -92,7 +96,10 @@ class ClientRegistrationService {
     } catch (e) {
       return ClientRegistrationResponse(
         success: false,
-        message: 'Erreur de connexion: $e',
+        message: ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+        ),
       );
     }
   }
@@ -115,7 +122,10 @@ class ClientRegistrationService {
     } catch (e) {
       return ClientRegistrationResponse(
         success: false,
-        message: 'Erreur de connexion: $e',
+        message: ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+        ),
       );
     }
   }

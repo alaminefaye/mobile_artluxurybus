@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../widgets/loading_indicator.dart';
@@ -12,6 +11,7 @@ import '../screens/home_page.dart';
 import '../services/translation_service.dart';
 import '../providers/language_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 
 class CreateAccountScreen extends ConsumerStatefulWidget {
   final ClientSearchData client;
@@ -188,9 +188,13 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
         if (!mounted) return;
         
         // Afficher l'erreur mais le compte est créé
+        final errorMessage = ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Compte créé avec succès, mais impossible de vous connecter automatiquement. Veuillez vous connecter manuellement.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${t('create_account.account_created_error')}: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.orange,
             duration: const Duration(seconds: 4),
           ),
@@ -199,9 +203,13 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
     } else {
       // Afficher l'erreur
       debugPrint('❌ [CreateAccountScreen] Erreur lors de la création du compte: ${response.message}');
+      final errorMessage = ErrorMessageHelper.getUserFriendlyError(
+        response.message,
+        defaultMessage: 'Impossible de créer le compte. Veuillez vérifier vos informations et réessayer.',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(response.message),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
         ),
       );
@@ -313,7 +321,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.star,
                                   color: Colors.amber,
                                   size: 20,
@@ -616,7 +624,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? LoadingIndicator(
+                        ? const LoadingIndicator(
                             size: 20,
                             strokeWidth: 2,
                           )
@@ -648,7 +656,7 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.cake,
                           color: AppTheme.primaryOrange,
                         ),

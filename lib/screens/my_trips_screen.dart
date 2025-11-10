@@ -1,16 +1,15 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/trip_model.dart';
 import '../services/trip_service.dart';
 import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({super.key});
@@ -50,8 +49,13 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
       });
     } catch (e) {
       debugPrint('❌ Erreur chargement trajets: $e');
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'charger',
+        error: e,
+        customMessage: 'Impossible de charger vos trajets. Veuillez réessayer.',
+      );
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = errorMessage;
         _isLoading = false;
       });
     }
@@ -409,7 +413,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.location_on_rounded,
                           size: 16,
                           color: AppTheme.primaryBlue,
@@ -432,7 +436,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 if (trip.disembarkStop != null)
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.location_on_rounded,
                         size: 16,
                         color: AppTheme.primaryOrange,
@@ -675,7 +679,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
               Text(t('trips.generating_image')),
             ],
           ),
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
 
@@ -684,6 +688,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
       if (imageBytes == null) {
         if (!mounted) return;
+        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(t('trips.image_capture_error')),
@@ -713,7 +718,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
 
       final shareText = StringBuffer();
       shareText.writeln(t('trips.my_travel_ticket'));
-      shareText.writeln('${trip.routeText}');
+      shareText.writeln(trip.routeText);
       if (dateDepart.isNotEmpty) {
         shareText.writeln('${t("trips.departure_date")}: $dateDepart');
       }
@@ -779,9 +784,15 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     } catch (e) {
       debugPrint('❌ Erreur partage ticket: $e');
       if (!mounted) return;
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'partager',
+        error: e,
+        customMessage: 'Impossible de partager le ticket. Veuillez réessayer.',
+      );
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${t("common.error")}: ${e.toString()}'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
         ),
       );
@@ -947,9 +958,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   Widget _buildBoardingHeader(Trip trip, bool isLaisserPasser) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.only(
+        borderRadius: BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
         ),
@@ -1320,7 +1331,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.card_giftcard,
                               color: Colors.white,
                               size: 16,
@@ -1328,7 +1339,7 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                             const SizedBox(width: 6),
                             Text(
                               t('trips.free'),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -1349,9 +1360,9 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                         ),
                       )
                     else
-                      Text(
+                      const Text(
                         '-',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,

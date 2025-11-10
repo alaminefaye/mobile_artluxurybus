@@ -19,16 +19,19 @@ class LanguageNotifier extends StateNotifier<Locale> {
       final languageCode = prefs.getString(_languageCodeKey) ?? 'fr';
       final countryCode = prefs.getString(_countryCodeKey) ?? 'FR';
       
+      debugPrint('🔄 [LanguageNotifier] Chargement depuis SharedPreferences: $languageCode-$countryCode');
+      
       final locale = Locale(languageCode, countryCode);
       state = locale;
       
       // Charger les traductions pour la langue chargée
       final translationService = TranslationService();
-      if (!translationService.isLoaded) {
-        await translationService.loadTranslations(locale);
-      }
+      // Toujours recharger pour s'assurer que la bonne langue est chargée
+      await translationService.loadTranslations(locale);
       
-      debugPrint('✅ Langue chargée: $languageCode-$countryCode');
+      debugPrint('✅ [LanguageNotifier] Langue chargée: $languageCode-$countryCode');
+      debugPrint('✅ [LanguageNotifier] Traductions chargées: ${translationService.isLoaded}');
+      debugPrint('✅ [LanguageNotifier] Locale service: ${translationService.currentLocale.languageCode}');
     } catch (e) {
       debugPrint('❌ Erreur lors du chargement de la langue: $e');
     }
@@ -37,15 +40,29 @@ class LanguageNotifier extends StateNotifier<Locale> {
   /// Changer la langue
   Future<void> setLanguage(Locale locale) async {
     try {
+      debugPrint('🔄 [LanguageNotifier] setLanguage appelé: ${locale.languageCode}-${locale.countryCode}');
+      
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_languageCodeKey, locale.languageCode);
       await prefs.setString(_countryCodeKey, locale.countryCode ?? '');
+      
+      debugPrint('✅ [LanguageNotifier] Langue sauvegardée dans SharedPreferences');
+      
+      // Charger les traductions pour la nouvelle langue AVANT de changer le state
+      final translationService = TranslationService();
+      debugPrint('🔄 [LanguageNotifier] Chargement des traductions...');
+      await translationService.loadTranslations(locale);
+      
+      debugPrint('✅ [LanguageNotifier] Traductions chargées: ${translationService.isLoaded}');
+      debugPrint('✅ [LanguageNotifier] Locale service: ${translationService.currentLocale.languageCode}');
+      
+      // Attendre un petit délai pour s'assurer que les traductions sont chargées
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Maintenant changer le state (cela notifie les listeners)
       state = locale;
       
-      // Charger les traductions pour la nouvelle langue
-      await TranslationService().loadTranslations(locale);
-      
-      debugPrint('✅ Langue changée: ${locale.languageCode}-${locale.countryCode}');
+      debugPrint('✅ [LanguageNotifier] State mis à jour: ${locale.languageCode}-${locale.countryCode}');
     } catch (e) {
       debugPrint('❌ Erreur lors de la sauvegarde de la langue: $e');
     }

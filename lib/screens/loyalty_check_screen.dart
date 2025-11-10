@@ -107,14 +107,14 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
             Expanded(
               child: Text(
                 t('loyalty.account_not_found'),
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ],
         ),
         content: Text(
           t('loyalty.no_account_found'),
-          style: TextStyle(height: 1.4, fontSize: 14),
+          style: const TextStyle(height: 1.4, fontSize: 14),
         ),
         actions: [
           TextButton(
@@ -124,7 +124,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
             ),
             child: Text(
               t('common.cancel'),
-              style: TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 13),
             ),
           ),
           ElevatedButton(
@@ -144,7 +144,7 @@ class _LoyaltyCheckScreenState extends ConsumerState<LoyaltyCheckScreen> {
             ),
             child: Text(
               t('loyalty.register'),
-              style: TextStyle(fontSize: 13),
+              style: const TextStyle(fontSize: 13),
             ),
           ),
         ],

@@ -4,6 +4,7 @@ import 'package:ai_barcode_scanner/ai_barcode_scanner.dart';
 import '../models/embarkment_model.dart';
 import '../services/embarkment_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 
 class EmbarkmentDetailScreen extends StatefulWidget {
   final int departId;
@@ -65,8 +66,13 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
         });
       }
     } catch (e) {
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'charger',
+        error: e,
+        customMessage: 'Impossible de charger les détails. Veuillez réessayer.',
+      );
       setState(() {
-        _errorMessage = 'Erreur: ${e.toString()}';
+        _errorMessage = errorMessage;
         _isLoading = false;
       });
     }
@@ -226,9 +232,14 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
 
       // Afficher l'erreur
       if (mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'scanner',
+          error: e,
+          customMessage: 'Impossible de traiter le QR code. Veuillez réessayer.',
+        );
         _showResultDialog(
           success: false,
-          message: 'Erreur: ${e.toString()}',
+          message: errorMessage,
         );
       }
     }
@@ -312,9 +323,14 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
       setState(() {
         _isSearching = false;
       });
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'rechercher',
+        error: e,
+        customMessage: 'Impossible de rechercher le ticket. Veuillez réessayer.',
+      );
       _showResultDialog(
         success: false,
-        message: 'Erreur: ${e.toString()}',
+        message: errorMessage,
       );
     }
   }
@@ -347,9 +363,14 @@ class _EmbarkmentDetailScreenState extends State<EmbarkmentDetailScreen> {
         });
       }
     } catch (e) {
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'confirmer',
+        error: e,
+        customMessage: 'Impossible de confirmer l\'embarquement. Veuillez réessayer.',
+      );
       _showResultDialog(
         success: false,
-        message: 'Erreur: ${e.toString()}',
+        message: errorMessage,
       );
     }
   }

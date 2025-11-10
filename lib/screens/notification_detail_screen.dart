@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../providers/notification_provider.dart';
 import '../providers/language_provider.dart';
 import '../services/translation_service.dart';
+import '../utils/error_message_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'my_trips_screen.dart';
@@ -21,10 +22,12 @@ class NotificationDetailScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<NotificationDetailScreen> createState() => _NotificationDetailScreenState();
+  ConsumerState<NotificationDetailScreen> createState() =>
+      _NotificationDetailScreenState();
 }
 
-class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScreen> {
+class _NotificationDetailScreenState
+    extends ConsumerState<NotificationDetailScreen> {
   // Helper pour les traductions
   String t(String key) {
     return TranslationService().translate(key);
@@ -36,7 +39,9 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     // Marquer comme lue automatiquement quand on ouvre les détails
     if (!widget.notification.isRead) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(notificationProvider.notifier).markAsRead(widget.notification.id);
+        ref
+            .read(notificationProvider.notifier)
+            .markAsRead(widget.notification.id);
       });
     }
   }
@@ -63,36 +68,44 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
             // En-tête avec icône et statut
             _buildHeader(),
             const SizedBox(height: 24),
-            
+
             // Titre
             _buildTitle(),
             const SizedBox(height: 16),
-            
+
             // Message principal
             _buildMessage(),
             const SizedBox(height: 24),
-            
+
             // Informations supplémentaires
-            if (widget.notification.data != null && widget.notification.data!.isNotEmpty)
+            if (widget.notification.data != null &&
+                widget.notification.data!.isNotEmpty)
               _buildAdditionalInfo(),
-            
+
             const SizedBox(height: 24),
-            
+
             // Bouton d'action selon le type de notification
             _buildActionButton(),
-            
+
             const SizedBox(height: 24),
-            
+
             // Informations de timing
             _buildTimingInfo(),
-            
           ],
         ),
       ),
     );
   }
 
+  // Fonction helper pour obtenir la couleur primaire selon le thème
+  // Orange en mode dark, bleu en mode light
+  Color _getNotificationPrimaryColor() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+  }
+
   Widget _buildHeader() {
+    final primaryColor = _getNotificationPrimaryColor();
     return Row(
       children: [
         Container(
@@ -124,16 +137,20 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: widget.notification.isRead 
-                    ? Colors.green.withValues(alpha: 0.1)
-                    : AppTheme.primaryOrange.withValues(alpha: 0.1),
+                  color: widget.notification.isRead
+                      ? Colors.green.withValues(alpha: 0.1)
+                      : primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  widget.notification.isRead ? t('notification_detail.read') : t('notification_detail.unread'),
+                  widget.notification.isRead
+                      ? t('notification_detail.read')
+                      : t('notification_detail.unread'),
                   style: TextStyle(
                     fontSize: 10,
-                    color: widget.notification.isRead ? Colors.green[700] : AppTheme.primaryOrange,
+                    color: widget.notification.isRead
+                        ? Colors.green[700]
+                        : primaryColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -149,34 +166,39 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   Map<String, String> _translateNotification(NotificationModel notification) {
     final type = notification.type.toLowerCase();
     final data = notification.data ?? {};
-    
+
     String translatedTitle = notification.title;
     String translatedMessage = notification.message;
-    
+
     // Utiliser la même logique que dans home_page.dart
     switch (type) {
       case 'new_ticket':
       case 'ticket_created':
         translatedTitle = t('notifications.new_ticket_title');
         String route = '';
-        if (data.containsKey('destination') && data.containsKey('embarquement')) {
+        if (data.containsKey('destination') &&
+            data.containsKey('embarquement')) {
           route = '${data['embarquement']} → ${data['destination']}';
         } else if (data.containsKey('trajet')) {
           final trajet = data['trajet'];
           if (trajet is Map) {
-            route = '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
+            route =
+                '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
           }
         }
         if (route.isEmpty) {
           final message = notification.message;
-          final routeMatch = RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false).firstMatch(message);
+          final routeMatch =
+              RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false)
+                  .firstMatch(message);
           if (routeMatch != null) {
             route = routeMatch.group(1)?.trim() ?? '';
           }
         }
-        translatedMessage = t('notifications.new_ticket_message').replaceAll('{{route}}', route);
+        translatedMessage = t('notifications.new_ticket_message')
+            .replaceAll('{{route}}', route);
         break;
-        
+
       case 'loyalty_point':
       case 'points':
       case 'loyalty':
@@ -187,53 +209,61 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         } else if (data.containsKey('points')) {
           points = int.tryParse(data['points'].toString()) ?? 1;
         }
-        translatedMessage = t('notifications.loyalty_point_message').replaceAll('{{points}}', points.toString());
+        translatedMessage = t('notifications.loyalty_point_message')
+            .replaceAll('{{points}}', points.toString());
         break;
-        
+
       case 'new_mail_sender':
       case 'mail_created':
         translatedTitle = t('notifications.mail_created_title');
         String destination = data['destination']?.toString() ?? '';
-        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        String number =
+            data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
         translatedMessage = t('notifications.mail_created_message')
             .replaceAll('{{destination}}', destination)
             .replaceAll('{{number}}', number);
         break;
-        
+
       case 'new_mail_recipient':
       case 'mail_received':
         translatedTitle = t('notifications.mail_received_title');
-        String sender = data['sender']?.toString() ?? data['expediteur']?.toString() ?? '';
+        String sender =
+            data['sender']?.toString() ?? data['expediteur']?.toString() ?? '';
         String destination = data['destination']?.toString() ?? '';
-        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        String number =
+            data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
         translatedMessage = t('notifications.mail_received_message')
             .replaceAll('{{sender}}', sender)
             .replaceAll('{{destination}}', destination)
             .replaceAll('{{number}}', number);
         break;
-        
+
       case 'mail_collected':
         translatedTitle = t('notifications.mail_collected_title');
-        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
-        translatedMessage = t('notifications.mail_collected_message').replaceAll('{{number}}', number);
+        String number =
+            data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        translatedMessage = t('notifications.mail_collected_message')
+            .replaceAll('{{number}}', number);
         break;
-        
+
       case 'departure_time_changed':
       case 'departure_modified':
       case 'departure_updated':
         translatedTitle = t('notifications.departure_changed_title');
         String route = data['route']?.toString() ?? '';
-        String time = data['new_time']?.toString() ?? data['heure_depart']?.toString() ?? '';
+        String time = data['new_time']?.toString() ??
+            data['heure_depart']?.toString() ??
+            '';
         translatedMessage = t('notifications.departure_changed_message')
             .replaceAll('{{route}}', route)
             .replaceAll('{{time}}', time);
         break;
-        
+
       default:
         // Pour les autres types, utiliser les textes originaux
         break;
     }
-    
+
     return {
       'title': translatedTitle,
       'message': translatedMessage,
@@ -275,7 +305,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
 
   Widget _buildAdditionalInfo() {
     final data = widget.notification.data!;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -288,44 +318,53 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
           ),
         ),
         const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryOrange.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.primaryOrange.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ...data.entries.map((entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      child: Text(
-                        '${_formatDataKey(entry.key)}:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildValueWithAction(entry.key, entry.value.toString()),
-                    ),
-                  ],
+        Builder(
+          builder: (context) {
+            final primaryColor = _getNotificationPrimaryColor();
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: primaryColor.withValues(alpha: 0.3),
+                  width: 1,
                 ),
-              )),
-            ],
-          ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ...data.entries.map((entry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 100,
+                              child: Text(
+                                '${_formatDataKey(entry.key)}:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildValueWithAction(
+                                  entry.key, entry.value.toString()),
+                            ),
+                          ],
+                        ),
+                      )),
+                ],
+              ),
+            );
+          },
         ),
       ],
     );
@@ -334,6 +373,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   Widget _buildActionButton() {
     // Bouton pour les notifications de ticket
     if (widget.notification.type == 'new_ticket') {
+      final primaryColor = _getNotificationPrimaryColor();
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -348,7 +388,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryOrange,
+            backgroundColor: primaryColor,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -358,7 +398,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         ),
       );
     }
-    
+
     // Bouton pour les notifications de points de fidélité
     if (widget.notification.type == 'loyalty_point') {
       return SizedBox(
@@ -385,13 +425,14 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         ),
       );
     }
-    
+
     // Bouton pour les notifications de courrier
-    if (widget.notification.type == 'new_mail_sender' || 
+    if (widget.notification.type == 'new_mail_sender' ||
         widget.notification.type == 'new_mail_recipient' ||
         widget.notification.type == 'mail_collected' ||
         widget.notification.type == 'mail_created' ||
         widget.notification.type == 'mail_received') {
+      final primaryColor = _getNotificationPrimaryColor();
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton.icon(
@@ -406,7 +447,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryOrange,
+            backgroundColor: primaryColor,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -416,7 +457,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         ),
       );
     }
-    
+
     // Bouton pour les notifications de modification de départ
     if (widget.notification.type == 'departure_time_changed' ||
         widget.notification.type == 'departure_modified' ||
@@ -446,11 +487,11 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         ),
       );
     }
-    
+
     // Pas de bouton pour les autres types
     return const SizedBox.shrink();
   }
-  
+
   void _navigateToMails() {
     // Import nécessaire pour MyMailsScreen
     Navigator.of(context).push(
@@ -462,7 +503,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       ),
     );
   }
-  
+
   void _navigateToTrips() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -492,11 +533,11 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   Widget _buildTimingInfo() {
     // Utiliser le format de date selon la langue
     final locale = ref.watch(languageProvider);
-    final datePattern = locale.languageCode == 'fr' 
-        ? 'dd/MM/yyyy à HH:mm' 
+    final datePattern = locale.languageCode == 'fr'
+        ? 'dd/MM/yyyy à HH:mm'
         : 'MM/dd/yyyy at HH:mm';
     final formatter = DateFormat(datePattern);
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -516,20 +557,23 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
             ),
           ),
           const SizedBox(height: 8),
-          _buildInfoRow(t('notification_detail.received_on'), formatter.format(widget.notification.createdAt)),
+          _buildInfoRow(t('notification_detail.received_on'),
+              formatter.format(widget.notification.createdAt)),
           if (widget.notification.readAt != null)
-            _buildInfoRow(t('notification_detail.read_on'), formatter.format(widget.notification.readAt!)),
-          _buildInfoRow(t('notification_detail.time_ago'), _formatTimeAgo(widget.notification)),
+            _buildInfoRow(t('notification_detail.read_on'),
+                formatter.format(widget.notification.readAt!)),
+          _buildInfoRow(t('notification_detail.time_ago'),
+              _formatTimeAgo(widget.notification)),
         ],
       ),
     );
   }
-  
+
   String _formatTimeAgo(NotificationModel notification) {
     final locale = ref.watch(languageProvider);
     final now = DateTime.now();
     final difference = now.difference(notification.createdAt);
-    
+
     if (locale.languageCode == 'fr') {
       if (difference.inDays > 0) {
         return 'Il y a ${difference.inDays}j';
@@ -581,11 +625,10 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     );
   }
 
-
-
   Widget _buildValueWithAction(String key, String value) {
     // Vérifier si c'est un numéro de téléphone
-    if (key.toLowerCase().contains('phone') || key.toLowerCase().contains('telephone')) {
+    if (key.toLowerCase().contains('phone') ||
+        key.toLowerCase().contains('telephone')) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -626,7 +669,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         ],
       );
     }
-    
+
     // Vérifier si c'est la liste des bus (JSON)
     if (key.toLowerCase() == 'bus' && value.startsWith('[')) {
       try {
@@ -635,12 +678,16 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
           crossAxisAlignment: CrossAxisAlignment.start,
           children: busList.map((bus) {
             final statut = bus['statut'] ?? '';
-            final emoji = statut == 'overdue' ? '🔴' : statut == 'urgent' ? '🟠' : '🟡';
+            final emoji = statut == 'overdue'
+                ? '🔴'
+                : statut == 'urgent'
+                    ? '🟠'
+                    : '🟡';
             final joursRestants = bus['jours_restants'] ?? 0;
-            final texteJours = joursRestants < 0 
-                ? '${joursRestants.abs()} jour(s) de retard' 
+            final texteJours = joursRestants < 0
+                ? '${joursRestants.abs()} jour(s) de retard'
                 : '$joursRestants jour(s) restant(s)';
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
@@ -665,7 +712,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         );
       }
     }
-    
+
     // Pour les autres types de données, affichage normal
     return Text(
       value,
@@ -680,16 +727,16 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
     try {
       // Nettoyer le numéro de téléphone (garder seulement les chiffres et le +)
       final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-      
+
       // Vérifier que le numéro n'est pas vide après nettoyage
       if (cleanNumber.isEmpty) {
         _showErrorMessage(t('notification_detail.invalid_phone'));
         return;
       }
-      
+
       // Créer l'URI pour l'appel
       final Uri phoneUri = Uri(scheme: 'tel', path: cleanNumber);
-      
+
       // Vérifier si l'appareil peut faire des appels
       if (await canLaunchUrl(phoneUri)) {
         // Lancer l'appel
@@ -697,17 +744,23 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
           phoneUri,
           mode: LaunchMode.externalApplication,
         );
-        
+
         if (!success) {
           _showErrorMessage('Impossible d\'ouvrir l\'application de téléphone');
         }
       } else {
         // L'appareil ne peut pas faire d'appels (ex: simulateur, tablette sans téléphonie)
-        _showInfoMessage('Appel vers $cleanNumber\n(Fonctionnalité disponible sur appareil réel)');
+        _showInfoMessage(
+            'Appel vers $cleanNumber\n(Fonctionnalité disponible sur appareil réel)');
       }
     } catch (e) {
       // Erreur générale
-      _showErrorMessage('Erreur lors de l\'appel téléphonique: ${e.toString()}');
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'appeler',
+        error: e,
+        customMessage: 'Impossible de passer l\'appel. Veuillez réessayer.',
+      );
+      _showErrorMessage(errorMessage);
     }
   }
 
@@ -722,10 +775,11 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   }
 
   void _showInfoMessage(String message) {
+    final primaryColor = _getNotificationPrimaryColor();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppTheme.primaryOrange,
+        backgroundColor: primaryColor,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -744,18 +798,20 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(notificationProvider.notifier).deleteNotification(widget.notification.id);
+              ref
+                  .read(notificationProvider.notifier)
+                  .deleteNotification(widget.notification.id);
               Navigator.pop(context); // Fermer la dialog
               Navigator.pop(context); // Retourner à la liste
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text(t('notification_detail.delete'), style: const TextStyle(color: Colors.white)),
+            child: Text(t('notification_detail.delete'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
-
 
   IconData _getTypeIcon() {
     switch (widget.notification.getIconType()) {
@@ -781,15 +837,16 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
   }
 
   Color _getTypeColor() {
+    final primaryColor = _getNotificationPrimaryColor();
     switch (widget.notification.getIconType()) {
       case 'ticket':
-        return AppTheme.primaryOrange;
+        return primaryColor;
       case 'mail':
-        return AppTheme.primaryOrange;
+        return primaryColor;
       case 'points':
         return Colors.amber;
       case 'feedback':
-        return AppTheme.primaryOrange;
+        return primaryColor;
       case 'status':
         return Colors.orange;
       case 'offer':
@@ -799,7 +856,7 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
       case 'alert':
         return Colors.red;
       default:
-        return AppTheme.primaryOrange;
+        return primaryColor;
     }
   }
 
@@ -974,9 +1031,12 @@ class _NotificationDetailScreenState extends ConsumerState<NotificationDetailScr
         return t('notification_detail.data_count');
       default:
         // Remplacer les underscores par des espaces et mettre en forme
-        return key.replaceAll('_', ' ')
+        return key
+            .replaceAll('_', ' ')
             .split(' ')
-            .map((word) => word.isNotEmpty ? word[0].toUpperCase() + word.substring(1).toLowerCase() : '')
+            .map((word) => word.isNotEmpty
+                ? word[0].toUpperCase() + word.substring(1).toLowerCase()
+                : '')
             .join(' ');
     }
   }

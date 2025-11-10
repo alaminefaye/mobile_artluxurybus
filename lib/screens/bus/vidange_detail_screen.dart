@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/bus_models.dart';
 import 'vidange_form_screen.dart';
 import '../../services/bus_api_service.dart';
+import '../../utils/error_message_helper.dart';
 
 class VidangeDetailScreen extends StatelessWidget {
   final BusVidange vidange;
@@ -390,9 +391,14 @@ class VidangeDetailScreen extends StatelessWidget {
       
       // Afficher l'erreur
       if (context.mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'mettre à jour',
+          error: e,
+          customMessage: 'Impossible de marquer la vidange comme terminée. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Erreur: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -502,9 +508,14 @@ class VidangeDetailScreen extends StatelessWidget {
       
       // Afficher l'erreur
       if (context.mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'supprimer',
+          error: e,
+          customMessage: 'Impossible de supprimer la vidange. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Erreur: $e'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),

@@ -16,7 +16,7 @@ class MailDetailScreen extends StatefulWidget {
 
 class _MailDetailScreenState extends State<MailDetailScreen> {
   late MailModel _mail;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   // Helper pour les traductions
   String t(String key) {
@@ -186,7 +186,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                         const SizedBox(height: 12),
                         Text(
                           t('mail_detail.signature'),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.w500,
                             color: Colors.grey,
                           ),
@@ -226,7 +226,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       icon: const Icon(Icons.chat, size: 20),
                       label: Text(
                         t('mail_detail.send_tracking'),
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -244,7 +244,7 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                         icon: const Icon(Icons.check_circle),
                         label: Text(
                           t('mail_detail.mark_as_collected'),
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
                     ),

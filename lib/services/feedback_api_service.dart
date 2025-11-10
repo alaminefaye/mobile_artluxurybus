@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class FeedbackApiService {
@@ -232,18 +233,18 @@ class FeedbackApiService {
     String? deviceId,
   }) async {
     // Débugger le token d'authentification
-    print(
-        '🔑 [FeedbackApiService] Token auth: ${_token != null ? _token!.substring(0, 20) + "..." : "NULL"}');
+    debugPrint(
+        '🔑 [FeedbackApiService] Token auth: ${_token != null ? '${_token!.substring(0, 20)}...' : "NULL"}');
 
     if (_token == null) {
-      print('❌ [FeedbackApiService] PAS DE TOKEN D\'AUTHENTIFICATION !');
+      debugPrint('❌ [FeedbackApiService] PAS DE TOKEN D\'AUTHENTIFICATION !');
       throw Exception('Token d\'authentification requis');
     }
 
     try {
-      print('📤 [FeedbackApiService] Envoi requête FCM...');
-      print('📤 URL: $baseUrl/fcm/register-token');
-      print('📤 Headers: $_headers');
+      debugPrint('📤 [FeedbackApiService] Envoi requête FCM...');
+      debugPrint('📤 URL: $baseUrl/fcm/register-token');
+      debugPrint('📤 Headers: $_headers');
 
       final response = await http.post(
         Uri.parse('$baseUrl/fcm/register-token'),
@@ -257,22 +258,22 @@ class FeedbackApiService {
 
       final data = jsonDecode(response.body);
 
-      print('📥 [FeedbackApiService] Réponse: ${response.statusCode}');
-      print('📥 Body: $data');
+      debugPrint('📥 [FeedbackApiService] Réponse: ${response.statusCode}');
+      debugPrint('📥 Body: $data');
 
       if (response.statusCode == 200) {
-        print('✅ [FeedbackApiService] Token FCM enregistré !');
+        debugPrint('✅ [FeedbackApiService] Token FCM enregistré !');
         return data;
       } else {
-        print(
+        debugPrint(
             '❌ [FeedbackApiService] Erreur ${response.statusCode}: ${data['message']}');
         throw Exception(data['message'] ?? 'Erreur lors de l\'enregistrement');
       }
     } on SocketException {
-      print('❌ [FeedbackApiService] Pas de connexion internet');
+      debugPrint('❌ [FeedbackApiService] Pas de connexion internet');
       throw Exception('Pas de connexion internet');
     } catch (e) {
-      print('❌ [FeedbackApiService] Exception: $e');
+      debugPrint('❌ [FeedbackApiService] Exception: $e');
       throw Exception('Erreur: ${e.toString()}');
     }
   }

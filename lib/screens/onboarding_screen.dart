@@ -1,429 +1,641 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../services/onboarding_service.dart';
+import '../providers/language_provider.dart';
+import '../providers/theme_provider.dart' as theme_provider;
 import '../theme/app_theme.dart';
+import '../services/translation_service.dart';
 import 'auth/login_screen.dart';
-import 'public_screen.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: const Interval(0.3, 1.0, curve: Curves.easeInOut),
-    ));
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutBack,
-    ));
-
-    _animationController.forward();
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage < 2) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _completeOnboarding();
+    }
+  }
+
+  void _onPageChanged(int page) {
+    setState(() {
+      _currentPage = page;
+    });
+  }
+
+  Future<void> _completeOnboarding() async {
+    // S'assurer que les traductions sont bien chargées avant de naviguer
+    final currentLanguage = ref.read(languageProvider);
+    final translationService = TranslationService();
+    
+    debugPrint('🔄 [Onboarding] _completeOnboarding - Langue: ${currentLanguage.languageCode}');
+    debugPrint('   - Traductions chargées: ${translationService.isLoaded}');
+    debugPrint('   - Locale service: ${translationService.currentLocale.languageCode}');
+    
+    // Toujours recharger les traductions pour s'assurer qu'elles sont à jour
+    debugPrint('🔄 [Onboarding] Rechargement des traductions...');
+    await translationService.loadTranslations(currentLanguage);
+    
+    debugPrint('✅ [Onboarding] Traductions rechargées: ${translationService.isLoaded}');
+    debugPrint('   - Locale après chargement: ${translationService.currentLocale.languageCode}');
+    
+    // Attendre un délai pour s'assurer que tout est prêt
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    await OnboardingService.completeOnboarding();
+    
+    // Vérifier une dernière fois que les traductions sont chargées
+    final finalCheck = TranslationService();
+    if (!finalCheck.isLoaded || finalCheck.currentLocale != currentLanguage) {
+      debugPrint('⚠️ [Onboarding] Dernière vérification - rechargement nécessaire');
+      await finalCheck.loadTranslations(currentLanguage);
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+    
+    if (mounted) {
+      debugPrint('✅ [Onboarding] Navigation vers LoginScreen avec langue: ${currentLanguage.languageCode}');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final screenWidth = screenSize.width;
-    final screenHeight = screenSize.height;
-
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.primaryBlue,
-              AppTheme.primaryBlue.withValues(alpha: 0.8),
-              AppTheme.primaryOrange.withValues(alpha: 0.3),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Bouton retour discret sans fond
-              Positioned(
-                top: screenHeight * 0.02,
-                left: screenWidth * 0.04,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.arrow_back_rounded,
-                    color: Colors.white,
-                    size: screenWidth * 0.07,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              
-              // Contenu principal
-              SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: screenHeight - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom,
-                  ),
-                  child: Column(
-                    children: [
-                    SizedBox(height: screenHeight * 0.08),
-
-                // Contenu principal sans boîte blanche
-                SlideTransition(
-                  position: _slideAnimation,
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Column(
-                      children: [
-                        // Logo central avec fond blanc
-                        Container(
-                          width: screenWidth * 0.18,
-                          height: screenWidth * 0.18,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(screenWidth * 0.045),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                spreadRadius: 2,
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(screenWidth * 0.045),
-                            child: Padding(
-                              padding: EdgeInsets.all(screenWidth * 0.025),
-                              child: Image.asset(
-                                '12.png',
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.04),
-
-                        // Titre principal en blanc
-                        Text(
-                          'Transport de Luxe',
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.08,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withValues(alpha: 0.3),
-                                offset: const Offset(0, 2),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        // Description en blanc
-                        Text(
-                          'Service de transport de classe nationale',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.045,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontWeight: FontWeight.w400,
-                            height: 1.4,
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.015),
-
-                        Text(
-                          'Lignes : Abidjan 🚌 Bouaké 🚌 Yamoussoukro',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.04,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.04),
-
-                        // Features modernes en blanc
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildCompactFeature(
-                              Icons.security_rounded,
-                              'Sécurité',
-                              Colors.white,
-                              screenWidth,
-                            ),
-                            _buildCompactFeature(
-                              Icons.star_rounded,
-                              'Confort',
-                              Colors.white,
-                              screenWidth,
-                            ),
-                            _buildCompactFeature(
-                              Icons.schedule_rounded,
-                              'Ponctuel',
-                              Colors.white,
-                              screenWidth,
-                            ),
-                          ],
-                        ),
-                      ],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Indicateur de progression
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: _currentPage == index ? 24 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: _currentPage == index
+                          ? (Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.primaryOrange
+                              : AppTheme.primaryBlue)
+                          : Theme.of(context).dividerColor,
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                  ),
-                ),
+                  );
+                }),
+              ),
+            ),
 
-                SizedBox(height: screenHeight * 0.04),
+            // Pages
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                children: [
+                  _buildLanguagePage(),
+                  _buildThemePage(),
+                  _buildWelcomePage(),
+                ],
+              ),
+            ),
 
-                // Boutons d'action compacts
-                SlideTransition(
-                  position: _slideAnimation,
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-                      child: Column(
-                        children: [
-                          // Bouton Connexion
-                          Container(
-                            width: double.infinity,
-                            height: screenHeight * 0.06,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white,
-                                  Colors.white.withValues(alpha: 0.9),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(screenWidth * 0.06),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  spreadRadius: 1,
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginScreen(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(screenWidth * 0.06),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.directions_bus_filled_rounded,
-                                    size: screenWidth * 0.05,
-                                    color: AppTheme.primaryBlue,
-                                  ),
-                                  SizedBox(width: screenWidth * 0.02),
-                                  Text(
-                                    'CONNEXION',
-                                    style: TextStyle(
-                                      fontSize: screenWidth * 0.04,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.primaryBlue,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(height: screenHeight * 0.02),
-
-                          // Bouton Inscription
-                          Container(
-                            width: double.infinity,
-                            height: screenHeight * 0.06,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                width: 2,
-                              ),
-                              borderRadius: BorderRadius.circular(screenWidth * 0.06),
-                              color: Colors.white.withValues(alpha: 0.1),
-                            ),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Row(
-                                      children: [
-                                        Icon(Icons.info_rounded, color: Colors.white),
-                                        SizedBox(width: 12),
-                                        Text('Inscription bientôt disponible !'),
-                                      ],
-                                    ),
-                                    backgroundColor: AppTheme.primaryOrange,
-                                    duration: const Duration(seconds: 2),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(screenWidth * 0.06),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.person_add_rounded,
-                                    color: Colors.white,
-                                    size: screenWidth * 0.05,
-                                  ),
-                                  SizedBox(width: screenWidth * 0.02),
-                                  Text(
-                                    'INSCRIPTION',
-                                    style: TextStyle(
-                                      fontSize: screenWidth * 0.04,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          SizedBox(height: screenHeight * 0.025),
-
-                          // Bouton "Pas maintenant"
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const PublicScreen(),
-                                ),
-                              );
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  size: screenWidth * 0.04,
-                                ),
-                                SizedBox(width: screenWidth * 0.02),
-                                Text(
-                                  'Pas maintenant',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                    fontSize: screenWidth * 0.035,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+            // Bouton suivant/passer
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (_currentPage > 0)
+                    TextButton(
+                      onPressed: () {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      child: Text(
+                        t('common.back'),
+                        style: TextStyle(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.primaryOrange
+                              : AppTheme.primaryBlue,
+                          fontSize: 16,
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  ElevatedButton(
+                    onPressed: _nextPage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryBlue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      _currentPage == 2
+                          ? t('onboarding.get_started')
+                          : t('common.next'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ),
-
-                SizedBox(height: screenHeight * 0.04),
-                    ],
-                  ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildCompactFeature(IconData icon, String label, Color color, double screenWidth) {
-    return Column(
+  // Page 1: Sélection de la langue
+  Widget _buildLanguagePage() {
+    final currentLanguage = ref.watch(languageProvider);
+    final languageNotifier = ref.read(languageProvider.notifier);
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+          // Icône
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.language,
+              size: 40,
+              color: AppTheme.primaryBlue,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Titre
+          Text(
+            t('onboarding.select_language'),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.primaryOrange
+                  : AppTheme.primaryBlue,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+
+          // Description
+          Text(
+            t('onboarding.select_language_description'),
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+                  Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+
+          // Options de langue
+          _buildLanguageOption(
+            locale: const Locale('fr', 'FR'),
+            name: 'Français',
+            flag: '🇫🇷',
+            isSelected: currentLanguage.languageCode == 'fr',
+            onTap: () async {
+              await languageNotifier.setLanguage(const Locale('fr', 'FR'));
+              if (mounted) {
+                setState(() {}); // Forcer le rebuild
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildLanguageOption(
+            locale: const Locale('en', 'US'),
+            name: 'English',
+            flag: '🇬🇧',
+            isSelected: currentLanguage.languageCode == 'en',
+            onTap: () async {
+              await languageNotifier.setLanguage(const Locale('en', 'US'));
+              if (mounted) {
+                setState(() {}); // Forcer le rebuild
+              }
+            },
+          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption({
+    required Locale locale,
+    required String name,
+    required String flag,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.primaryOrange.withValues(alpha: 0.2)
+                  : AppTheme.primaryBlue.withValues(alpha: 0.1))
+              : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? (Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.primaryOrange
+                    : AppTheme.primaryBlue)
+                : Theme.of(context).dividerColor,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(
+              flag,
+              style: const TextStyle(fontSize: 28),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected
+                      ? (Theme.of(context).brightness == Brightness.dark
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryBlue)
+                      : Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.primaryOrange
+                    : AppTheme.primaryBlue,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Page 2: Sélection du thème
+  Widget _buildThemePage() {
+    final currentTheme = ref.watch(theme_provider.themeModeProvider);
+    final themeNotifier = ref.read(theme_provider.themeModeProvider.notifier);
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+          // Icône
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.palette,
+              size: 40,
+              color: AppTheme.primaryOrange,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Titre
+          Text(
+            t('onboarding.select_theme'),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.primaryOrange
+                  : AppTheme.primaryBlue,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+
+          // Description
+          Text(
+            t('onboarding.select_theme_description'),
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+                  Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+
+          // Options de thème
+          _buildThemeOption(
+            mode: theme_provider.ThemeMode.light,
+            name: t('onboarding.theme_light'),
+            icon: Icons.light_mode,
+            description: t('onboarding.theme_light_description'),
+            isSelected: currentTheme == theme_provider.ThemeMode.light,
+            onTap: () async {
+              await themeNotifier.setThemeMode(theme_provider.ThemeMode.light);
+              if (mounted) {
+                setState(() {});
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildThemeOption(
+            mode: theme_provider.ThemeMode.dark,
+            name: t('onboarding.theme_dark'),
+            icon: Icons.dark_mode,
+            description: t('onboarding.theme_dark_description'),
+            isSelected: currentTheme == theme_provider.ThemeMode.dark,
+            onTap: () async {
+              await themeNotifier.setThemeMode(theme_provider.ThemeMode.dark);
+              if (mounted) {
+                setState(() {});
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildThemeOption(
+            mode: theme_provider.ThemeMode.system,
+            name: t('onboarding.theme_system'),
+            icon: Icons.brightness_auto,
+            description: t('onboarding.theme_system_description'),
+            isSelected: currentTheme == theme_provider.ThemeMode.system,
+            onTap: () async {
+              await themeNotifier.setThemeMode(theme_provider.ThemeMode.system);
+              if (mounted) {
+                setState(() {});
+              }
+            },
+          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption({
+    required theme_provider.ThemeMode mode,
+    required String name,
+    required IconData icon,
+    required String description,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryOrange.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.1)
+              : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primaryOrange
+                : Theme.of(context).dividerColor,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppTheme.primaryOrange.withValues(alpha: 0.2)
+                    : Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: isSelected
+                    ? AppTheme.primaryOrange
+                    : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? AppTheme.primaryOrange
+                          : Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: AppTheme.primaryOrange,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Page 3: Page de bienvenue
+  Widget _buildWelcomePage() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+          // Logo
+          Container(
+            width: 100,
+            height: 100,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: (Theme.of(context).brightness == Brightness.dark
+                      ? AppTheme.primaryOrange
+                      : AppTheme.primaryBlue).withValues(alpha: 0.15),
+                  spreadRadius: 6,
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                '12.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          // Titre
+          Text(
+            t('onboarding.welcome_title'),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppTheme.primaryOrange
+                  : AppTheme.primaryBlue,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+
+          // Description
+          Text(
+            t('onboarding.welcome_description'),
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
+                  Colors.grey.shade600,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+
+          // Points de fonctionnalités
+          _buildFeatureItem(
+            icon: Icons.directions_bus,
+            text: t('onboarding.feature_transport'),
+          ),
+          const SizedBox(height: 12),
+          _buildFeatureItem(
+            icon: Icons.card_giftcard,
+            text: t('onboarding.feature_loyalty'),
+          ),
+          const SizedBox(height: 12),
+          _buildFeatureItem(
+            icon: Icons.notifications,
+            text: t('onboarding.feature_notifications'),
+          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem({
+    required IconData icon,
+    required String text,
+  }) {
+    final primaryColor = Theme.of(context).brightness == Brightness.dark
+        ? AppTheme.primaryOrange
+        : AppTheme.primaryBlue;
+    
+    return Row(
       children: [
         Container(
-          width: screenWidth * 0.1,
-          height: screenWidth * 0.1,
+          padding: const EdgeInsets.all(7),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(screenWidth * 0.025),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.4),
-              width: 1.5,
-            ),
+            color: primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(7),
           ),
           child: Icon(
             icon,
-            color: Colors.white,
-            size: screenWidth * 0.05,
+            color: primaryColor,
+            size: 20,
           ),
         ),
-        SizedBox(height: screenWidth * 0.02),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: screenWidth * 0.03,
-            fontWeight: FontWeight.w600,
-            color: Colors.white.withValues(alpha: 0.9),
-            letterSpacing: 0.3,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).textTheme.bodyLarge?.color,
+            ),
           ),
         ),
       ],

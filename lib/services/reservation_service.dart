@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../utils/api_config.dart';
+import '../utils/error_message_helper.dart';
 
 class ReservationService {
   static String? _token;
@@ -329,7 +330,10 @@ class ReservationService {
       
       return {
         'success': false,
-        'message': 'Erreur de connexion: ${e.toString()}',
+        'message': ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+        ),
         'error': e.toString(),
       };
     }

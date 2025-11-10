@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/client_registration_models.dart';
 import '../services/client_registration_service.dart';
+import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/loading_indicator.dart';
 import 'create_account_screen.dart';
@@ -22,6 +22,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
 
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void dispose() {
@@ -116,12 +121,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                     : Colors.blue,
               ),
               const SizedBox(width: 8),
-              const Text('Compte existant'),
+              Text(t('client_search.client_has_account')),
             ],
           ),
           content: Text(
-            'Bonjour ${client.nomComplet}!\n\n'
-            'Vous avez déjà un compte. Veuillez vous connecter.',
+            '${t('client_search.client_has_account_message')}\n\n${client.nomComplet}',
           ),
           actions: [
             TextButton(
@@ -134,7 +138,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                     ? Colors.orange
                     : Colors.blue,
               ),
-              child: const Text('OK'),
+              child: Text(t('common.ok')),
             ),
             ElevatedButton(
               onPressed: () {
@@ -148,7 +152,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                     ? Colors.orange
                     : Colors.blue,
               ),
-              child: const Text('Se connecter'),
+              child: Text(t('auth.login_button')),
             ),
           ],
         ),
@@ -160,16 +164,15 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.person_add, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Nouveau client'),
+            const Icon(Icons.person_add, color: Colors.orange),
+            const SizedBox(width: 8),
+            Text(t('client_search.client_not_found')),
           ],
         ),
-        content: const Text(
-          'Aucun client trouvé avec ce numéro.\n\n'
-          'Souhaitez-vous créer un nouveau compte ?',
+        content: Text(
+          t('client_search.client_not_found_message'),
         ),
         actions: [
           TextButton(
@@ -179,7 +182,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                   ? Colors.orange
                   : Colors.blue,
             ),
-            child: const Text('Annuler'),
+            child: Text(t('client_search.cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -191,7 +194,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                   ? Colors.orange
                   : Colors.blue,
             ),
-            child: const Text('Créer un compte'),
+            child: Text(t('client_search.create_account')),
           ),
         ],
       ),
@@ -222,7 +225,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inscription'),
+        title: Text(t('client_search.title')),
         elevation: 0,
       ),
       body: SafeArea(
@@ -257,11 +260,12 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 const SizedBox(height: 32),
 
                 // Titre
-                const Text(
-                  'Recherche de votre profil',
+                Text(
+                  t('client_search.search_client'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -270,10 +274,10 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
 
                 // Description
                 Text(
-                  'Entrez votre numéro de téléphone pour vérifier si vous êtes déjà enregistré',
+                  t('client_search.phone_number_hint'),
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -294,13 +298,13 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                         : Colors.black,
                   ),
                   decoration: InputDecoration(
-                    labelText: 'Numéro de téléphone',
+                    labelText: t('client_search.phone_number'),
                     labelStyle: TextStyle(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? AppTheme.primaryOrange
-                          : null,
+                          : AppTheme.primaryBlue,
                     ),
-                    hintText: '0123456789',
+                    hintText: t('client_search.phone_number_hint'),
                     hintStyle: TextStyle(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.grey[400]
@@ -322,15 +326,15 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Veuillez entrer votre numéro de téléphone';
+                      return t('client_search.phone_required');
                     }
                     // Vérifier exactement 10 chiffres
                     if (value.length != 10) {
-                      return 'Le numéro doit contenir exactement 10 chiffres';
+                      return t('client_search.phone_required');
                     }
                     // Vérifier que ce sont bien des chiffres
                     if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                      return 'Veuillez entrer uniquement des chiffres';
+                      return t('client_search.phone_required');
                     }
                     return null;
                   },
@@ -395,13 +399,13 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                       ),
                     ),
                     child: _isLoading
-                        ? LoadingIndicator(
+                        ? const LoadingIndicator(
                             size: 20,
                             strokeWidth: 2,
                           )
-                        : const Text(
-                            'Rechercher',
-                            style: TextStyle(
+                        : Text(
+                            t('client_search.search'),
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -436,7 +440,7 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                 OutlinedButton.icon(
                   onPressed: _navigateToRegisterNewClient,
                   icon: const Icon(Icons.person_add),
-                  label: const Text('Créer un nouveau compte'),
+                  label: Text(t('client_search.register_new_client')),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -476,13 +480,13 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Si vous avez déjà voyagé avec nous, vos informations sont peut-être déjà enregistrées. Recherchez d\'abord votre profil.',
+                          t('client_search.phone_number_hint'),
                           style: TextStyle(
                             fontSize: 13,
                             color:
                                 Theme.of(context).brightness == Brightness.dark
                                     ? AppTheme.primaryOrange
-                                    : Colors.blue[900],
+                                    : AppTheme.primaryBlue,
                             height: 1.4,
                           ),
                         ),

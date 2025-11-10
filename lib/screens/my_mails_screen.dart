@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../models/mail_model.dart';
 import '../services/mail_api_service.dart';
 import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 
 class MyMailsScreen extends StatefulWidget {
   const MyMailsScreen({super.key});
@@ -49,8 +49,13 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
       });
     } catch (e) {
       debugPrint('❌ Erreur chargement courriers: $e');
+      final errorMessage = ErrorMessageHelper.getOperationError(
+        'charger',
+        error: e,
+        customMessage: 'Impossible de charger vos courriers. Veuillez réessayer.',
+      );
       setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
+        _errorMessage = errorMessage;
         _isLoading = false;
       });
     }
@@ -188,7 +193,7 @@ class _MyMailsScreenState extends State<MyMailsScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(t('mail.client_profile_required')),
-                      duration: Duration(seconds: 4),
+                      duration: const Duration(seconds: 4),
                     ),
                   );
                 },
@@ -603,7 +608,7 @@ class MailDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.local_shipping_rounded,
                       color: AppTheme.primaryOrange,
                       size: 32,
@@ -713,6 +718,31 @@ class MailDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
+            // Photo du colis
+            if (mail.photo != null && mail.photo!.isNotEmpty) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('mail_detail.mail_photo'),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildMailPhoto(context, mail.photoUrl ?? mail.photo!),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Statut
             Card(
               child: Padding(
@@ -819,6 +849,134 @@ class MailDetailScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMailPhoto(BuildContext context, String photoPath) {
+    // Construire l'URL complète de la photo
+    String imageUrl = photoPath;
+    if (!photoPath.startsWith('http')) {
+      // Si le chemin est relatif, construire l'URL complète
+      if (photoPath.startsWith('images/mails/')) {
+        imageUrl = 'https://skf-artluxurybus.com/$photoPath';
+      } else {
+        // Pour les anciens chemins dans storage
+        imageUrl = 'https://skf-artluxurybus.com/storage/$photoPath';
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // Afficher la photo en plein écran
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Stack(
+              children: [
+                Center(
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.image_not_supported,
+                                  color: Colors.grey.shade400, size: 48),
+                              const SizedBox(height: 8),
+                              Text(
+                                t('mail_detail.photo_unavailable'),
+                                style: TextStyle(
+                                    color: Colors.grey.shade600, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 40,
+                  right: 20,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    onPressed: () => Navigator.pop(context),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black54,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.grey.shade50,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: Image.network(
+            imageUrl,
+            width: double.infinity,
+            height: 300,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 300,
+                alignment: Alignment.center,
+                color: Colors.grey.shade200,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.image_not_supported,
+                        color: Colors.grey.shade400, size: 48),
+                    const SizedBox(height: 8),
+                    Text(
+                      t('mail_detail.photo_unavailable'),
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      t('mail_detail.tap_to_retry'),
+                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                height: 300,
+                alignment: Alignment.center,
+                color: Colors.grey.shade100,
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }

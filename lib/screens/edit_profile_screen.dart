@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 import '../services/translation_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_message_helper.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -26,6 +27,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   // Helper pour les traductions
   String t(String key) {
     return TranslationService().translate(key);
+  }
+
+  // Fonction helper pour obtenir la couleur primaire selon le thème
+  // Orange en mode dark, bleu en mode light
+  Color _getPrimaryColor() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
   }
 
   @override
@@ -66,9 +74,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'sélectionner',
+          error: e,
+          customMessage: 'Impossible de sélectionner la photo. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${t("profile.selection_error")}: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -98,44 +111,54 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.photo_library, color: AppTheme.primaryOrange),
-              ),
-              title: Text(
-                t('profile.gallery'),
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.camera_alt, color: AppTheme.primaryOrange),
-              ),
-              title: Text(
-                t('profile.camera'),
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
+            Builder(
+              builder: (context) {
+                final primaryColor = _getPrimaryColor();
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.photo_library, color: primaryColor),
+                      ),
+                      title: Text(
+                        t('profile.gallery'),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickImage(ImageSource.gallery);
+                      },
+                    ),
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(Icons.camera_alt, color: primaryColor),
+                      ),
+                      title: Text(
+                        t('profile.camera'),
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickImage(ImageSource.camera);
+                      },
+                    ),
+                  ],
+                );
               },
             ),
             const SizedBox(height: 10),
@@ -171,7 +194,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   Expanded(
                     child: Text(
                       t('profile.photo_updated'),
-                      style: TextStyle(fontSize: 14),
+                      style: const TextStyle(fontSize: 14),
                     ),
                   ),
                 ],
@@ -196,9 +219,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'sauvegarder',
+          error: e,
+          customMessage: 'Impossible de sauvegarder les modifications. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -280,9 +308,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'sauvegarder',
+          error: e,
+          customMessage: 'Impossible de sauvegarder les modifications. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -330,44 +363,54 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               child: CircularProgressIndicator(),
                             ),
                           )
-                        : CircleAvatar(
-                      radius: 50,
-                      backgroundColor: AppTheme.primaryOrange.withValues(alpha: 0.2),
-                      backgroundImage: _selectedImage != null
-                          ? FileImage(_selectedImage!)
-                          : (user?.profilePhotoUrl != null
-                              ? NetworkImage(user!.profilePhotoUrl!)
-                              : null) as ImageProvider?,
-                      child: _selectedImage == null && user?.profilePhotoUrl == null
-                          ? Text(
-                        user?.name.isNotEmpty == true
-                            ? user!.name[0].toUpperCase()
-                            : 'U',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryOrange,
-                        ),
-                      ) : null,
-                    ),
+                        : Builder(
+                            builder: (context) {
+                              final primaryColor = _getPrimaryColor();
+                              return CircleAvatar(
+                                radius: 50,
+                                backgroundColor: primaryColor.withValues(alpha: 0.2),
+                                backgroundImage: _selectedImage != null
+                                    ? FileImage(_selectedImage!)
+                                    : (user?.profilePhotoUrl != null
+                                        ? NetworkImage(user!.profilePhotoUrl!)
+                                        : null) as ImageProvider?,
+                                child: _selectedImage == null && user?.profilePhotoUrl == null
+                                    ? Text(
+                                        user?.name.isNotEmpty == true
+                                            ? user!.name[0].toUpperCase()
+                                            : 'U',
+                                        style: TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: primaryColor,
+                                        ),
+                                      ) : null,
+                              );
+                            },
+                          ),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: GestureDetector(
-                        onTap: _isUploadingPhoto ? null : _showImageSourceDialog,
-                        child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryOrange,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
+                      child: Builder(
+                        builder: (context) {
+                          final primaryColor = _getPrimaryColor();
+                          return GestureDetector(
+                            onTap: _isUploadingPhoto ? null : _showImageSourceDialog,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: primaryColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -424,17 +467,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               const SizedBox(height: 32),
 
               // Bouton Enregistrer
-              ElevatedButton(
-                onPressed: _isLoading ? null : _updateProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
+              Builder(
+                builder: (context) {
+                  final primaryColor = _getPrimaryColor();
+                  return ElevatedButton(
+                    onPressed: _isLoading ? null : _updateProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
@@ -452,29 +498,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
               // Bouton Changer le mot de passe
-              OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: Navigation vers écran de changement de mot de passe
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(t('security.feature_coming')),
+              Builder(
+                builder: (context) {
+                  final primaryColor = _getPrimaryColor();
+                  return OutlinedButton.icon(
+                    onPressed: () {
+                      // TODO: Navigation vers écran de changement de mot de passe
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(t('security.feature_coming')),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.lock_outline),
+                    label: Text(t('security.change_password')),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: primaryColor,
+                      side: BorderSide(color: primaryColor),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   );
                 },
-                icon: const Icon(Icons.lock_outline),
-                label: Text(t('security.change_password')),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppTheme.primaryOrange,
-                  side: const BorderSide(color: AppTheme.primaryOrange),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
               ),
             ],
           ),
@@ -502,7 +555,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         labelStyle: TextStyle(
           color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
         ),
-        prefixIcon: Icon(icon, color: AppTheme.primaryOrange),
+        prefixIcon: Builder(
+          builder: (context) => Icon(icon, color: _getPrimaryColor()),
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
@@ -521,7 +576,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+          borderSide: BorderSide(color: _getPrimaryColor(), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

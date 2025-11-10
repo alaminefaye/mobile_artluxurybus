@@ -318,7 +318,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   // Section Fidélité courrier
                   Card(
                     color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.blue.shade900.withOpacity(0.3)
+                        ? Colors.blue.shade900.withValues(alpha: 0.3)
                         : Colors.blue.shade50,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -327,7 +327,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.card_giftcard,
                                 color: Colors.orange,
                               ),
@@ -365,11 +365,11 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                   decoration: InputDecoration(
                                     hintText: 'Ex: 0123456789',
                                     hintStyle: TextStyle(
-                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                                     ),
                                     prefixIcon: Icon(
                                       Icons.phone,
-                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                                     ),
                                     border: OutlineInputBorder(
                                       borderSide: BorderSide(
@@ -400,7 +400,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                 ),
                                 child: _isCheckingLoyalty
-                                    ? LoadingIndicator(
+                                    ? const LoadingIndicator(
                                         size: 20,
                                         strokeWidth: 2,
                                       )
@@ -415,10 +415,10 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                               decoration: BoxDecoration(
                                 color: _canUseFreeMail
                                     ? (Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.green.shade900.withOpacity(0.3)
+                                        ? Colors.green.shade900.withValues(alpha: 0.3)
                                         : Colors.green.shade100)
                                     : (Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.orange.shade900.withOpacity(0.3)
+                                        ? Colors.orange.shade900.withValues(alpha: 0.3)
                                         : Colors.orange.shade100),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
@@ -486,7 +486,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                                     Text(
                                       '${10 - _clientPoints} points restants pour un courrier gratuit',
                                       style: TextStyle(
-                                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) ?? Colors.grey.shade700,
+                                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ?? Colors.grey.shade700,
                                       ),
                                     ),
                                   ],
@@ -522,7 +522,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.person,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -563,7 +563,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.phone,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -616,7 +616,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.person_outline,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -657,7 +657,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.phone_outlined,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -710,7 +710,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.location_on,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -750,7 +750,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                   ),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: _selectedReceivingAgency,
+                    initialValue: _selectedReceivingAgency,
                     style: TextStyle(
                       color: Theme.of(context).textTheme.bodyLarge?.color,
                     ),
@@ -761,7 +761,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.business,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -785,7 +785,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                     hint: Text(
                       'Sélectionner une agence',
                       style: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                       ),
                     ),
                     items: [
@@ -832,7 +832,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.inventory_2,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -883,11 +883,11 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       hintText: 'Ex: 50 000 FCFA',
                       hintStyle: TextStyle(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
                       ),
                       prefixIcon: Icon(
                         Icons.attach_money,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -928,7 +928,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.payments,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
@@ -973,7 +973,7 @@ class _CreateMailScreenState extends State<CreateMailScreen> {
                       ),
                       prefixIcon: Icon(
                         Icons.description,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                       ),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(

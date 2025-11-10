@@ -285,14 +285,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           .map((r) => r['seat_number']?.toString() ?? '')
           .where((s) => s.isNotEmpty)
           .toList();
-      
+
       if (seats.length > 1) {
         return '${t('payment.seats')} ${seats.join(', ')}';
       } else if (seats.isNotEmpty) {
         return '${t('payment.seat')} ${seats.first}';
       }
     }
-    
+
     // Priorité 2: Utiliser selectedSeats si disponible
     if (widget.selectedSeats != null && widget.selectedSeats!.isNotEmpty) {
       if (widget.selectedSeats!.length > 1) {
@@ -301,7 +301,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         return '${t('payment.seat')} ${widget.selectedSeats!.first}';
       }
     }
-    
+
     // Fallback: Utiliser seatNumber
     return '${t('payment.seat')} ${widget.seatNumber}';
   }

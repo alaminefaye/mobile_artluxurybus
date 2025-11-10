@@ -210,7 +210,7 @@ class _DeparturesResultsScreenState extends State<DeparturesResultsScreen> {
                     ),
                     child: Text(
                       '${_departs.length} ${_departs.length == 1 ? t("departures.departure") : t("departures.departures")}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primaryOrange,
@@ -359,7 +359,7 @@ class _DeparturesResultsScreenState extends State<DeparturesResultsScreen> {
                     ),
                     child: Text(
                       '${depart['prix']} FCFA',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppTheme.primaryOrange,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -396,7 +396,7 @@ class _DeparturesResultsScreenState extends State<DeparturesResultsScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.access_time, color: Colors.red, size: 20),
+                  const Icon(Icons.access_time, color: Colors.red, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     '${depart['heure_depart']} - ${depart['date_depart']}',

@@ -21,6 +21,13 @@ class _AboutScreenState extends State<AboutScreen> {
     return TranslationService().translate(key);
   }
 
+  // Fonction helper pour obtenir la couleur primaire selon le thème
+  // Orange en mode dark, bleu en mode light
+  Color _getPrimaryColor() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +65,7 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryColor = AppTheme.primaryOrange;
+    final primaryColor = _getPrimaryColor();
     
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -124,7 +131,7 @@ class _AboutScreenState extends State<AboutScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                            color: primaryColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -132,7 +139,7 @@ class _AboutScreenState extends State<AboutScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.primaryOrange,
+                              color: primaryColor,
                             ),
                           ),
                         ),
@@ -288,7 +295,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         end: Alignment.bottomRight,
                         colors: [
                           primaryColor.withValues(alpha: 0.1),
-                          AppTheme.primaryOrange.withValues(alpha: 0.1),
+                          primaryColor.withValues(alpha: 0.1),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(16),
@@ -306,7 +313,7 @@ class _AboutScreenState extends State<AboutScreen> {
                               color: primaryColor,
                               size: 24,
                             ),
-                            SizedBox(width: 12),
+                            const SizedBox(width: 12),
                             Text(
                                 t('about.app_about'),
                                 style: TextStyle(
@@ -367,14 +374,14 @@ class _AboutScreenState extends State<AboutScreen> {
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: isHighlighted
-                ? AppTheme.primaryOrange.withValues(alpha: 0.1)
+                ? primaryColor.withValues(alpha: 0.1)
                 : Colors.grey.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
             size: 18,
-            color: isHighlighted ? AppTheme.primaryOrange : Theme.of(context).iconTheme.color,
+            color: isHighlighted ? primaryColor : Theme.of(context).iconTheme.color,
           ),
         ),
         const SizedBox(width: 12),
@@ -399,7 +406,7 @@ class _AboutScreenState extends State<AboutScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w600,
-                        color: isHighlighted ? AppTheme.primaryOrange : Theme.of(context).textTheme.bodyLarge?.color,
+                        color: isHighlighted ? primaryColor : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                   ),

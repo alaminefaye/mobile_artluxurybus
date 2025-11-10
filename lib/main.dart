@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart' as theme_provider;
 import 'providers/language_provider.dart';
@@ -28,7 +29,6 @@ import 'services/mail_api_service.dart';
 import 'services/bagage_api_service.dart';
 import 'services/recharge_service.dart';
 import 'services/feature_permission_service.dart';
-import 'services/embarkment_service.dart';
 import 'debug/debug_screen.dart';
 import 'screens/management_hub_screen.dart';
 import 'screens/mail_management_screen.dart';
@@ -41,19 +41,35 @@ void main() async {
   try {
     debugPrint('🚀 [Main] Initialisation de l\'application...');
 
-    // Charger les traductions par défaut au démarrage
+    // Charger les traductions - d'abord charger depuis SharedPreferences
     try {
       debugPrint('🌍 [Main] Chargement des traductions...');
       final translationService = TranslationService();
-      await translationService.loadTranslations(const Locale('fr', 'FR'));
+
+      // Charger la langue depuis SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final languageCode = prefs.getString('app_language_code') ?? 'fr';
+      final countryCode = prefs.getString('app_country_code') ?? 'FR';
+      final locale = Locale(languageCode, countryCode);
+
+      await translationService.loadTranslations(locale);
       if (translationService.isLoaded) {
-        debugPrint('✅ [Main] Traductions chargées avec succès');
+        debugPrint(
+            '✅ [Main] Traductions chargées pour: $languageCode-$countryCode');
       } else {
         debugPrint('⚠️ [Main] Traductions non chargées');
       }
     } catch (e, stackTrace) {
       debugPrint('⚠️ [Main] Erreur lors du chargement des traductions: $e');
       debugPrint('Stack trace: $stackTrace');
+      // Essayer de charger le français par défaut en cas d'erreur
+      try {
+        final translationService = TranslationService();
+        await translationService.loadTranslations(const Locale('fr', 'FR'));
+      } catch (e2) {
+        debugPrint(
+            '❌ [Main] Impossible de charger les traductions françaises: $e2');
+      }
     }
 
     // Initialiser l'authentification AVANT les notifications
@@ -70,7 +86,6 @@ void main() async {
       MailApiService.setToken(token);
       BagageApiService.setToken(token);
       RechargeService.setToken(token);
-      EmbarkmentService.setToken(token);
 
       // Charger les permissions de l'utilisateur au démarrage
       try {
@@ -237,10 +252,11 @@ class _MyAppState extends ConsumerState<MyApp> {
 
       // NOUVEAU: Gérer les notifications de tickets
       if (notificationType == 'new_ticket' && action == 'view_trips') {
+        if (!mounted) return;
         // ignore: use_build_context_synchronously
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (context) => const MyTripsScreen()));
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const MyTripsScreen()),
+        );
         debugPrint('✅ Navigation vers Mes Trajets (nouveau ticket)');
         return;
       }
@@ -248,10 +264,11 @@ class _MyAppState extends ConsumerState<MyApp> {
       // NOUVEAU: Gérer les notifications de changement d'heure de départ
       if (notificationType == 'departure_time_changed' &&
           action == 'view_trips') {
+        if (!mounted) return;
         // ignore: use_build_context_synchronously
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (context) => const MyTripsScreen()));
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const MyTripsScreen()),
+        );
         debugPrint(
           '✅ Navigation vers Mes Trajets (changement d\'heure de départ)',
         );
@@ -423,6 +440,19 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     final themeMode = ref.watch(theme_provider.themeModeProvider);
     final locale = ref.watch(languageProvider);
+
+    // S'assurer que les traductions sont chargées pour la locale actuelle
+    ref.listen(languageProvider, (previous, next) async {
+      if (previous != next) {
+        final translationService = TranslationService();
+        if (!translationService.isLoaded ||
+            translationService.currentLocale != next) {
+          await translationService.loadTranslations(next);
+          debugPrint(
+              '✅ [MyApp] Traductions rechargées pour: ${next.languageCode}-${next.countryCode}');
+        }
+      }
+    });
 
     return MaterialApp(
       title: 'Art Luxury Bus',

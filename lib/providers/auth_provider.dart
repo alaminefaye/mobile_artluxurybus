@@ -13,6 +13,7 @@ import '../services/depart_service.dart';
 import '../services/reservation_service.dart';
 import '../services/mail_api_service.dart';
 import '../services/bagage_api_service.dart';
+import '../utils/error_message_helper.dart';
 
 // Service provider
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -141,8 +142,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
     } catch (e) {
+      // Utiliser ErrorMessageHelper pour convertir l'erreur technique en message user-friendly
+      final userFriendlyError = ErrorMessageHelper.getUserFriendlyError(
+        e,
+        defaultMessage: 'Impossible de se connecter. Vérifiez vos identifiants et votre connexion internet.',
+      );
+      
       state = state.copyWith(
-        error: 'Erreur de connexion: $e',
+        error: userFriendlyError,
         isLoading: false,
         isAuthenticated: false,
       );

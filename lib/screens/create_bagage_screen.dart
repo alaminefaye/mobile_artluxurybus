@@ -266,7 +266,7 @@ class _CreateBagageScreenState extends State<CreateBagageScreen> {
 
                     // Destination
                     DropdownButtonFormField<String>(
-                      value: _selectedDestination,
+                      initialValue: _selectedDestination,
                       decoration: const InputDecoration(
                         labelText: 'Destination *',
                         prefixIcon: Icon(Icons.location_on),
@@ -376,7 +376,7 @@ class _CreateBagageScreenState extends State<CreateBagageScreen> {
                           }
                         });
                       },
-                      activeColor: Colors.green,
+                      activeTrackColor: Colors.green,
                     ),
 
                     // Numéro de ticket (si has_ticket = true)

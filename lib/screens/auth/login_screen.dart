@@ -4,6 +4,8 @@ import '../../widgets/app_logo.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart' as theme_provider;
+import '../../providers/language_provider.dart';
+import '../../services/translation_service.dart';
 // Models d'auth maintenant dans simple_auth_models.dart
 import '../public_screen.dart';
 import '../home_page.dart';
@@ -21,14 +23,73 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _translationsLoaded = false;
+
+  // Helper pour les traductions
+  String t(String key) {
+    return TranslationService().translate(key);
+  }
 
   @override
   void initState() {
     super.initState();
+    
+    // Charger les traductions de manière asynchrone
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadTranslations();
+    });
+    
     // Effacer les erreurs précédentes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authProvider.notifier).clearError();
     });
+  }
+  
+  Future<void> _loadTranslations() async {
+    final locale = ref.read(languageProvider);
+    final translationService = TranslationService();
+    
+    debugPrint('🔄 [LoginScreen] _loadTranslations - Langue: ${locale.languageCode}');
+    debugPrint('   - Traductions chargées: ${translationService.isLoaded}');
+    debugPrint('   - Locale service: ${translationService.currentLocale.languageCode}');
+    debugPrint('   - Locale provider: ${locale.languageCode}');
+    
+    // Toujours recharger pour s'assurer que les traductions sont à jour
+    debugPrint('🔄 [LoginScreen] Chargement des traductions pour ${locale.languageCode}...');
+    await translationService.loadTranslations(locale);
+    
+    debugPrint('✅ [LoginScreen] Traductions chargées: ${translationService.isLoaded}');
+    debugPrint('   - Locale après chargement: ${translationService.currentLocale.languageCode}');
+    
+    // Tester une traduction
+    final testTranslation = translationService.translate('auth.welcome');
+    debugPrint('🧪 [LoginScreen] Test traduction après chargement: "$testTranslation"');
+    
+    // Vérifier que les traductions sont bien chargées (comparer uniquement le languageCode)
+    if (translationService.isLoaded && translationService.currentLocale.languageCode == locale.languageCode) {
+      // Vérifier que la traduction est correcte
+      if (locale.languageCode == 'en' && testTranslation.contains('Bienvenue')) {
+        debugPrint('⚠️ [LoginScreen] PROBLÈME DÉTECTÉ: Traduction française alors que langue = anglais !');
+        // Forcer un rechargement
+        await translationService.reloadTranslations(locale);
+        final newTest = translationService.translate('auth.welcome');
+        debugPrint('🧪 [LoginScreen] Test après rechargement: "$newTest"');
+      }
+      
+      debugPrint('✅ [LoginScreen] Traductions prêtes pour ${locale.languageCode}');
+      if (mounted) {
+        setState(() {
+          _translationsLoaded = true;
+        });
+        // Forcer un rebuild supplémentaire pour s'assurer que tout est à jour
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    } else {
+      debugPrint('⚠️ [LoginScreen] Traductions pas prêtes après chargement');
+    }
   }
 
   @override
@@ -47,10 +108,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Connexion réussie !'),
+          SnackBar(
+            content: Text(t('auth.login_success')),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 1),
+            duration: const Duration(seconds: 1),
           ),
         );
         
@@ -72,8 +133,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _forgotPassword() {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fonctionnalité temporairement désactivée'),
+        SnackBar(
+          content: Text(t('auth.forgot_password_feature_disabled')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -95,7 +156,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
               ),
               const SizedBox(width: 8),
-              const Text('Apparence'),
+              Text(t('auth.appearance')),
             ],
           ),
           content: Column(
@@ -128,7 +189,79 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-
+    // Écouter les changements de langue - cela déclenchera un rebuild automatique
+    final locale = ref.watch(languageProvider);
+    
+    // Vérifier si les traductions sont chargées pour la langue actuelle
+    // Comparer uniquement le languageCode car les countryCode peuvent différer
+    final translationService = TranslationService();
+    final isTranslationsReady = translationService.isLoaded && 
+                                translationService.currentLocale.languageCode == locale.languageCode;
+    
+    debugPrint('🔍 [LoginScreen] build - Langue provider: ${locale.languageCode}, Service: ${translationService.currentLocale.languageCode}, Prêt: $isTranslationsReady, Flag: $_translationsLoaded');
+    
+    // Si les traductions ne sont pas prêtes, charger et attendre
+    if (!isTranslationsReady || !_translationsLoaded) {
+      if (!_translationsLoaded) {
+        // Première fois, charger les traductions
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _loadTranslations();
+        });
+      } else {
+        // La langue a changé, recharger les traductions
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          debugPrint('🔄 [LoginScreen] Langue changée, rechargement des traductions...');
+          await translationService.loadTranslations(locale);
+          if (mounted) {
+            setState(() {
+              _translationsLoaded = true;
+            });
+          }
+        });
+      }
+      
+      // Afficher un loader si les traductions ne sont pas encore chargées
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    
+    // Écouter les changements de langue pour recharger les traductions
+    ref.listen(languageProvider, (previous, next) async {
+      if (previous?.languageCode != next.languageCode && mounted) {
+        debugPrint('🔄 [LoginScreen] Langue changée via listener: ${previous?.languageCode} -> ${next.languageCode}');
+        await translationService.loadTranslations(next);
+        if (mounted) {
+          setState(() {
+            _translationsLoaded = true;
+          });
+        }
+      }
+    });
+    
+    // Tester une traduction pour vérifier
+    final testTranslation = translationService.translate('auth.welcome');
+    debugPrint('🧪 [LoginScreen] Test traduction "auth.welcome": "$testTranslation"');
+    debugPrint('🧪 [LoginScreen] Locale service: ${translationService.currentLocale.languageCode}');
+    debugPrint('🧪 [LoginScreen] Locale provider: ${locale.languageCode}');
+    
+    // Si la traduction test est en français alors qu'on est en anglais, forcer le rechargement
+    if (locale.languageCode == 'en' && testTranslation.contains('Bienvenue')) {
+      debugPrint('⚠️ [LoginScreen] DÉTECTÉ: Traduction en français alors que la langue est anglaise !');
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        debugPrint('🔄 [LoginScreen] Rechargement forcé des traductions...');
+        await translationService.reloadTranslations(locale);
+        if (mounted) {
+          setState(() {
+            _translationsLoaded = true;
+          });
+        }
+      });
+    }
+    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -154,7 +287,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 
                 // Titre avec sous-titre
                 Text(
-                  'Bienvenue !',
+                  t('auth.welcome'),
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
                     color: Theme.of(context).brightness == Brightness.dark 
                         ? AppTheme.primaryOrange 
@@ -164,7 +297,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Connectez-vous à votre compte',
+                  t('auth.connect_to_account'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
@@ -196,14 +329,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                           decoration: InputDecoration(
-                            labelText: 'Email ou Téléphone',
+                            labelText: t('auth.email_or_phone'),
                             labelStyle: TextStyle(
                               fontSize: 13,
                               color: Theme.of(context).brightness == Brightness.dark 
                                   ? AppTheme.primaryOrange 
                                   : AppTheme.primaryBlue,
                             ),
-                            hintText: 'exemple@email.com ou 0771234567',
+                            hintText: t('auth.email_or_phone_hint'),
                             hintStyle: const TextStyle(fontSize: 14),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(6),
@@ -227,7 +360,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Veuillez saisir votre email ou téléphone';
+                              return t('auth.email_or_phone_required');
                             }
                             // Accepter email OU téléphone (pas de validation stricte)
                             return null;
@@ -244,14 +377,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: Theme.of(context).textTheme.bodyLarge?.color,
                           ),
                           decoration: InputDecoration(
-                            labelText: 'Mot de passe',
+                            labelText: t('auth.password'),
                             labelStyle: TextStyle(
                               fontSize: 13,
                               color: Theme.of(context).brightness == Brightness.dark 
                                   ? AppTheme.primaryOrange 
                                   : AppTheme.primaryBlue,
                             ),
-                            hintText: 'Votre mot de passe',
+                            hintText: t('auth.password_hint'),
                             hintStyle: const TextStyle(fontSize: 14),
                             prefixIcon: Container(
                               margin: const EdgeInsets.all(6),
@@ -289,10 +422,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Veuillez saisir votre mot de passe';
+                              return t('auth.password_required');
                             }
                             if (value.length < 6) {
-                              return 'Le mot de passe doit contenir au moins 6 caractères';
+                              return t('auth.password_min_length');
                             }
                             return null;
                           },
@@ -312,7 +445,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 fontSize: 13,
                               ),
                             ),
-                            child: const Text('Mot de passe oublié ?'),
+                            child: Text(t('auth.forgot_password')),
                           ),
                         ),
                         
@@ -356,9 +489,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                     ),
                                   )
-                                : const Text(
-                                    'Se connecter',
-                                    style: TextStyle(
+                                : Text(
+                                    t('auth.login_button'),
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white,
@@ -426,7 +559,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Pas encore de compte ? ',
+                        '${t('auth.no_account')} ',
                         style: TextStyle(
                           color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                           fontSize: 15,
@@ -449,7 +582,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             fontSize: 15,
                           ),
                         ),
-                        child: const Text('S\'inscrire'),
+                        child: Text(t('auth.register')),
                       ),
                     ],
                   ),
@@ -550,7 +683,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Ignorer',
+                          t('auth.skip'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,

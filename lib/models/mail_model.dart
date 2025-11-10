@@ -42,11 +42,11 @@ class MailModel {
     if (photo!.startsWith('http')) return photo;
     // Si le chemin commence par "images/mails/", c'est un chemin direct dans public
     if (photo!.startsWith('images/mails/')) {
-      return 'https://skf-artluxurybus.com/${photo}';
+      return 'https://skf-artluxurybus.com/$photo';
     }
     // Si le chemin commence par "mails/", c'est un ancien chemin dans storage/app/public
     if (photo!.startsWith('mails/')) {
-      return 'https://skf-artluxurybus.com/storage/${photo}';
+      return 'https://skf-artluxurybus.com/storage/$photo';
     }
     // Sinon, essayer avec storage/ pour les anciens chemins
     return 'https://skf-artluxurybus.com/storage/$photo';
