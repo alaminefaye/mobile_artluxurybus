@@ -378,8 +378,14 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
       String? expiresAt;
       int? countdownSeconds;
 
+      // IMPORTANT: Créer une copie locale IMMÉDIATEMENT pour éviter toute modification pendant le processus
+      // Le widget.selectedSeats peut changer si SeatSelectionScreen est toujours actif et fait des rafraîchissements
+      final seatsToReserve = List<int>.from(widget.selectedSeats);
+      final seatsToReserveCount = seatsToReserve.length;
+
       debugPrint(
-          '🎫 [ClientInfoScreen] Début création réservations pour ${widget.selectedSeats.length} siège(s): ${widget.selectedSeats.join(", ")}');
+          '🎫 [ClientInfoScreen] Début création réservations pour $seatsToReserveCount siège(s): ${seatsToReserve.join(", ")}');
+      debugPrint('🎫 [ClientInfoScreen] Copie locale créée pour éviter modifications pendant le processus');
 
       // Afficher un indicateur de chargement
       if (mounted) {
@@ -395,7 +401,7 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                 const SizedBox(height: 16),
                 Text(
                   '${t("client_info.processing")}\n'
-                  '${t("trips.seat")} ${createdReservations.length + failedSeats.length + 1}/${widget.selectedSeats.length}',
+                  '${t("trips.seat")} ${createdReservations.length + failedSeats.length + 1}/$seatsToReserveCount',
                   style: const TextStyle(color: Colors.white, fontSize: 16),
                   textAlign: TextAlign.center,
                 ),
@@ -413,14 +419,13 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
 
       // Boucle pour créer chaque réservation avec délai pour éviter le rate limiting
       bool hasRateLimitError = false;
+      
+      // NOTE: seatsToReserve est déjà créé plus haut, on l'utilise ici
 
-      debugPrint('🎯 [ClientInfoScreen] Début création de ${widget.selectedSeats.length} réservation(s)');
-      debugPrint('🎯 [ClientInfoScreen] Sièges à réserver: ${widget.selectedSeats.join(", ")}');
-
-      for (int i = 0; i < widget.selectedSeats.length; i++) {
-        final seatNumber = widget.selectedSeats[i];
+      for (int i = 0; i < seatsToReserve.length; i++) {
+        final seatNumber = seatsToReserve[i];
         debugPrint(
-            '🔄 [ClientInfoScreen] === TRAITEMENT SIÈGE $seatNumber (${i + 1}/${widget.selectedSeats.length}) ===');
+            '🔄 [ClientInfoScreen] === TRAITEMENT SIÈGE $seatNumber (${i + 1}/${seatsToReserve.length}) ===');
 
         // Délai entre chaque siège : 3 secondes pour respecter le rate limit (30 req/min = 1 req/2s)
         // On met 3 secondes pour être sûr
@@ -541,7 +546,7 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                 totalAmount += amount;
                 debugPrint(
                     '✅ [ClientInfoScreen] Réservation créée pour siège $seatNumber (ID: $reservationId, Montant: $amount FCFA)');
-                debugPrint('✅ [ClientInfoScreen] Total réservations créées: ${createdReservations.length}/${widget.selectedSeats.length}');
+                debugPrint('✅ [ClientInfoScreen] Total réservations créées: ${createdReservations.length}/${seatsToReserve.length}');
                 success = true;
               } else {
                 debugPrint(
