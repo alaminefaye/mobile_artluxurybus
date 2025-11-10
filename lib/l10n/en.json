@@ -94,7 +94,20 @@
     "back": "Back",
     "search": "Search",
     "filter": "Filter",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "scanner": "Scanner",
+    "history": "History",
+    "status": "Status",
+    "payment": "Payment",
+    "slides": "Slides",
+    "user": "User",
+    "administrator": "Administrator",
+    "manager": "Manager",
+    "driver": "Driver",
+    "agent": "Agent",
+    "employee": "Employee",
+    "client": "Client",
+    "next": "Next"
   },
   "language": {
     "select_language": "Select your preferred language",

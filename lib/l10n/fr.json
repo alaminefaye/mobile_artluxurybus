@@ -94,7 +94,20 @@
     "back": "Retour",
     "search": "Rechercher",
     "filter": "Filtrer",
-    "refresh": "Actualiser"
+    "refresh": "Actualiser",
+    "scanner": "Scanner",
+    "history": "Historique",
+    "status": "Statut",
+    "payment": "Paiement",
+    "slides": "Slides",
+    "user": "Utilisateur",
+    "administrator": "Administrateur",
+    "manager": "Gestionnaire",
+    "driver": "Chauffeur",
+    "agent": "Agent",
+    "employee": "Employé",
+    "client": "Client",
+    "next": "Suivant"
   },
   "language": {
     "select_language": "Sélectionnez votre langue préférée",
@@ -978,22 +991,6 @@
     "system_message": "{{message}}",
     "general_title": "Notification",
     "general_message": "{{message}}"
-  },
-  "common": {
-    "scanner": "Scanner",
-    "history": "Historique",
-    "status": "Statut",
-    "payment": "Paiement",
-    "slides": "Slides",
-    "refresh": "Actualiser",
-    "user": "Utilisateur",
-    "administrator": "Administrateur",
-    "manager": "Gestionnaire",
-    "driver": "Chauffeur",
-    "agent": "Agent",
-    "employee": "Employé",
-    "client": "Client",
-    "next": "Suivant"
   },
   "onboarding": {
     "select_language": "Choisissez votre langue",
