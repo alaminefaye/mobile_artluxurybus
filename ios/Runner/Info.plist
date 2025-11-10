@@ -66,5 +66,20 @@
 	<!-- Configuration Firebase pour iOS -->
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
+	
+	<!-- Configuration Deep Links pour iOS -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.artluxurybus.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>artluxurybus</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
