@@ -254,7 +254,8 @@ class ReservationService {
   }
 
   /// Initier un paiement Wave pour une réservation
-  static Future<Map<String, dynamic>> initiateWavePayment(int reservationId) async {
+  /// [totalAmount] : Montant total optionnel (pour plusieurs réservations)
+  static Future<Map<String, dynamic>> initiateWavePayment(int reservationId, {double? totalAmount}) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/payment/wave');
       
@@ -263,12 +264,25 @@ class ReservationService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
+      // Préparer le body avec le montant total si fourni
+      final body = <String, dynamic>{};
+      if (totalAmount != null && totalAmount > 0) {
+        body['total_amount'] = totalAmount;
+        debugPrint('🔄 [ReservationService] Montant total fourni: $totalAmount');
+      }
+
       debugPrint('🔄 [ReservationService] Initiation paiement Wave pour réservation $reservationId');
       debugPrint('🔄 [ReservationService] URL: $uri');
       debugPrint('🔄 [ReservationService] Headers: ${headers.keys.toList()}');
+      if (body.isNotEmpty) {
+        debugPrint('🔄 [ReservationService] Body: $body');
+      }
 
-      final response = await http.post(uri, headers: headers)
-          .timeout(ApiConfig.requestTimeout);
+      final response = await http.post(
+        uri, 
+        headers: headers,
+        body: body.isNotEmpty ? json.encode(body) : null,
+      ).timeout(ApiConfig.requestTimeout);
 
       debugPrint('📡 [ReservationService] Réponse - Status: ${response.statusCode}');
       debugPrint('📡 [ReservationService] Réponse - Body: ${response.body}');

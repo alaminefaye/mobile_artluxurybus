@@ -902,12 +902,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           try {
             // Envoyer le code promo si valide et un seul siège
             String? promoCodeToSend = null;
-            if (_usePromoCode && _promoCodeValid && !_hasMultipleSeats && _promoCode.isNotEmpty) {
+            if (_usePromoCode &&
+                _promoCodeValid &&
+                !_hasMultipleSeats &&
+                _promoCode.isNotEmpty) {
               promoCodeToSend = _promoCode;
             }
-            
-            final confirmResult =
-                await ReservationService.confirmReservation(reservationId, promoCode: promoCodeToSend);
+
+            final confirmResult = await ReservationService.confirmReservation(
+                reservationId,
+                promoCode: promoCodeToSend);
 
             if (confirmResult['success'] == true) {
               confirmedSeats
@@ -1018,113 +1022,95 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               }
             ];
 
-        List<int> initiatedPayments = [];
-        List<int> failedPayments = [];
+        // Calculer le montant total (utiliser _finalAmount qui est déjà calculé)
+        final totalAmount = _finalAmount;
+        
+        // Initier UN SEUL paiement Wave pour la première réservation avec le montant total
+        // Les autres réservations seront traitées après le paiement réussi
+        final firstReservation = reservationsToPay[0];
+        final firstReservationId = firstReservation['reservation_id'];
 
-        for (var reservation in reservationsToPay) {
-          final reservationId = reservation['reservation_id'];
+        try {
+          debugPrint('💳 [PaymentScreen] Initiation paiement Wave pour réservation $firstReservationId');
+          debugPrint('💳 [PaymentScreen] Montant total: $totalAmount FCFA');
+          debugPrint('💳 [PaymentScreen] Nombre de réservations: ${reservationsToPay.length}');
+          
+          // Initier le paiement Wave avec le montant total
+          final paymentResult = await ReservationService.initiateWavePayment(
+            firstReservationId,
+            totalAmount: totalAmount > 0 ? totalAmount : null,
+          );
 
-          try {
-            // Initier le paiement Wave pour cette réservation
-            final paymentResult =
-                await ReservationService.initiateWavePayment(reservationId);
+          if (paymentResult['success'] == true &&
+              paymentResult['data'] != null) {
+            final paymentUrl = paymentResult['data']['payment_url'];
 
-            if (paymentResult['success'] == true &&
-                paymentResult['data'] != null) {
-              final paymentUrl = paymentResult['data']['payment_url'];
-
-              if (paymentUrl != null && paymentUrl.isNotEmpty) {
-                initiatedPayments
-                    .add(reservation['seat_number'] ?? widget.seatNumber);
-
-                // Ouvrir l'URL de paiement Wave
-                final uri = Uri.parse(paymentUrl);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  throw Exception(
-                      'Impossible d\'ouvrir la page de paiement Wave');
+            if (paymentUrl != null && paymentUrl.isNotEmpty) {
+              // Ouvrir l'URL de paiement Wave
+              final uri = Uri.parse(paymentUrl);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                
+                if (mounted) {
+                  setState(() {
+                    _isProcessing = false;
+                  });
+                  
+                  // Afficher un message de succès
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        reservationsToPay.length > 1
+                            ? '✅ Paiement Wave initié pour ${reservationsToPay.length} siège(s) (${totalAmount.toStringAsFixed(0)} FCFA). Veuillez compléter le paiement sur Wave.'
+                            : '✅ Paiement Wave initié (${totalAmount.toStringAsFixed(0)} FCFA). Veuillez compléter le paiement sur Wave.',
+                      ),
+                      backgroundColor: Colors.blue,
+                      duration: const Duration(seconds: 5),
+                    ),
+                  );
                 }
               } else {
-                failedPayments
-                    .add(reservation['seat_number'] ?? widget.seatNumber);
+                throw Exception('Impossible d\'ouvrir la page de paiement Wave');
               }
             } else {
-              failedPayments
-                  .add(reservation['seat_number'] ?? widget.seatNumber);
-              // Afficher le message d'erreur détaillé
-              final errorMsg = paymentResult['message'] ??
-                  paymentResult['error'] ??
-                  'Erreur inconnue';
-              debugPrint(
-                  '❌ Paiement Wave échoué pour réservation $reservationId: $errorMsg');
-              debugPrint('❌ Détails complets: ${paymentResult['details']}');
+              throw Exception('URL de paiement Wave non reçue');
             }
-
-            // Délai entre chaque paiement pour éviter le rate limit
-            if (reservationsToPay.indexOf(reservation) <
-                reservationsToPay.length - 1) {
-              await Future.delayed(const Duration(seconds: 1));
-            }
-          } catch (e, stackTrace) {
-            failedPayments.add(reservation['seat_number'] ?? widget.seatNumber);
-            debugPrint(
-                '❌ Exception lors de l\'initiation du paiement Wave: $e');
-            debugPrint('❌ Stack trace: $stackTrace');
-          }
-        }
-
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-          });
-
-          if (initiatedPayments.isNotEmpty && failedPayments.isEmpty) {
-            // Tous les paiements ont été initiés avec succès
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    '✅ Paiement Wave initié pour ${initiatedPayments.length} siège(s): ${initiatedPayments.join(", ")}. Veuillez compléter le paiement sur Wave.'),
-                backgroundColor: Colors.blue,
-                duration: const Duration(seconds: 5),
-              ),
-            );
-
-            // Ne pas rediriger immédiatement - l'utilisateur doit compléter le paiement
-            // Le webhook Wave confirmera la réservation après paiement réussi
-            // L'utilisateur reviendra à l'app après le paiement via le callback URL
-          } else if (initiatedPayments.isNotEmpty &&
-              failedPayments.isNotEmpty) {
-            // Certains paiements ont réussi, d'autres ont échoué
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    '⚠️ Paiement initié pour ${initiatedPayments.length} siège(s), mais ${failedPayments.length} ont échoué. Veuillez réessayer pour les sièges: ${failedPayments.join(", ")}'),
-                backgroundColor: Colors.orange,
-                duration: const Duration(seconds: 5),
-              ),
-            );
           } else {
-            // Tous les paiements ont échoué - réessayer pour obtenir le message d'erreur
-            String errorMessage =
-                'Impossible d\'initier le paiement Wave. Veuillez réessayer.';
-            try {
-              final testResult = await ReservationService.initiateWavePayment(
-                  widget.reservationId);
-              if (testResult['message'] != null) {
-                errorMessage = testResult['message'];
-              } else if (testResult['error'] != null) {
-                errorMessage = testResult['error'];
-              }
-            } catch (_) {
-              // Ignorer si l'appel échoue
+            // Afficher le message d'erreur détaillé
+            final errorMsg = paymentResult['message'] ??
+                paymentResult['error'] ??
+                'Erreur inconnue';
+            debugPrint('❌ Paiement Wave échoué pour réservation $firstReservationId: $errorMsg');
+            debugPrint('❌ Détails complets: ${paymentResult['details']}');
+            
+            if (mounted) {
+              setState(() {
+                _isProcessing = false;
+              });
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('❌ Erreur: $errorMsg'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
             }
-
+          }
+        } catch (e, stackTrace) {
+          debugPrint('❌ Exception lors de l\'initiation du paiement Wave: $e');
+          debugPrint('❌ Stack trace: $stackTrace');
+          
+          if (mounted) {
+            setState(() {
+              _isProcessing = false;
+            });
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('❌ $errorMessage'),
+                content: Text('❌ Erreur: ${e.toString()}'),
                 backgroundColor: Colors.red,
-                duration: const Duration(seconds: 7),
+                duration: const Duration(seconds: 5),
               ),
             );
           }
