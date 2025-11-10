@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../utils/api_config.dart';
 
@@ -253,8 +254,15 @@ class ReservationService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
+      debugPrint('🔄 [ReservationService] Initiation paiement Wave pour réservation $reservationId');
+      debugPrint('🔄 [ReservationService] URL: $uri');
+      debugPrint('🔄 [ReservationService] Headers: ${headers.keys.toList()}');
+
       final response = await http.post(uri, headers: headers)
           .timeout(ApiConfig.requestTimeout);
+
+      debugPrint('📡 [ReservationService] Réponse - Status: ${response.statusCode}');
+      debugPrint('📡 [ReservationService] Réponse - Body: ${response.body}');
 
       final data = json.decode(response.body);
 
@@ -264,6 +272,7 @@ class ReservationService {
           'success': false,
           'message': 'Too Many Attempts. Veuillez patienter quelques instants.',
           'status_code': 429,
+          'error': data['error'],
         };
       }
 
@@ -274,16 +283,31 @@ class ReservationService {
           'message': data['message'] ?? 'Paiement Wave initié avec succès',
         };
       } else {
+        // Retourner plus de détails sur l'erreur
+        final errorMessage = data['message'] ?? 
+                            data['error'] ?? 
+                            'Erreur lors de l\'initiation du paiement Wave';
+        
+        debugPrint('❌ [ReservationService] Erreur: $errorMessage');
+        debugPrint('❌ [ReservationService] Code status: ${response.statusCode}');
+        debugPrint('❌ [ReservationService] Données complètes: $data');
+        
         return {
           'success': false,
-          'message': data['message'] ?? 'Erreur lors de l\'initiation du paiement Wave',
+          'message': errorMessage,
+          'error': data['error'],
           'status_code': response.statusCode,
+          'details': data,
         };
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [ReservationService] Exception: $e');
+      debugPrint('❌ [ReservationService] Stack trace: $stackTrace');
+      
       return {
         'success': false,
-        'message': 'Erreur: ${e.toString()}',
+        'message': 'Erreur de connexion: ${e.toString()}',
+        'error': e.toString(),
       };
     }
   }

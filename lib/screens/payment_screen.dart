@@ -915,6 +915,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             } else {
               failedPayments
                   .add(reservation['seat_number'] ?? widget.seatNumber);
+              // Afficher le message d'erreur détaillé
+              final errorMsg = paymentResult['message'] ?? paymentResult['error'] ?? 'Erreur inconnue';
+              debugPrint('❌ Paiement Wave échoué pour réservation $reservationId: $errorMsg');
+              debugPrint('❌ Détails complets: ${paymentResult['details']}');
             }
 
             // Délai entre chaque paiement pour éviter le rate limit
@@ -922,9 +926,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 reservationsToPay.length - 1) {
               await Future.delayed(const Duration(seconds: 1));
             }
-          } catch (e) {
+          } catch (e, stackTrace) {
             failedPayments.add(reservation['seat_number'] ?? widget.seatNumber);
-            debugPrint('Erreur lors de l\'initiation du paiement Wave: $e');
+            debugPrint('❌ Exception lors de l\'initiation du paiement Wave: $e');
+            debugPrint('❌ Stack trace: $stackTrace');
           }
         }
 
@@ -943,7 +948,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 duration: const Duration(seconds: 5),
               ),
             );
-
+            
             // Ne pas rediriger immédiatement - l'utilisateur doit compléter le paiement
             // Le webhook Wave confirmera la réservation après paiement réussi
             // L'utilisateur reviendra à l'app après le paiement via le callback URL
@@ -959,13 +964,24 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               ),
             );
           } else {
-            // Tous les paiements ont échoué
+            // Tous les paiements ont échoué - réessayer pour obtenir le message d'erreur
+            String errorMessage = 'Impossible d\'initier le paiement Wave. Veuillez réessayer.';
+            try {
+              final testResult = await ReservationService.initiateWavePayment(widget.reservationId);
+              if (testResult['message'] != null) {
+                errorMessage = testResult['message'];
+              } else if (testResult['error'] != null) {
+                errorMessage = testResult['error'];
+              }
+            } catch (_) {
+              // Ignorer si l'appel échoue
+            }
+            
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    '❌ Impossible d\'initier le paiement Wave. Veuillez réessayer.'),
+                content: Text('❌ $errorMessage'),
                 backgroundColor: Colors.red,
-                duration: const Duration(seconds: 5),
+                duration: const Duration(seconds: 7),
               ),
             );
           }
