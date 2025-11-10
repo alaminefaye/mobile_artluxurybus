@@ -209,11 +209,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       return 0.0; // Ticket gratuit
     }
 
-    // Si code promo valide et un seul siège, appliquer la réduction (pour l'instant 0 car pas de discount défini dans l'API)
+    // Si code promo valide et un seul siège, créer un laisser-passer (ticket gratuit)
     if (_usePromoCode && _promoCodeValid && !_hasMultipleSeats) {
-      // TODO: Appliquer la réduction du code promo
-      // total = total * (1 - discount);
-      return 0.0; // Ticket gratuit avec code promo (pour l'instant)
+      return 0.0; // Ticket gratuit (laisser-passer) avec code promo
     }
 
     return total;
