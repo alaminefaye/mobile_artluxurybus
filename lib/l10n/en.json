@@ -990,24 +990,6 @@
     "general_title": "Notification",
     "general_message": "{{message}}"
   },
-  "common": {
-    "scanner": "Scanner",
-    "history": "History",
-    "status": "Status",
-    "payment": "Payment",
-    "slides": "Slides",
-    "refresh": "Refresh",
-    "user": "User",
-    "administrator": "Administrator",
-    "manager": "Manager",
-    "driver": "Driver",
-    "agent": "Agent",
-    "employee": "Employee",
-    "client": "Client",
-    "services": "Services",
-    "load_more": "Load more",
-    "next": "Next"
-  },
   "onboarding": {
     "select_language": "Choose your language",
     "select_language_description": "Select the language you prefer to use in the application",
