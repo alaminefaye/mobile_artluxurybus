@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import '../theme/app_theme.dart';
 import '../services/reservation_service.dart';
 import '../services/translation_service.dart';
+import '../utils/error_message_helper.dart';
 import 'client_info_screen.dart';
 
 class SeatSelectionScreen extends StatefulWidget {
@@ -200,10 +200,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               });
             }
 
-            // Ne retirer les sièges que s'ils sont vraiment réservés
-            // Afficher un message clair à l'utilisateur
+            // IMPORTANT: Ne retirer les sièges sélectionnés QUE s'ils sont vraiment réservés par D'AUTRES utilisateurs
+            // Si un siège est dans _selectedSeats mais pas dans newReservedSeats, c'est qu'il est réservé par l'utilisateur actuel
+            // Donc on ne le retire PAS - l'utilisateur peut continuer à payer
+            
+            // Seulement retirer les sièges qui sont dans la liste des réservés (par d'autres utilisateurs)
+            // ET qui ne sont plus disponibles
             final seatsToRemove = _selectedSeats.where((seat) => 
-              newReservedSeats.contains(seat) // Seulement si vraiment réservé
+              newReservedSeats.contains(seat) // Réservé par un autre utilisateur
             ).toList();
             
             if (seatsToRemove.isNotEmpty) {
@@ -222,7 +226,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         const SizedBox(height: 4),
                         Text(
                           t('seats.seats_reserved_by_others'),
-                          style: TextStyle(fontSize: 12),
+                          style: const TextStyle(fontSize: 12),
                         ),
                       ],
                     ),
@@ -238,23 +242,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               }
             }
             
-            // Vérifier aussi si certains sièges sélectionnés ne sont plus dans les disponibles
-            // (mais pas encore réservés - peut-être en cours de réservation)
-            final seatsNoLongerAvailable = _selectedSeats.where((seat) => 
-              !newAvailableSeats.contains(seat) && !newReservedSeats.contains(seat)
-            ).toList();
-            
-            if (seatsNoLongerAvailable.isNotEmpty && !silent && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    t('seats.temporarily_unavailable').replaceAll('{{seats}}', seatsNoLongerAvailable.join(", "))
-                  ),
-                  backgroundColor: Colors.amber[700],
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            }
+            // Ne pas afficher d'avertissement pour les sièges sélectionnés qui ne sont plus dans les disponibles
+            // car ils sont probablement réservés par l'utilisateur lui-même (en attente de paiement)
+            // L'utilisateur peut continuer à finaliser son paiement
           });
         }
       } else {
@@ -307,9 +297,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         });
       }
       if (!silent && mounted) {
+        final errorMessage = ErrorMessageHelper.getOperationError(
+          'réserver',
+          error: e,
+          customMessage: 'Impossible de réserver le siège. Veuillez réessayer.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${t("common.error")}: ${e.toString()}'),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -351,7 +346,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             SnackBar(
               content: Text(t('seats.max_seats_reached')),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         } else {
@@ -420,7 +415,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           // Grille de sièges
           Expanded(
             child: _isLoading
-                ? Center(
+                ? const Center(
                     child: CircularProgressIndicator(
                       color: AppTheme.primaryOrange,
                     ),
@@ -500,7 +495,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                             const SizedBox(height: 2),
                             Text(
                               'Total: ${_calculateTotalAmount()} FCFA',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.primaryOrange,
@@ -563,7 +558,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         t('seats.seats_reserved_select_others'),
-                                        style: TextStyle(fontSize: 12),
+                                        style: const TextStyle(fontSize: 12),
                                       ),
                                     ],
                                   ),
@@ -591,8 +586,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                 builder: (context) => AlertDialog(
                                   title: Row(
                                     children: [
-                                      Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                                      SizedBox(width: 8),
+                                      const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                                      const SizedBox(width: 8),
                                       Text(t('seats.unavailable_seats')),
                                     ],
                                   ),
@@ -612,7 +607,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                       const SizedBox(height: 12),
                                       Text(
                                         t('seats.continue_with_available').replaceAll('{{count}}', validSeats.length.toString()),
-                                        style: TextStyle(fontSize: 14),
+                                        style: const TextStyle(fontSize: 14),
                                       ),
                                       const SizedBox(height: 8),
                                       Container(
@@ -692,7 +687,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     ),
                     child: Text(
                       t('seats.continue'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -756,7 +751,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.location_on,
                 size: 16,
                 color: AppTheme.primaryOrange,
@@ -764,7 +759,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               const SizedBox(width: 6),
               Text(
                 t('seats.select_your_stops'),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.primaryOrange,
@@ -777,7 +772,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
-                  value: _selectedStopEmbark,
+                  initialValue: _selectedStopEmbark,
                   decoration: InputDecoration(
                     labelText: 'Embarquement',
                     labelStyle: TextStyle(
@@ -826,7 +821,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButtonFormField<int>(
-                  value: _selectedStopDisembark,
+                  initialValue: _selectedStopDisembark,
                   decoration: InputDecoration(
                     labelText: 'Débarquement',
                     labelStyle: TextStyle(
