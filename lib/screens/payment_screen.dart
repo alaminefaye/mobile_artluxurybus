@@ -66,7 +66,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   void initState() {
     super.initState();
     _loadClientPoints();
-    
+
     // Désactiver le code promo si plusieurs sièges sont sélectionnés au démarrage
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_hasMultipleSeats && _usePromoCode) {
@@ -135,7 +135,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       setState(() {
         _isVerifyingPromo = false;
         _promoCodeValid = false;
-        _promoCodeMessage = 'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.';
+        _promoCodeMessage =
+            'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.';
       });
       return;
     }
@@ -159,18 +160,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       int reservationCount = 1;
       if (widget.reservations != null) {
         reservationCount = widget.reservations!.length;
-      } else if (widget.selectedSeats != null && widget.selectedSeats!.length > 1) {
+      } else if (widget.selectedSeats != null &&
+          widget.selectedSeats!.length > 1) {
         reservationCount = widget.selectedSeats!.length;
       }
-      
-      final result = await ReservationService.verifyPromoCode(_promoCode, reservationCount: reservationCount);
+
+      final result = await ReservationService.verifyPromoCode(_promoCode,
+          reservationCount: reservationCount);
       setState(() {
         _isVerifyingPromo = false;
         if (result['success'] == true) {
           // Vérifier à nouveau si plusieurs sièges (au cas où l'utilisateur aurait ajouté des sièges pendant la vérification)
           if (_hasMultipleSeats) {
             _promoCodeValid = false;
-            _promoCodeMessage = 'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.';
+            _promoCodeMessage =
+                'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.';
           } else {
             _promoCodeValid = true;
             _promoCodeMessage = result['message'] ?? t('payment.code_valid');
@@ -424,7 +428,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _hasMultipleSeats 
+                color: _hasMultipleSeats
                     ? Colors.grey.withValues(alpha: 0.02)
                     : Colors.grey.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
@@ -441,17 +445,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     children: [
                       Checkbox(
                         value: _usePromoCode,
-                        onChanged: _hasMultipleSeats ? null : (value) {
-                          setState(() {
-                            _usePromoCode = value ?? false;
-                            // Réinitialiser le code si on désactive avec plusieurs sièges
-                            if (!_usePromoCode) {
-                              _promoCode = '';
-                              _promoCodeValid = false;
-                              _promoCodeMessage = null;
-                            }
-                          });
-                        },
+                        onChanged: _hasMultipleSeats
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _usePromoCode = value ?? false;
+                                  // Réinitialiser le code si on désactive avec plusieurs sièges
+                                  if (!_usePromoCode) {
+                                    _promoCode = '';
+                                    _promoCodeValid = false;
+                                    _promoCodeMessage = null;
+                                  }
+                                });
+                              },
                         activeColor: AppTheme.primaryOrange,
                       ),
                       Expanded(
@@ -463,9 +469,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: _hasMultipleSeats 
-                                    ? Colors.grey 
-                                    : null,
+                                color: _hasMultipleSeats ? Colors.grey : null,
                               ),
                             ),
                             if (_hasMultipleSeats) ...[
@@ -484,8 +488,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       ),
                       Icon(
                         Icons.local_offer,
-                        color: _hasMultipleSeats 
-                            ? Colors.grey 
+                        color: _hasMultipleSeats
+                            ? Colors.grey
                             : AppTheme.primaryOrange,
                         size: 24,
                       ),
@@ -859,7 +863,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (_usePromoCode && _hasMultipleSeats) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Les codes promotionnels ne peuvent être utilisés que pour un seul siège. Veuillez désélectionner le code promo ou ne réserver qu\'un seul siège.'),
+          content: const Text(
+              'Les codes promotionnels ne peuvent être utilisés que pour un seul siège. Veuillez désélectionner le code promo ou ne réserver qu\'un seul siège.'),
           backgroundColor: Colors.orange,
           duration: const Duration(seconds: 4),
         ),
@@ -897,8 +902,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           final reservationId = reservation['reservation_id'];
 
           try {
+            // Envoyer le code promo si valide et un seul siège
+            String? promoCodeToSend = null;
+            if (_usePromoCode && _promoCodeValid && !_hasMultipleSeats && _promoCode.isNotEmpty) {
+              promoCodeToSend = _promoCode;
+            }
+            
             final confirmResult =
-                await ReservationService.confirmReservation(reservationId);
+                await ReservationService.confirmReservation(reservationId, promoCode: promoCodeToSend);
 
             if (confirmResult['success'] == true) {
               confirmedSeats
@@ -1044,8 +1055,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               failedPayments
                   .add(reservation['seat_number'] ?? widget.seatNumber);
               // Afficher le message d'erreur détaillé
-              final errorMsg = paymentResult['message'] ?? paymentResult['error'] ?? 'Erreur inconnue';
-              debugPrint('❌ Paiement Wave échoué pour réservation $reservationId: $errorMsg');
+              final errorMsg = paymentResult['message'] ??
+                  paymentResult['error'] ??
+                  'Erreur inconnue';
+              debugPrint(
+                  '❌ Paiement Wave échoué pour réservation $reservationId: $errorMsg');
               debugPrint('❌ Détails complets: ${paymentResult['details']}');
             }
 
@@ -1056,7 +1070,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             }
           } catch (e, stackTrace) {
             failedPayments.add(reservation['seat_number'] ?? widget.seatNumber);
-            debugPrint('❌ Exception lors de l\'initiation du paiement Wave: $e');
+            debugPrint(
+                '❌ Exception lors de l\'initiation du paiement Wave: $e');
             debugPrint('❌ Stack trace: $stackTrace');
           }
         }
@@ -1076,7 +1091,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 duration: const Duration(seconds: 5),
               ),
             );
-            
+
             // Ne pas rediriger immédiatement - l'utilisateur doit compléter le paiement
             // Le webhook Wave confirmera la réservation après paiement réussi
             // L'utilisateur reviendra à l'app après le paiement via le callback URL
@@ -1093,9 +1108,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             );
           } else {
             // Tous les paiements ont échoué - réessayer pour obtenir le message d'erreur
-            String errorMessage = 'Impossible d\'initier le paiement Wave. Veuillez réessayer.';
+            String errorMessage =
+                'Impossible d\'initier le paiement Wave. Veuillez réessayer.';
             try {
-              final testResult = await ReservationService.initiateWavePayment(widget.reservationId);
+              final testResult = await ReservationService.initiateWavePayment(
+                  widget.reservationId);
               if (testResult['message'] != null) {
                 errorMessage = testResult['message'];
               } else if (testResult['error'] != null) {
@@ -1104,7 +1121,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             } catch (_) {
               // Ignorer si l'appel échoue
             }
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('❌ $errorMessage'),

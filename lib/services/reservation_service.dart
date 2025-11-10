@@ -199,8 +199,9 @@ class ReservationService {
     }
   }
 
-  /// Confirmer une réservation et créer le ticket (mode test)
-  static Future<Map<String, dynamic>> confirmReservation(int reservationId) async {
+  /// Confirmer une réservation (convertir en ticket)
+  /// [promoCode] : Code promotionnel optionnel pour créer un laisser-passer (ticket gratuit)
+  static Future<Map<String, dynamic>> confirmReservation(int reservationId, {String? promoCode}) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/confirm');
       
@@ -209,8 +210,16 @@ class ReservationService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
-      final response = await http.post(uri, headers: headers)
-          .timeout(ApiConfig.requestTimeout);
+      final body = <String, dynamic>{};
+      if (promoCode != null && promoCode.isNotEmpty) {
+        body['promo_code'] = promoCode;
+      }
+
+      final response = await http.post(
+        uri, 
+        headers: headers,
+        body: body.isNotEmpty ? json.encode(body) : null,
+      ).timeout(ApiConfig.requestTimeout);
 
       final data = json.decode(response.body);
 
