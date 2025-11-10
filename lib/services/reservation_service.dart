@@ -143,6 +143,7 @@ class ReservationService {
     required int clientProfileId,
     int? stopEmbarkId,
     int? stopDisembarkId,
+    String? paymentGroupId,
   }) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/reservations');
@@ -157,6 +158,7 @@ class ReservationService {
         'seat_number': seatNumber,
         'client_profile_id': clientProfileId,
         if (stopEmbarkId != null) 'stop_embark_id': stopEmbarkId,
+        if (paymentGroupId != null) 'payment_group_id': paymentGroupId,
         if (stopDisembarkId != null) 'stop_disembark_id': stopDisembarkId,
       });
 
@@ -256,7 +258,8 @@ class ReservationService {
 
   /// Initier un paiement Wave pour une réservation
   /// [totalAmount] : Montant total optionnel (pour plusieurs réservations)
-  static Future<Map<String, dynamic>> initiateWavePayment(int reservationId, {double? totalAmount}) async {
+  /// [paymentGroupId] : ID du groupe de paiement optionnel (pour paiement multiple)
+  static Future<Map<String, dynamic>> initiateWavePayment(int reservationId, {double? totalAmount, String? paymentGroupId}) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/payment/wave');
       
@@ -265,11 +268,15 @@ class ReservationService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
-      // Préparer le body avec le montant total si fourni
+      // Préparer le body avec le montant total et payment_group_id si fournis
       final body = <String, dynamic>{};
       if (totalAmount != null && totalAmount > 0) {
         body['total_amount'] = totalAmount;
         debugPrint('🔄 [ReservationService] Montant total fourni: $totalAmount');
+      }
+      if (paymentGroupId != null && paymentGroupId.isNotEmpty) {
+        body['payment_group_id'] = paymentGroupId;
+        debugPrint('🔄 [ReservationService] Payment Group ID fourni: $paymentGroupId');
       }
 
       debugPrint('🔄 [ReservationService] Initiation paiement Wave pour réservation $reservationId');

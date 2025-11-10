@@ -9,28 +9,39 @@ import 'home_page.dart';
 import 'my_trips_screen.dart';
 
 class PaymentScreen extends ConsumerStatefulWidget {
-  final int reservationId;
-  final String sessionId;
-  final double amount;
-  final Map<String, dynamic> depart;
-  final int seatNumber;
+  final int? reservationId; // Optionnel si ouvert depuis deep link
+  final String? sessionId; // Optionnel si ouvert depuis deep link
+  final double? amount; // Optionnel si ouvert depuis deep link
+  final Map<String, dynamic>? depart; // Optionnel si ouvert depuis deep link
+  final int? seatNumber; // Optionnel si ouvert depuis deep link
   final List<int>? selectedSeats;
-  final String expiresAt;
-  final int countdownSeconds;
+  final String? expiresAt; // Optionnel si ouvert depuis deep link
+  final int? countdownSeconds; // Optionnel si ouvert depuis deep link
   final List<Map<String, dynamic>>?
       reservations; // Liste de toutes les réservations à confirmer
+  final String?
+      paymentGroupId; // ID du groupe de paiement pour paiement multiple
+
+  // Paramètres pour deep link de paiement réussi
+  final String? paymentStatus; // 'success', 'error', 'pending'
+  final String? paymentMessage;
+  final int? ticketId; // ID du ticket créé après paiement réussi
 
   const PaymentScreen({
     super.key,
-    required this.reservationId,
-    required this.sessionId,
-    required this.amount,
-    required this.depart,
-    required this.seatNumber,
+    this.reservationId, // Optionnel si ouvert depuis deep link
+    this.sessionId, // Optionnel si ouvert depuis deep link
+    this.amount, // Optionnel si ouvert depuis deep link
+    this.depart, // Optionnel si ouvert depuis deep link
+    this.seatNumber, // Optionnel si ouvert depuis deep link
     this.selectedSeats,
-    required this.expiresAt,
-    required this.countdownSeconds,
+    this.expiresAt, // Optionnel si ouvert depuis deep link
+    this.countdownSeconds, // Optionnel si ouvert depuis deep link
     this.reservations, // Liste optionnelle de toutes les réservations
+    this.paymentGroupId, // ID du groupe de paiement
+    this.paymentStatus, // Statut du paiement si ouvert depuis deep link
+    this.paymentMessage, // Message du paiement
+    this.ticketId, // ID du ticket créé
   });
 
   @override
@@ -200,12 +211,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
     // Récupérer le prix du départ comme fallback
     double departPrice = 0.0;
-    final priceValue =
-        widget.depart['prix'] ?? widget.depart['prix_depart'] ?? 0.0;
-    if (priceValue is num) {
-      departPrice = priceValue.toDouble();
-    } else if (priceValue is String) {
-      departPrice = double.tryParse(priceValue) ?? 0.0;
+    if (widget.depart != null && widget.depart!.isNotEmpty) {
+      final priceValue =
+          widget.depart!['prix'] ?? widget.depart!['prix_depart'] ?? 0.0;
+      if (priceValue is num) {
+        departPrice = priceValue.toDouble();
+      } else if (priceValue is String) {
+        departPrice = double.tryParse(priceValue) ?? 0.0;
+      }
     }
 
     if (widget.reservations != null && widget.reservations!.isNotEmpty) {
@@ -230,7 +243,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     } else {
       // Fallback : utiliser widget.amount si pas de réservations
       // Si widget.amount est 0 ou null, utiliser le prix du départ
-      total = widget.amount > 0 ? widget.amount : departPrice;
+      total = (widget.amount != null && widget.amount! > 0)
+          ? widget.amount!
+          : departPrice;
     }
 
     // Si plusieurs sièges sont sélectionnés, le code promo ne peut pas être utilisé
@@ -255,22 +270,29 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   String _getEmbarkDestination() {
-    if (widget.depart.containsKey('trajet')) {
-      final trajet = widget.depart['trajet'];
+    if (widget.depart == null || widget.depart!.isEmpty) {
+      return 'Trajet non disponible';
+    }
+    if (widget.depart!.containsKey('trajet')) {
+      final trajet = widget.depart!['trajet'];
       if (trajet is Map) {
         return '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
       }
     }
-    if (widget.depart.containsKey('embarquement') &&
-        widget.depart.containsKey('destination')) {
-      return '${widget.depart['embarquement']} → ${widget.depart['destination']}';
+    if (widget.depart!.containsKey('embarquement') &&
+        widget.depart!.containsKey('destination')) {
+      return '${widget.depart!['embarquement']} → ${widget.depart!['destination']}';
     }
     return t('payment.trip_not_available');
   }
 
   String _getDepartDateTime() {
-    final date = widget.depart['date_depart'] ?? widget.depart['date'] ?? '';
-    final heure = widget.depart['heure_depart'] ?? widget.depart['heure'] ?? '';
+    if (widget.depart == null || widget.depart!.isEmpty) {
+      return 'Date non disponible';
+    }
+    final date = widget.depart!['date_depart'] ?? widget.depart!['date'] ?? '';
+    final heure =
+        widget.depart!['heure_depart'] ?? widget.depart!['heure'] ?? '';
     if (date.isNotEmpty && heure.isNotEmpty) {
       return '${t('payment.date_prefix')} $date à $heure';
     }
@@ -302,12 +324,31 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       }
     }
 
-    // Fallback: Utiliser seatNumber
-    return '${t('payment.seat')} ${widget.seatNumber}';
+    // Fallback: Utiliser seatNumber si disponible
+    if (widget.seatNumber != null) {
+      return '${t('payment.seat')} ${widget.seatNumber}';
+    }
+    return t('payment.seat_not_available');
   }
 
   @override
   Widget build(BuildContext context) {
+    // Si on vient d'un deep link de paiement réussi, afficher l'écran de succès
+    if (widget.paymentStatus == 'success') {
+      return _buildPaymentSuccessScreen(context);
+    }
+
+    // Si on vient d'un deep link d'erreur, afficher l'écran d'erreur
+    if (widget.paymentStatus == 'error') {
+      return _buildPaymentErrorScreen(context);
+    }
+
+    // Si on vient d'un deep link de paiement en attente, afficher l'écran d'attente
+    if (widget.paymentStatus == 'pending') {
+      return _buildPaymentPendingScreen(context);
+    }
+
+    // Sinon, afficher l'écran de paiement normal
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -978,9 +1019,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
             if (confirmResult['success'] == true) {
               confirmedSeats
-                  .add(reservation['seat_number'] ?? widget.seatNumber);
+                  .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
             } else {
-              failedSeats.add(reservation['seat_number'] ?? widget.seatNumber);
+              failedSeats
+                  .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
             }
 
             // Délai entre chaque confirmation pour éviter le rate limit
@@ -989,7 +1031,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               await Future.delayed(const Duration(seconds: 1));
             }
           } catch (e) {
-            failedSeats.add(reservation['seat_number'] ?? widget.seatNumber);
+            failedSeats
+                .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
           }
         }
 
@@ -1078,32 +1121,106 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       try {
         // Traiter chaque réservation séparément
         final reservationsToPay = widget.reservations ??
-            [
-              {
-                'reservation_id': widget.reservationId,
-                'seat_number': widget.seatNumber
-              }
-            ];
+            (widget.reservationId != null && widget.seatNumber != null
+                ? [
+                    {
+                      'reservation_id': widget.reservationId,
+                      'seat_number': widget.seatNumber
+                    }
+                  ]
+                : []);
 
-        // Calculer le montant total (utiliser _finalAmount qui est déjà calculé)
-        final totalAmount = _finalAmount;
+        // Vérifier qu'on a au moins une réservation à payer
+        if (reservationsToPay.isEmpty) {
+          if (mounted) {
+            setState(() {
+              _isProcessing = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('Aucune réservation à payer. Veuillez réessayer.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
 
-        // Initier UN SEUL paiement Wave pour la première réservation avec le montant total
-        // Les autres réservations seront traitées après le paiement réussi
+        // IMPORTANT: Calculer le montant de la première réservation uniquement
+        // Ne pas envoyer le montant total de toutes les réservations
+        // Chaque réservation doit être payée individuellement pour éviter les bugs
         final firstReservation = reservationsToPay[0];
         final firstReservationId = firstReservation['reservation_id'];
 
+        if (firstReservationId == null) {
+          if (mounted) {
+            setState(() {
+              _isProcessing = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Erreur: ID de réservation manquant. Veuillez réessayer.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        // Calculer le montant de la première réservation uniquement
+        double firstReservationAmount = 0.0;
+        if (firstReservation['amount'] != null) {
+          final amountValue = firstReservation['amount'];
+          if (amountValue is num) {
+            firstReservationAmount = amountValue.toDouble();
+          } else if (amountValue is String) {
+            firstReservationAmount = double.tryParse(amountValue) ?? 0.0;
+          }
+        }
+
+        // Si le montant n'est pas défini, utiliser le prix du départ
+        if (firstReservationAmount == 0.0 &&
+            widget.depart != null &&
+            widget.depart!.isNotEmpty) {
+          final priceValue =
+              widget.depart!['prix'] ?? widget.depart!['prix_depart'] ?? 0.0;
+          if (priceValue is num) {
+            firstReservationAmount = priceValue.toDouble();
+          } else if (priceValue is String) {
+            firstReservationAmount = double.tryParse(priceValue) ?? 0.0;
+          }
+        }
+
+        // Appliquer code promo ou points de fidélité si applicable
+        if (_usePromoCode && _promoCodeValid && !_hasMultipleSeats) {
+          firstReservationAmount = 0.0; // Ticket gratuit avec code promo
+        } else if (_useLoyaltyPoints && (_clientPoints ?? 0) >= 10) {
+          firstReservationAmount = 0.0; // Ticket gratuit avec points
+        }
+
         try {
+          // Calculer le montant total de toutes les réservations
+          final totalAmountToPay = _finalAmount;
+
           debugPrint(
               '💳 [PaymentScreen] Initiation paiement Wave pour réservation $firstReservationId');
-          debugPrint('💳 [PaymentScreen] Montant total: $totalAmount FCFA');
+          debugPrint(
+              '💳 [PaymentScreen] Montant total: $totalAmountToPay FCFA');
           debugPrint(
               '💳 [PaymentScreen] Nombre de réservations: ${reservationsToPay.length}');
+          if (widget.paymentGroupId != null) {
+            debugPrint(
+                '💳 [PaymentScreen] Payment Group ID: ${widget.paymentGroupId}');
+          }
 
-          // Initier le paiement Wave avec le montant total
+          // Initier le paiement Wave avec le montant total et le payment_group_id
+          // Cela permettra de payer toutes les réservations du groupe en une seule fois
           final paymentResult = await ReservationService.initiateWavePayment(
             firstReservationId,
-            totalAmount: totalAmount > 0 ? totalAmount : null,
+            totalAmount: totalAmountToPay > 0 ? totalAmountToPay : null,
+            paymentGroupId: widget.paymentGroupId,
           );
 
           if (paymentResult['success'] == true &&
@@ -1126,8 +1243,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     SnackBar(
                       content: Text(
                         reservationsToPay.length > 1
-                            ? '✅ Paiement Wave initié pour ${reservationsToPay.length} siège(s) (${totalAmount.toStringAsFixed(0)} FCFA). Veuillez compléter le paiement sur Wave.'
-                            : '✅ Paiement Wave initié (${totalAmount.toStringAsFixed(0)} FCFA). Veuillez compléter le paiement sur Wave.',
+                            ? '✅ Paiement Wave initié pour ${reservationsToPay.length} siège(s) (${totalAmountToPay.toStringAsFixed(0)} FCFA). Veuillez compléter le paiement sur Wave.'
+                            : '✅ Paiement Wave initié (${totalAmountToPay.toStringAsFixed(0)} FCFA). Veuillez compléter le paiement sur Wave.',
                       ),
                       backgroundColor: Colors.blue,
                       duration: const Duration(seconds: 5),
@@ -1202,5 +1319,347 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         }
       }
     }
+  }
+
+  /// Écran de succès après paiement réussi (depuis deep link)
+  Widget _buildPaymentSuccessScreen(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Paiement réussi'),
+        elevation: 0,
+        automaticallyImplyLeading: false, // Pas de bouton retour
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Icône de succès
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 60,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Titre
+              Text(
+                '✅ Paiement réussi !',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              // Message
+              Text(
+                widget.paymentMessage ??
+                    'Votre réservation a été confirmée avec succès. Vous recevrez une notification avec les détails de votre ticket.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+
+              // Informations de la réservation (si disponibles)
+              if (widget.depart != null && widget.depart!.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _getEmbarkDestination(),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _getDepartDateTime(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _getSeatsDisplay(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 48),
+
+              // Bouton pour aller aux trajets
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Naviguer vers la page des trajets et fermer toutes les pages précédentes
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const HomePage(
+                            initialTabIndex: 1), // Onglet "Mes Trajets"
+                      ),
+                      (route) =>
+                          route.isFirst, // Garder seulement la page d'accueil
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Voir mes trajets',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Bouton pour retourner à l'accueil
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    // Retourner à l'accueil
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const HomePage(),
+                      ),
+                      (route) => route.isFirst,
+                    );
+                  },
+                  child: Text(
+                    'Retour à l\'accueil',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Écran d'erreur après paiement échoué (depuis deep link)
+  Widget _buildPaymentErrorScreen(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Erreur de paiement'),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Icône d'erreur
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 60,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Titre
+              Text(
+                '❌ Erreur de paiement',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              // Message
+              Text(
+                widget.paymentMessage ??
+                    'Une erreur est survenue lors du paiement. Veuillez réessayer.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+
+              // Bouton pour retourner à l'accueil
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const HomePage(),
+                      ),
+                      (route) => route.isFirst,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Retour à l\'accueil',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Écran d'attente après paiement en cours (depuis deep link)
+  Widget _buildPaymentPendingScreen(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Paiement en cours'),
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Icône d'attente
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.hourglass_empty,
+                  color: Colors.orange,
+                  size: 60,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Titre
+              Text(
+                '⏳ Paiement en cours de traitement',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              // Message
+              Text(
+                widget.paymentMessage ??
+                    'Votre paiement est en cours de traitement. Vous recevrez une notification une fois confirmé.',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 48),
+
+              // Bouton pour retourner à l'accueil
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const HomePage(),
+                      ),
+                      (route) => route.isFirst,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Retour à l\'accueil',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

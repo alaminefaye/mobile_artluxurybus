@@ -88,6 +88,7 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
     String? sessionId,
     String? expiresAt,
     int? countdownSeconds,
+    String? paymentGroupId,
   }) {
     showDialog(
       context: context,
@@ -179,6 +180,8 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                             .toIso8601String(),
                     countdownSeconds: countdownSeconds ?? 300,
                     reservations: createdReservations,
+                    paymentGroupId:
+                        paymentGroupId, // Passer le payment_group_id
                   ),
                 ),
               );
@@ -385,7 +388,8 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
 
       debugPrint(
           '🎫 [ClientInfoScreen] Début création réservations pour $seatsToReserveCount siège(s): ${seatsToReserve.join(", ")}');
-      debugPrint('🎫 [ClientInfoScreen] Copie locale créée pour éviter modifications pendant le processus');
+      debugPrint(
+          '🎫 [ClientInfoScreen] Copie locale créée pour éviter modifications pendant le processus');
 
       // Afficher un indicateur de chargement
       if (mounted) {
@@ -417,9 +421,16 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
         );
       }
 
+      // Générer un payment_group_id unique pour toutes les réservations de cette session
+      // Format: mobile_{timestamp}_{client_id}_{random}
+      final paymentGroupId =
+          'mobile_${DateTime.now().millisecondsSinceEpoch}_${clientProfileId}_${DateTime.now().microsecondsSinceEpoch}';
+      debugPrint(
+          '🆔 [ClientInfoScreen] Payment Group ID généré: $paymentGroupId');
+
       // Boucle pour créer chaque réservation avec délai pour éviter le rate limiting
       bool hasRateLimitError = false;
-      
+
       // NOTE: seatsToReserve est déjà créé plus haut, on l'utilise ici
 
       for (int i = 0; i < seatsToReserve.length; i++) {
@@ -430,9 +441,11 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
         // Délai entre chaque siège : 3 secondes pour respecter le rate limit (30 req/min = 1 req/2s)
         // On met 3 secondes pour être sûr
         if (i > 0) {
-          debugPrint('⏱️ [ClientInfoScreen] Attente de 3 secondes avant le siège $seatNumber...');
+          debugPrint(
+              '⏱️ [ClientInfoScreen] Attente de 3 secondes avant le siège $seatNumber...');
           await Future.delayed(const Duration(seconds: 3));
-          debugPrint('✅ [ClientInfoScreen] Attente terminée, création réservation siège $seatNumber');
+          debugPrint(
+              '✅ [ClientInfoScreen] Attente terminée, création réservation siège $seatNumber');
         }
 
         // Vérifier que le widget est toujours monté
@@ -457,24 +470,29 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                 '⚠️ [ClientInfoScreen] Widget démonté pendant traitement siège $seatNumber');
             if (!failedSeats.contains(seatNumber)) {
               failedSeats.add(seatNumber);
-              failedSeatsReasons[seatNumber] = t('client_info.widget_unmounted');
+              failedSeatsReasons[seatNumber] =
+                  t('client_info.widget_unmounted');
             }
             break;
           }
 
           try {
-            debugPrint('📡 [ClientInfoScreen] Envoi requête création réservation siège $seatNumber (tentative ${retryCount + 1}/$maxRetries)');
-            
+            debugPrint(
+                '📡 [ClientInfoScreen] Envoi requête création réservation siège $seatNumber (tentative ${retryCount + 1}/$maxRetries)');
+
             final result = await ReservationService.createReservation(
               departId: widget.depart['id'],
               seatNumber: seatNumber,
               clientProfileId: clientProfileId!,
               stopEmbarkId: widget.stopEmbarkId,
               stopDisembarkId: widget.stopDisembarkId,
+              paymentGroupId:
+                  paymentGroupId, // Envoyer le payment_group_id pour toutes les réservations
             );
 
             lastStatusCode = result['status_code'];
-            debugPrint('📥 [ClientInfoScreen] Réponse reçue pour siège $seatNumber - Status: $lastStatusCode, Success: ${result['success']}');
+            debugPrint(
+                '📥 [ClientInfoScreen] Réponse reçue pour siège $seatNumber - Status: $lastStatusCode, Success: ${result['success']}');
 
             // Vérifier si c'est une erreur 429 (Too Many Attempts)
             final isRateLimit = result['success'] == false &&
@@ -485,7 +503,11 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                     result['message']?.toString().contains('rate limit') ==
                         true ||
                     result['message']?.toString().contains('Trop de') == true ||
-                    result['message']?.toString().toLowerCase().contains('throttle') == true);
+                    result['message']
+                            ?.toString()
+                            .toLowerCase()
+                            .contains('throttle') ==
+                        true);
 
             if (isRateLimit) {
               hasRateLimitError = true;
@@ -546,7 +568,8 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                 totalAmount += amount;
                 debugPrint(
                     '✅ [ClientInfoScreen] Réservation créée pour siège $seatNumber (ID: $reservationId, Montant: $amount FCFA)');
-                debugPrint('✅ [ClientInfoScreen] Total réservations créées: ${createdReservations.length}/${seatsToReserve.length}');
+                debugPrint(
+                    '✅ [ClientInfoScreen] Total réservations créées: ${createdReservations.length}/${seatsToReserve.length}');
                 success = true;
               } else {
                 debugPrint(
@@ -564,31 +587,34 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                   result['error']?.toString() ??
                   t('client_info.unknown_error');
               lastStatusCode = result['status_code'] ?? lastStatusCode;
-              
+
               debugPrint(
                   '❌ [ClientInfoScreen] Échec création réservation siège $seatNumber: $lastError (Status: $lastStatusCode)');
-              debugPrint('❌ [ClientInfoScreen] Détails erreur: ${result.toString()}');
-              
+              debugPrint(
+                  '❌ [ClientInfoScreen] Détails erreur: ${result.toString()}');
+
               // Si ce n'est pas une erreur récupérable (comme siège déjà réservé), arrêter les tentatives
-              final isUnrecoverableError = lastStatusCode == 422 || 
+              final isUnrecoverableError = lastStatusCode == 422 ||
                   lastError.toString().contains('déjà réservé') ||
                   lastError.toString().contains('déjà vendu') ||
                   lastError.toString().contains('Siège déjà');
-              
+
               if (isUnrecoverableError) {
-                debugPrint('🛑 [ClientInfoScreen] Erreur non récupérable pour siège $seatNumber, arrêt des tentatives');
+                debugPrint(
+                    '🛑 [ClientInfoScreen] Erreur non récupérable pour siège $seatNumber, arrêt des tentatives');
                 if (!failedSeats.contains(seatNumber)) {
                   failedSeats.add(seatNumber);
                   failedSeatsReasons[seatNumber] = lastError;
                 }
                 break;
               }
-              
+
               // Pour les autres erreurs, réessayer
               retryCount++;
               if (retryCount < maxRetries) {
                 final delay = Duration(seconds: 2 * retryCount);
-                debugPrint('⏳ [ClientInfoScreen] Réessai siège $seatNumber dans ${delay.inSeconds}s (tentative $retryCount/$maxRetries)');
+                debugPrint(
+                    '⏳ [ClientInfoScreen] Réessai siège $seatNumber dans ${delay.inSeconds}s (tentative $retryCount/$maxRetries)');
                 await Future.delayed(delay);
                 continue;
               } else {
@@ -604,11 +630,12 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                 '❌ [ClientInfoScreen] Exception lors de la création réservation siège $seatNumber: $e');
             debugPrint('❌ [ClientInfoScreen] Stack trace: $stackTrace');
             lastError = 'Exception: ${e.toString()}';
-            
+
             retryCount++;
             if (retryCount < maxRetries) {
               final delay = Duration(seconds: 2 * retryCount);
-              debugPrint('⏳ [ClientInfoScreen] Réessai après exception dans ${delay.inSeconds}s (tentative $retryCount/$maxRetries)');
+              debugPrint(
+                  '⏳ [ClientInfoScreen] Réessai après exception dans ${delay.inSeconds}s (tentative $retryCount/$maxRetries)');
               await Future.delayed(delay);
               continue;
             } else {
@@ -620,19 +647,24 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
             }
           }
         }
-        
+
         if (!success) {
-          debugPrint('⚠️ [ClientInfoScreen] Échec définitif pour siège $seatNumber après $maxRetries tentatives');
+          debugPrint(
+              '⚠️ [ClientInfoScreen] Échec définitif pour siège $seatNumber après $maxRetries tentatives');
         }
       }
 
       debugPrint('🏁 [ClientInfoScreen] === FIN DE LA BOUCLE DE CRÉATION ===');
-      debugPrint('🏁 [ClientInfoScreen] Réservations créées: ${createdReservations.length}');
-      debugPrint('🏁 [ClientInfoScreen] Réservations échouées: ${failedSeats.length}');
+      debugPrint(
+          '🏁 [ClientInfoScreen] Réservations créées: ${createdReservations.length}');
+      debugPrint(
+          '🏁 [ClientInfoScreen] Réservations échouées: ${failedSeats.length}');
       if (failedSeats.isNotEmpty) {
-        debugPrint('🏁 [ClientInfoScreen] Sièges échoués: ${failedSeats.join(", ")}');
+        debugPrint(
+            '🏁 [ClientInfoScreen] Sièges échoués: ${failedSeats.join(", ")}');
         for (var seat in failedSeats) {
-          debugPrint('🏁 [ClientInfoScreen]   - Siège $seat: ${failedSeatsReasons[seat]}');
+          debugPrint(
+              '🏁 [ClientInfoScreen]   - Siège $seat: ${failedSeatsReasons[seat]}');
         }
       }
 
@@ -660,11 +692,10 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
 
           // Utiliser la première réservation pour les données communes
           final firstReservation = createdReservations[0];
-          
+
           // Extraire les sièges des réservations créées (seulement ceux qui ont réussi)
-          final successfulSeats = createdReservations
-              .map((r) => r['seat_number'] as int)
-              .toList();
+          final successfulSeats =
+              createdReservations.map((r) => r['seat_number'] as int).toList();
 
           Navigator.push(
             context,
@@ -675,8 +706,10 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                     'mobile_${clientProfileId}_${DateTime.now().millisecondsSinceEpoch}',
                 amount: totalAmount,
                 depart: widget.depart,
-                seatNumber: successfulSeats.first, // Premier siège réservé avec succès
-                selectedSeats: successfulSeats, // Seulement les sièges avec réservations réussies
+                seatNumber:
+                    successfulSeats.first, // Premier siège réservé avec succès
+                selectedSeats:
+                    successfulSeats, // Seulement les sièges avec réservations réussies
                 expiresAt: expiresAt ??
                     DateTime.now()
                         .add(const Duration(minutes: 5))
@@ -684,6 +717,8 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                 countdownSeconds: countdownSeconds ?? 300,
                 reservations:
                     createdReservations, // Liste de toutes les réservations créées avec succès
+                paymentGroupId:
+                    paymentGroupId, // Passer le payment_group_id pour paiement groupé
               ),
             ),
           );
@@ -699,6 +734,7 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
             sessionId: sessionId,
             expiresAt: expiresAt,
             countdownSeconds: countdownSeconds,
+            paymentGroupId: paymentGroupId, // Passer le payment_group_id
           );
         } else {
           // Toutes les créations ont échoué
