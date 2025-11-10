@@ -197,22 +197,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     // Calculer le montant total à partir de toutes les réservations
     // C'est plus fiable que d'utiliser seulement widget.amount
     double total = 0.0;
-    
+
     // Récupérer le prix du départ comme fallback
     double departPrice = 0.0;
-    final priceValue = widget.depart['prix'] ?? widget.depart['prix_depart'] ?? 0.0;
+    final priceValue =
+        widget.depart['prix'] ?? widget.depart['prix_depart'] ?? 0.0;
     if (priceValue is num) {
       departPrice = priceValue.toDouble();
     } else if (priceValue is String) {
       departPrice = double.tryParse(priceValue) ?? 0.0;
     }
-    
+
     if (widget.reservations != null && widget.reservations!.isNotEmpty) {
       // Calculer le total à partir de toutes les réservations
       for (var reservation in widget.reservations!) {
         double amount = 0.0;
         final amountValue = reservation['amount'];
-        
+
         // Si le montant n'est pas défini dans la réservation, utiliser le prix du départ
         if (amountValue == null || amountValue == 0.0) {
           amount = departPrice;
@@ -223,7 +224,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         } else {
           amount = departPrice;
         }
-        
+
         total += amount;
       }
     } else {
@@ -274,6 +275,35 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       return '${t('payment.date_prefix')} $date à $heure';
     }
     return t('payment.date_not_available');
+  }
+
+  // Obtenir l'affichage des sièges (tous les sièges réservés)
+  String _getSeatsDisplay() {
+    // Priorité 1: Utiliser les réservations si disponibles (plus fiable)
+    if (widget.reservations != null && widget.reservations!.isNotEmpty) {
+      final seats = widget.reservations!
+          .map((r) => r['seat_number']?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+      
+      if (seats.length > 1) {
+        return '${t('payment.seats')} ${seats.join(', ')}';
+      } else if (seats.isNotEmpty) {
+        return '${t('payment.seat')} ${seats.first}';
+      }
+    }
+    
+    // Priorité 2: Utiliser selectedSeats si disponible
+    if (widget.selectedSeats != null && widget.selectedSeats!.isNotEmpty) {
+      if (widget.selectedSeats!.length > 1) {
+        return '${t('payment.seats')} ${widget.selectedSeats!.join(', ')}';
+      } else {
+        return '${t('payment.seat')} ${widget.selectedSeats!.first}';
+      }
+    }
+    
+    // Fallback: Utiliser seatNumber
+    return '${t('payment.seat')} ${widget.seatNumber}';
   }
 
   @override
@@ -343,10 +373,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.selectedSeats != null &&
-                            widget.selectedSeats!.length > 1
-                        ? '${t('payment.seats')} ${widget.selectedSeats!.join(', ')}'
-                        : '${t('payment.seat')} ${widget.seatNumber}',
+                    _getSeatsDisplay(),
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -1060,17 +1087,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
         // Calculer le montant total (utiliser _finalAmount qui est déjà calculé)
         final totalAmount = _finalAmount;
-        
+
         // Initier UN SEUL paiement Wave pour la première réservation avec le montant total
         // Les autres réservations seront traitées après le paiement réussi
         final firstReservation = reservationsToPay[0];
         final firstReservationId = firstReservation['reservation_id'];
 
         try {
-          debugPrint('💳 [PaymentScreen] Initiation paiement Wave pour réservation $firstReservationId');
+          debugPrint(
+              '💳 [PaymentScreen] Initiation paiement Wave pour réservation $firstReservationId');
           debugPrint('💳 [PaymentScreen] Montant total: $totalAmount FCFA');
-          debugPrint('💳 [PaymentScreen] Nombre de réservations: ${reservationsToPay.length}');
-          
+          debugPrint(
+              '💳 [PaymentScreen] Nombre de réservations: ${reservationsToPay.length}');
+
           // Initier le paiement Wave avec le montant total
           final paymentResult = await ReservationService.initiateWavePayment(
             firstReservationId,
@@ -1086,12 +1115,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               final uri = Uri.parse(paymentUrl);
               if (await canLaunchUrl(uri)) {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
-                
+
                 if (mounted) {
                   setState(() {
                     _isProcessing = false;
                   });
-                  
+
                   // Afficher un message de succès
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1106,7 +1135,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   );
                 }
               } else {
-                throw Exception('Impossible d\'ouvrir la page de paiement Wave');
+                throw Exception(
+                    'Impossible d\'ouvrir la page de paiement Wave');
               }
             } else {
               throw Exception('URL de paiement Wave non reçue');
@@ -1116,14 +1146,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             final errorMsg = paymentResult['message'] ??
                 paymentResult['error'] ??
                 'Erreur inconnue';
-            debugPrint('❌ Paiement Wave échoué pour réservation $firstReservationId: $errorMsg');
+            debugPrint(
+                '❌ Paiement Wave échoué pour réservation $firstReservationId: $errorMsg');
             debugPrint('❌ Détails complets: ${paymentResult['details']}');
-            
+
             if (mounted) {
               setState(() {
                 _isProcessing = false;
               });
-              
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('❌ Erreur: $errorMsg'),
@@ -1136,12 +1167,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         } catch (e, stackTrace) {
           debugPrint('❌ Exception lors de l\'initiation du paiement Wave: $e');
           debugPrint('❌ Stack trace: $stackTrace');
-          
+
           if (mounted) {
             setState(() {
               _isProcessing = false;
             });
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('❌ Erreur: ${e.toString()}'),

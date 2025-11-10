@@ -361,23 +361,61 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   }
 
   void _toggleSeat(int seatNumber) {
-    // Empêcher la sélection de sièges déjà réservés
+    // Si le siège est déjà sélectionné, permettre de le désélectionner
+    if (_selectedSeats.contains(seatNumber)) {
+      setState(() {
+        _selectedSeats.remove(seatNumber);
+        _selectedSeats.sort();
+      });
+      return;
+    }
+
+    // Empêcher la sélection de sièges déjà réservés par d'autres utilisateurs
     if (_reservedSeats.contains(seatNumber)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t('seats.seat_already_reserved').replaceAll('{{seat}}', seatNumber.toString())),
+          content: Text(
+            '⚠️ Le siège $seatNumber est réservé par un autre client. Veuillez choisir un autre siège.',
+          ),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
         ),
       );
       return;
     }
 
-    // Empêcher la sélection de sièges non disponibles
-    if (!_availableSeats.contains(seatNumber)) {
+    // Permettre la sélection si le siège est disponible OU s'il n'est pas dans la liste des réservés
+    // (car il pourrait être temporairement retiré de availableSeats mais pas réservé par d'autres)
+    final isSeatAvailable = _availableSeats.contains(seatNumber);
+    final isSeatReserved = _reservedSeats.contains(seatNumber);
+    
+    // Si le siège n'est pas disponible ET pas réservé, il pourrait être en cours de traitement
+    // On permet quand même la sélection si le siège n'est pas explicitement réservé
+    if (!isSeatAvailable && !isSeatReserved) {
+      // Vérifier si le siège est dans une plage valide
+      final totalSeats = widget.depart['nombre_places'] ?? 0;
+      if (seatNumber < 1 || seatNumber > totalSeats) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(t('seats.seat_not_available').replaceAll('{{seat}}', seatNumber.toString())),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      
+      // Si le siège n'est pas disponible mais pas réservé non plus, 
+      // c'est peut-être un problème de synchronisation - permettre quand même la sélection
+      // mais afficher un avertissement
+      debugPrint('⚠️ [SeatSelection] Siège $seatNumber pas dans availableSeats mais pas réservé non plus - autorisation de sélection');
+    }
+
+    // Vérifier la limite de 5 sièges
+    if (_selectedSeats.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t('seats.seat_not_available').replaceAll('{{seat}}', seatNumber.toString())),
+          content: Text(t('seats.max_seats_reached')),
           backgroundColor: Colors.orange,
           duration: const Duration(seconds: 2),
         ),
@@ -385,23 +423,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       return;
     }
 
+    // Ajouter le siège à la sélection
     setState(() {
-      if (_selectedSeats.contains(seatNumber)) {
-        _selectedSeats.remove(seatNumber);
-      } else {
-        if (_selectedSeats.length >= 5) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(t('seats.max_seats_reached')),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        } else {
-          _selectedSeats.add(seatNumber);
-          _selectedSeats.sort();
-        }
-      }
+      _selectedSeats.add(seatNumber);
+      _selectedSeats.sort();
     });
   }
 
@@ -996,7 +1021,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           }
 
           return GestureDetector(
-            onTap: isReserved || !isAvailable
+            // Permettre la sélection si le siège n'est pas réservé par d'autres utilisateurs
+            // OU s'il est déjà sélectionné (pour permettre la désélection)
+            onTap: (isReserved && !isSelected)
                 ? null
                 : () => _toggleSeat(seatNumber),
             child: Container(
