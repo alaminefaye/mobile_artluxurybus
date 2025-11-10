@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../services/recharge_service.dart';
@@ -113,22 +112,22 @@ class _RechargeScreenState extends State<RechargeScreen> {
       // Afficher un message informatif
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.white),
-                const SizedBox(width: 8),
+                Icon(Icons.info_outline, color: Colors.white),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Redirection vers Wave pour le paiement...',
-                    style: const TextStyle(fontWeight: FontWeight.w500),
+                    style: TextStyle(fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
             ),
             backgroundColor: Colors.blue,
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
 
@@ -311,8 +310,8 @@ class _RechargeScreenState extends State<RechargeScreen> {
                   if (montant <= 0) {
                     return 'Le montant doit être supérieur à 0';
                   }
-                  if (montant < 100) {
-                    return 'Le montant minimum est de 100 FCFA';
+                  if (montant < 10) {
+                    return 'Le montant minimum est de 10 FCFA';
                   }
                   return null;
                 },
