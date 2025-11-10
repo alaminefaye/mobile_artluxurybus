@@ -205,7 +205,6 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             // Donc on ne le retire PAS - l'utilisateur peut continuer à payer
             
             // Seulement retirer les sièges qui sont dans la liste des réservés (par d'autres utilisateurs)
-            // ET qui ne sont plus disponibles
             final seatsToRemove = _selectedSeats.where((seat) => 
               newReservedSeats.contains(seat) // Réservé par un autre utilisateur
             ).toList();
@@ -213,30 +212,79 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             if (seatsToRemove.isNotEmpty) {
               _selectedSeats.removeWhere((seat) => seatsToRemove.contains(seat));
               if (!silent && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                // Afficher un dialog explicite pour informer l'utilisateur
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => AlertDialog(
+                    title: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Siège(s) réservé(s)',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '⚠️ Siège(s) ${seatsToRemove.join(", ")} retiré(s)',
+                          '⚠️ Le(s) siège(s) ${seatsToRemove.join(", ")} ${seatsToRemove.length > 1 ? "ont été" : "a été"} réservé(s) par un autre client.',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 12),
                         Text(
-                          t('seats.seats_reserved_by_others'),
-                          style: const TextStyle(fontSize: 12),
+                          'Veuillez sélectionner ${seatsToRemove.length > 1 ? "d'autres sièges" : "un autre siège"} pour continuer.',
+                          style: const TextStyle(fontSize: 14),
                         ),
+                        if (_selectedSeats.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Sièges encore disponibles : ${_selectedSeats.join(", ")}',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
-                    backgroundColor: Colors.orange,
-                    duration: const Duration(seconds: 4),
-                    action: SnackBarAction(
-                      label: t('common.ok'),
-                      textColor: Colors.white,
-                      onPressed: () {},
-                    ),
+                    actions: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          // Si plus aucun siège n'est sélectionné, l'utilisateur devra en choisir d'autres
+                          if (_selectedSeats.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Veuillez sélectionner ${seatsToRemove.length > 1 ? "d'autres sièges" : "un autre siège"} pour continuer.',
+                                ),
+                                backgroundColor: Colors.orange,
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryOrange,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(t('common.ok')),
+                      ),
+                    ],
                   ),
                 );
               }

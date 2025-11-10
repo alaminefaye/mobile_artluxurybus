@@ -194,7 +194,43 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   }
 
   double get _finalAmount {
-    double total = widget.amount;
+    // Calculer le montant total à partir de toutes les réservations
+    // C'est plus fiable que d'utiliser seulement widget.amount
+    double total = 0.0;
+    
+    // Récupérer le prix du départ comme fallback
+    double departPrice = 0.0;
+    final priceValue = widget.depart['prix'] ?? widget.depart['prix_depart'] ?? 0.0;
+    if (priceValue is num) {
+      departPrice = priceValue.toDouble();
+    } else if (priceValue is String) {
+      departPrice = double.tryParse(priceValue) ?? 0.0;
+    }
+    
+    if (widget.reservations != null && widget.reservations!.isNotEmpty) {
+      // Calculer le total à partir de toutes les réservations
+      for (var reservation in widget.reservations!) {
+        double amount = 0.0;
+        final amountValue = reservation['amount'];
+        
+        // Si le montant n'est pas défini dans la réservation, utiliser le prix du départ
+        if (amountValue == null || amountValue == 0.0) {
+          amount = departPrice;
+        } else if (amountValue is num) {
+          amount = amountValue.toDouble();
+        } else if (amountValue is String) {
+          amount = double.tryParse(amountValue) ?? departPrice;
+        } else {
+          amount = departPrice;
+        }
+        
+        total += amount;
+      }
+    } else {
+      // Fallback : utiliser widget.amount si pas de réservations
+      // Si widget.amount est 0 ou null, utiliser le prix du départ
+      total = widget.amount > 0 ? widget.amount : departPrice;
+    }
 
     // Si plusieurs sièges sont sélectionnés, le code promo ne peut pas être utilisé
     if (_hasMultipleSeats) {
