@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../services/reservation_service.dart';
 import '../services/translation_service.dart';
+import '../utils/error_message_helper.dart';
 import 'home_page.dart';
 import 'my_trips_screen.dart';
 
@@ -15,7 +17,8 @@ class PaymentScreen extends ConsumerStatefulWidget {
   final List<int>? selectedSeats;
   final String expiresAt;
   final int countdownSeconds;
-  final List<Map<String, dynamic>>? reservations; // Liste de toutes les réservations à confirmer
+  final List<Map<String, dynamic>>?
+      reservations; // Liste de toutes les réservations à confirmer
 
   const PaymentScreen({
     super.key,
@@ -47,7 +50,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool _isLoadingPoints = true;
   bool _useBalance = false;
   double _clientBalance = 0.0; // Solde du client
-  late TextEditingController _promoCodeController;
 
   // Helper pour les traductions
   String t(String key) {
@@ -56,21 +58,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   // Getter pour vérifier si le client a assez de points
   bool get hasEnoughPoints => (_clientPoints ?? 0) >= 10;
-  
+
   // Getter pour vérifier si le client a assez de solde
   bool get hasEnoughBalance => _clientBalance >= _finalAmount;
 
   @override
   void initState() {
     super.initState();
-    _promoCodeController = TextEditingController(text: _promoCode);
     _loadClientPoints();
-  }
-
-  @override
-  void dispose() {
-    _promoCodeController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadClientPoints() async {
@@ -78,7 +73,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       final profileResult = await ReservationService.getMyProfile();
       if (profileResult['success'] == true && profileResult['client'] != null) {
         final client = profileResult['client'];
-        
+
         // Convertir le solde en double (gère String et num)
         double balance = 0.0;
         final soldeValue = client['solde'] ?? 0.0;
@@ -89,7 +84,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         } else {
           balance = 0.0;
         }
-        
+
         setState(() {
           _clientPoints = client['points'] ?? 0;
           _clientBalance = balance;
@@ -149,18 +144,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   double get _finalAmount {
     double total = widget.amount;
-    
+
     // Si paiement avec points de fidélité (10 points = ticket gratuit)
     if (_useLoyaltyPoints && (_clientPoints ?? 0) >= 10) {
       return 0.0; // Ticket gratuit
     }
-    
+
     // Si code promo valide, appliquer la réduction (pour l'instant 0 car pas de discount défini dans l'API)
     if (_usePromoCode && _promoCodeValid) {
       // TODO: Appliquer la réduction du code promo
       // total = total * (1 - discount);
     }
-    
+
     return total;
   }
 
@@ -171,7 +166,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         return '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
       }
     }
-    if (widget.depart.containsKey('embarquement') && widget.depart.containsKey('destination')) {
+    if (widget.depart.containsKey('embarquement') &&
+        widget.depart.containsKey('destination')) {
       return '${widget.depart['embarquement']} → ${widget.depart['destination']}';
     }
     return t('payment.trip_not_available');
@@ -230,11 +226,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         ),
                       ),
                       Text(
-                        _finalAmount > 0 ? '${_finalAmount.toStringAsFixed(0)} FCFA' : t('payment.free'),
+                        _finalAmount > 0
+                            ? '${_finalAmount.toStringAsFixed(0)} FCFA'
+                            : t('payment.free'),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: _finalAmount > 0 ? AppTheme.primaryOrange : Colors.green,
+                          color: _finalAmount > 0
+                              ? AppTheme.primaryOrange
+                              : Colors.green,
                         ),
                       ),
                     ],
@@ -249,7 +249,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.selectedSeats != null && widget.selectedSeats!.length > 1
+                    widget.selectedSeats != null &&
+                            widget.selectedSeats!.length > 1
                         ? '${t('payment.seats')} ${widget.selectedSeats!.join(', ')}'
                         : '${t('payment.seat')} ${widget.seatNumber}',
                     style: TextStyle(
@@ -266,7 +267,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.access_time, size: 16, color: Colors.orange),
+                        const Icon(Icons.access_time,
+                            size: 16, color: Colors.orange),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -341,7 +343,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                     '${hasEnoughPoints ? t('payment.free_ticket_with_points') : t('payment.points_required')}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: hasEnoughPoints ? Colors.green : Colors.orange,
+                                      color: hasEnoughPoints
+                                          ? Colors.green
+                                          : Colors.orange,
                                     ),
                                   ),
                           ],
@@ -393,7 +397,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           ),
                         ),
                       ),
-                      Icon(
+                      const Icon(
                         Icons.local_offer,
                         color: AppTheme.primaryOrange,
                         size: 24,
@@ -406,19 +410,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       children: [
                         Expanded(
                           child: TextField(
-                            controller: _promoCodeController,
                             decoration: InputDecoration(
                               hintText: t('payment.enter_code'),
-                              hintStyle: TextStyle(color: Colors.grey[600]),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               filled: true,
                               fillColor: Colors.white,
-                            ),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
                             ),
                             onChanged: (value) {
                               setState(() {
@@ -431,7 +429,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
-                          onPressed: _isVerifyingPromo ? null : _verifyPromoCode,
+                          onPressed:
+                              _isVerifyingPromo ? null : _verifyPromoCode,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.primaryOrange,
                             foregroundColor: Colors.white,
@@ -442,7 +441,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
                               : Text(t('payment.verify')),
@@ -462,8 +462,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         child: Row(
                           children: [
                             Icon(
-                              _promoCodeValid ? Icons.check_circle : Icons.error,
-                              color: _promoCodeValid ? Colors.green : Colors.red,
+                              _promoCodeValid
+                                  ? Icons.check_circle
+                                  : Icons.error,
+                              color:
+                                  _promoCodeValid ? Colors.green : Colors.red,
                               size: 16,
                             ),
                             const SizedBox(width: 8),
@@ -472,7 +475,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                 _promoCodeMessage!,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: _promoCodeValid ? Colors.green : Colors.red,
+                                  color: _promoCodeValid
+                                      ? Colors.green
+                                      : Colors.red,
                                 ),
                               ),
                             ),
@@ -491,12 +496,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _useBalance 
+                color: _useBalance
                     ? AppTheme.primaryOrange.withValues(alpha: 0.1)
                     : Colors.grey.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _useBalance 
+                  color: _useBalance
                       ? AppTheme.primaryOrange
                       : Colors.grey.withValues(alpha: 0.3),
                   width: _useBalance ? 2 : 1,
@@ -531,14 +536,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _isLoadingPoints 
+                          _isLoadingPoints
                               ? t('payment.loading')
                               : hasEnoughBalance
-                                  ? t('payment.balance_available').replaceAll('{{balance}}', _clientBalance.toStringAsFixed(0))
-                                  : t('payment.insufficient_balance').replaceAll('{{balance}}', _clientBalance.toStringAsFixed(0)).replaceAll('{{required}}', _finalAmount.toStringAsFixed(0)),
+                                  ? t('payment.balance_available').replaceAll(
+                                      '{{balance}}',
+                                      _clientBalance.toStringAsFixed(0))
+                                  : t('payment.insufficient_balance')
+                                      .replaceAll('{{balance}}',
+                                          _clientBalance.toStringAsFixed(0))
+                                      .replaceAll('{{required}}',
+                                          _finalAmount.toStringAsFixed(0)),
                           style: TextStyle(
                             fontSize: 12,
-                            color: _isLoadingPoints 
+                            color: _isLoadingPoints
                                 ? Colors.grey
                                 : hasEnoughBalance
                                     ? Colors.green
@@ -591,12 +602,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : Text(
                         _finalAmount > 0
-                            ? t('payment.pay_amount').replaceAll('{{amount}}', _finalAmount.toStringAsFixed(0))
+                            ? t('payment.pay_amount').replaceAll(
+                                '{{amount}}', _finalAmount.toStringAsFixed(0))
                             : t('payment.confirm_free'),
                         style: const TextStyle(
                           fontSize: 16,
@@ -662,14 +675,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         // Si l'image n'existe pas, utiliser l'icône par défaut
                         return Icon(
                           icon,
-                          color: isSelected ? AppTheme.primaryOrange : Colors.grey[600],
+                          color: isSelected
+                              ? AppTheme.primaryOrange
+                              : Colors.grey[600],
                           size: 24,
                         );
                       },
                     )
                   : Icon(
                       icon,
-                      color: isSelected ? AppTheme.primaryOrange : Colors.grey[600],
+                      color: isSelected
+                          ? AppTheme.primaryOrange
+                          : Colors.grey[600],
                       size: 24,
                     ),
             ),
@@ -740,27 +757,31 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
       try {
         // Confirmer toutes les réservations
-        final reservationsToConfirm = widget.reservations ?? [
-          {'reservation_id': widget.reservationId}
-        ];
-        
+        final reservationsToConfirm = widget.reservations ??
+            [
+              {'reservation_id': widget.reservationId}
+            ];
+
         List<int> confirmedSeats = [];
         List<int> failedSeats = [];
-        
+
         for (var reservation in reservationsToConfirm) {
           final reservationId = reservation['reservation_id'];
-          
+
           try {
-            final confirmResult = await ReservationService.confirmReservation(reservationId);
-            
+            final confirmResult =
+                await ReservationService.confirmReservation(reservationId);
+
             if (confirmResult['success'] == true) {
-              confirmedSeats.add(reservation['seat_number'] ?? widget.seatNumber);
+              confirmedSeats
+                  .add(reservation['seat_number'] ?? widget.seatNumber);
             } else {
               failedSeats.add(reservation['seat_number'] ?? widget.seatNumber);
             }
-            
+
             // Délai entre chaque confirmation pour éviter le rate limit
-            if (reservationsToConfirm.indexOf(reservation) < reservationsToConfirm.length - 1) {
+            if (reservationsToConfirm.indexOf(reservation) <
+                reservationsToConfirm.length - 1) {
               await Future.delayed(const Duration(seconds: 1));
             }
           } catch (e) {
@@ -776,12 +797,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           if (confirmedSeats.isNotEmpty && failedSeats.isEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(t('payment.tickets_created').replaceAll('{{count}}', '${confirmedSeats.length}').replaceAll('{{seats}}', confirmedSeats.join(", "))),
+                content: Text(t('payment.tickets_created')
+                    .replaceAll('{{count}}', '${confirmedSeats.length}')
+                    .replaceAll('{{seats}}', confirmedSeats.join(", "))),
                 backgroundColor: Colors.green,
                 duration: const Duration(seconds: 3),
               ),
             );
-            
+
             // Rediriger vers HomePage puis ouvrir Mes Trajets
             Future.delayed(const Duration(milliseconds: 800), () {
               if (mounted) {
@@ -789,11 +812,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   MaterialPageRoute(builder: (context) => const HomePage()),
                   (route) => false,
                 );
-                
+
                 Future.delayed(const Duration(milliseconds: 300), () {
                   if (mounted) {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const MyTripsScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const MyTripsScreen()),
                     );
                   }
                 });
@@ -802,7 +826,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           } else if (confirmedSeats.isNotEmpty && failedSeats.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(t('payment.some_tickets_created').replaceAll('{{success}}', '${confirmedSeats.length}').replaceAll('{{failed}}', '${failedSeats.length}')),
+                content: Text(t('payment.some_tickets_created')
+                    .replaceAll('{{success}}', '${confirmedSeats.length}')
+                    .replaceAll('{{failed}}', '${failedSeats.length}')),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 4),
               ),
@@ -822,9 +848,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           setState(() {
             _isProcessing = false;
           });
+          final errorMessage = ErrorMessageHelper.getOperationError(
+            'envoyer',
+            error: e,
+            customMessage:
+                'Impossible de confirmer le paiement. Veuillez réessayer.',
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(t('payment.error').replaceAll('{{error}}', e.toString())),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
             ),
           );
@@ -840,73 +872,100 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       });
 
       try {
-        // TODO: Implémenter l'intégration avec l'API Wave
-        // Pour l'instant, on simule juste le processus
-        await Future.delayed(const Duration(seconds: 2));
+        // Traiter chaque réservation séparément
+        final reservationsToPay = widget.reservations ??
+            [
+              {
+                'reservation_id': widget.reservationId,
+                'seat_number': widget.seatNumber
+              }
+            ];
+
+        List<int> initiatedPayments = [];
+        List<int> failedPayments = [];
+
+        for (var reservation in reservationsToPay) {
+          final reservationId = reservation['reservation_id'];
+
+          try {
+            // Initier le paiement Wave pour cette réservation
+            final paymentResult =
+                await ReservationService.initiateWavePayment(reservationId);
+
+            if (paymentResult['success'] == true &&
+                paymentResult['data'] != null) {
+              final paymentUrl = paymentResult['data']['payment_url'];
+
+              if (paymentUrl != null && paymentUrl.isNotEmpty) {
+                initiatedPayments
+                    .add(reservation['seat_number'] ?? widget.seatNumber);
+
+                // Ouvrir l'URL de paiement Wave
+                final uri = Uri.parse(paymentUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  throw Exception(
+                      'Impossible d\'ouvrir la page de paiement Wave');
+                }
+              } else {
+                failedPayments
+                    .add(reservation['seat_number'] ?? widget.seatNumber);
+              }
+            } else {
+              failedPayments
+                  .add(reservation['seat_number'] ?? widget.seatNumber);
+            }
+
+            // Délai entre chaque paiement pour éviter le rate limit
+            if (reservationsToPay.indexOf(reservation) <
+                reservationsToPay.length - 1) {
+              await Future.delayed(const Duration(seconds: 1));
+            }
+          } catch (e) {
+            failedPayments.add(reservation['seat_number'] ?? widget.seatNumber);
+            debugPrint('Erreur lors de l\'initiation du paiement Wave: $e');
+          }
+        }
 
         if (mounted) {
-          // Confirmer toutes les réservations après paiement (simulation)
-          final reservationsToConfirm = widget.reservations ?? [
-            {'reservation_id': widget.reservationId}
-          ];
-          
-          List<int> confirmedSeats = [];
-          List<int> failedSeats = [];
-          
-          for (var reservation in reservationsToConfirm) {
-            final reservationId = reservation['reservation_id'];
-            
-            try {
-              final confirmResult = await ReservationService.confirmReservation(reservationId);
-              
-              if (confirmResult['success'] == true) {
-                confirmedSeats.add(reservation['seat_number'] ?? widget.seatNumber);
-              } else {
-                failedSeats.add(reservation['seat_number'] ?? widget.seatNumber);
-              }
-              
-              // Délai entre chaque confirmation pour éviter le rate limit
-              if (reservationsToConfirm.indexOf(reservation) < reservationsToConfirm.length - 1) {
-                await Future.delayed(const Duration(seconds: 1));
-              }
-            } catch (e) {
-              failedSeats.add(reservation['seat_number'] ?? widget.seatNumber);
-            }
-          }
+          setState(() {
+            _isProcessing = false;
+          });
 
-          if (confirmedSeats.isNotEmpty && failedSeats.isEmpty) {
+          if (initiatedPayments.isNotEmpty && failedPayments.isEmpty) {
+            // Tous les paiements ont été initiés avec succès
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('✅ ${t('payment.success')}! ${t('payment.tickets_created').replaceAll('{{count}}', '${confirmedSeats.length}').replaceAll('{{seats}}', confirmedSeats.join(", "))}'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
+                content: Text(
+                    '✅ Paiement Wave initié pour ${initiatedPayments.length} siège(s): ${initiatedPayments.join(", ")}. Veuillez compléter le paiement sur Wave.'),
+                backgroundColor: Colors.blue,
+                duration: const Duration(seconds: 5),
               ),
             );
-            
-            // Rediriger vers HomePage puis ouvrir Mes Trajets
-            Future.delayed(const Duration(milliseconds: 800), () {
-              if (mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const HomePage()),
-                  (route) => false,
-                );
-                
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  if (mounted) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => const MyTripsScreen()),
-                    );
-                  }
-                });
-              }
-            });
-          } else {
+
+            // Ne pas rediriger immédiatement - l'utilisateur doit compléter le paiement
+            // Le webhook Wave confirmera la réservation après paiement réussi
+            // L'utilisateur reviendra à l'app après le paiement via le callback URL
+          } else if (initiatedPayments.isNotEmpty &&
+              failedPayments.isNotEmpty) {
+            // Certains paiements ont réussi, d'autres ont échoué
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(confirmedSeats.isNotEmpty 
-                    ? t('payment.some_tickets_created').replaceAll('{{success}}', '${confirmedSeats.length}').replaceAll('{{failed}}', '${failedSeats.length}')
-                    : t('payment.reservation_failed')),
-                backgroundColor: confirmedSeats.isNotEmpty ? Colors.orange : Colors.red,
+                content: Text(
+                    '⚠️ Paiement initié pour ${initiatedPayments.length} siège(s), mais ${failedPayments.length} ont échoué. Veuillez réessayer pour les sièges: ${failedPayments.join(", ")}'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          } else {
+            // Tous les paiements ont échoué
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    '❌ Impossible d\'initier le paiement Wave. Veuillez réessayer.'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
               ),
             );
           }
@@ -916,9 +975,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           setState(() {
             _isProcessing = false;
           });
+          final errorMessage = ErrorMessageHelper.getOperationError(
+            'initier le paiement',
+            error: e,
+            customMessage:
+                'Impossible d\'initier le paiement Wave. Veuillez réessayer.',
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(t('payment.error').replaceAll('{{error}}', e.toString())),
+              content: Text(errorMessage),
               backgroundColor: Colors.red,
             ),
           );

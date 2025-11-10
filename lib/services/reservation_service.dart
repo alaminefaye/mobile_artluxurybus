@@ -243,6 +243,51 @@ class ReservationService {
     }
   }
 
+  /// Initier un paiement Wave pour une réservation
+  static Future<Map<String, dynamic>> initiateWavePayment(int reservationId) async {
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/payment/wave');
+      
+      final headers = {
+        ...ApiConfig.defaultHeaders,
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+
+      final response = await http.post(uri, headers: headers)
+          .timeout(ApiConfig.requestTimeout);
+
+      final data = json.decode(response.body);
+
+      // Vérifier si c'est une erreur 429 (Rate Limiting)
+      if (response.statusCode == 429) {
+        return {
+          'success': false,
+          'message': 'Too Many Attempts. Veuillez patienter quelques instants.',
+          'status_code': 429,
+        };
+      }
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': data['data'],
+          'message': data['message'] ?? 'Paiement Wave initié avec succès',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Erreur lors de l\'initiation du paiement Wave',
+          'status_code': response.statusCode,
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erreur: ${e.toString()}',
+      };
+    }
+  }
+
   /// Vérifier un code promotionnel
   static Future<Map<String, dynamic>> verifyPromoCode(String code) async {
     try {
