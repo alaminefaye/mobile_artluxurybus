@@ -157,11 +157,18 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
-          return User.fromJson(data['data']);
+          // L'API retourne les données directement dans 'data', pas dans 'data.user'
+          final userData = data['data'];
+          debugPrint('📥 [AuthService] Données utilisateur reçues: ${userData.keys}');
+          debugPrint('📥 [AuthService] Rôle: ${userData['role']}, Roles: ${userData['roles']}, Permissions: ${userData['permissions']?.length ?? 0}');
+          return User.fromJson(userData);
         }
+      } else {
+        debugPrint('❌ [AuthService] Erreur HTTP ${response.statusCode}: ${response.body}');
       }
       return null;
     } catch (e) {
+      debugPrint('❌ [AuthService] Exception lors de la récupération du profil: $e');
       return null;
     }
   }
@@ -263,6 +270,11 @@ class AuthService {
   Future<void> _saveUser(User user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(userKey, json.encode(user.toJson()));
+  }
+
+  // Sauvegarder l'utilisateur (méthode publique)
+  Future<void> saveUser(User user) async {
+    await _saveUser(user);
   }
 
   // Récupérer le token

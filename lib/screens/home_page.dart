@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin/horaires_list_screen.dart';
 import 'admin/video_advertisements_screen.dart';
@@ -311,12 +310,8 @@ class _HomePageState extends ConsumerState<HomePage>
     });
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    // Ne pas forcer le rechargement automatique - laisser l'AdBanner gérer sa propre reprise
-    // Le rechargement avec la clé se fait uniquement quand on revient de la page de recharge
-  }
+  // Note: didChangeAppLifecycleState removed - letting AdBanner handle its own state
+  // Reload with key only happens when returning from recharge page
 
   @override
   Widget build(BuildContext context) {
@@ -576,7 +571,7 @@ class _HomePageState extends ConsumerState<HomePage>
               } else {
                 // Si on ne trouve rien, utiliser les données ou le message complet
                 route = data['route']?.toString() ?? 
-                        (message.length > 50 ? message.substring(0, 50) + '...' : message);
+                        (message.length > 50 ? '${message.substring(0, 50)}...' : message);
               }
             }
           }
@@ -1044,8 +1039,17 @@ class _HomePageState extends ConsumerState<HomePage>
                   final isClient = currentUser != null && 
                       (currentUser.role?.toLowerCase().contains('client') ?? false);
                   
+                  // Pour TOUS les utilisateurs (clients et autres rôles), rafraîchir le profil utilisateur
+                  debugPrint('🔄 [HomePage] Actualisation du profil utilisateur pour le rôle: ${currentUser?.role ?? "inconnu"}');
+                  try {
+                    await ref.read(authProvider.notifier).refreshUserProfile();
+                    debugPrint('✅ [HomePage] Profil utilisateur rafraîchi');
+                  } catch (e) {
+                    debugPrint('⚠️ [HomePage] Erreur lors du rafraîchissement du profil: $e');
+                  }
+                  
+                  // Pour les clients uniquement, rafraîchir aussi les données client dans loyaltyProvider
                   if (isClient) {
-                    // Pour les clients, rafraîchir les données du client dans loyaltyProvider
                     debugPrint('🔄 [HomePage] Actualisation des données client');
                     try {
                       final loyaltyNotifier = ref.read(loyaltyProvider.notifier);
@@ -1065,15 +1069,6 @@ class _HomePageState extends ConsumerState<HomePage>
                       }
                     } catch (e) {
                       debugPrint('⚠️ [HomePage] Erreur lors du rafraîchissement des données client: $e');
-                    }
-                  } else {
-                    // Pour les autres utilisateurs, rafraîchir le profil utilisateur normalement
-                    debugPrint('🔄 [HomePage] Actualisation du profil utilisateur');
-                    try {
-                      await ref.read(authProvider.notifier).refreshUserProfile();
-                      debugPrint('✅ [HomePage] Profil utilisateur rafraîchi');
-                    } catch (e) {
-                      debugPrint('⚠️ [HomePage] Erreur lors du rafraîchissement du profil: $e');
                     }
                   }
                 }),
@@ -2230,8 +2225,10 @@ class _HomePageState extends ConsumerState<HomePage>
                         },
                       );
 
-                      if (shouldDelete == true && mounted) {
+                      if (shouldDelete == true) {
+                        if (!mounted) return;
                         // Afficher un indicateur de chargement
+                        // ignore: use_build_context_synchronously
                         showDialog(
                           context: context,
                           barrierDismissible: false,
@@ -2247,6 +2244,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
                         // Fermer l'indicateur de chargement
                         if (mounted) {
+                          // ignore: use_build_context_synchronously
                           Navigator.of(context).pop();
                         }
 
@@ -2257,6 +2255,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
                           if (notificationState.error != null) {
                             // Afficher un message d'erreur
+                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(notificationState.error ??
@@ -2272,12 +2271,13 @@ class _HomePageState extends ConsumerState<HomePage>
                                 .refresh();
 
                             // Afficher un message de succès
+                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
                                     t('notifications.all_deleted')),
                                 backgroundColor: Colors.green,
-                                duration: Duration(seconds: 2),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                           }
@@ -2601,59 +2601,62 @@ class _HomePageState extends ConsumerState<HomePage>
           }
         });
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: notification.isRead
-              ? Theme.of(context).cardColor.withValues(alpha: 0.5)
-              : AppTheme.primaryOrange.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: notification.isRead
-                ? Theme.of(context).dividerColor.withValues(alpha: 0.3)
-                : AppTheme.primaryOrange.withValues(alpha: 0.3),
-            width: notification.isRead ? 1 : 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+      child: Builder(
+        builder: (context) {
+          final primaryColor = _getNotificationPrimaryColor(context);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: notification.isRead
+                  ? Theme.of(context).cardColor.withValues(alpha: 0.5)
+                  : primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: notification.isRead
+                    ? Theme.of(context).dividerColor.withValues(alpha: 0.3)
+                    : primaryColor.withValues(alpha: 0.3),
+                width: notification.isRead ? 1 : 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ListTile(
-          onTap: () {
-            // Marquer comme lu avant d'ouvrir
-            if (!notification.isRead) {
-              ref
-                  .read(notificationProvider.notifier)
-                  .markAsRead(notification.id);
-            }
+            child: ListTile(
+              onTap: () {
+                // Marquer comme lu avant d'ouvrir
+                if (!notification.isRead) {
+                  ref
+                      .read(notificationProvider.notifier)
+                      .markAsRead(notification.id);
+                }
 
-            // Ouvrir l'écran de détail
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NotificationDetailScreen(
-                  notification: notification,
+                // Ouvrir l'écran de détail
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NotificationDetailScreen(
+                      notification: notification,
+                    ),
+                  ),
+                );
+              },
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _getNotificationTypeColor(notification.type, context)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getNotificationTypeIcon(notification.type),
+                  color: _getNotificationTypeColor(notification.type, context),
+                  size: 20,
                 ),
               ),
-            );
-          },
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _getNotificationTypeColor(notification.type)
-                  .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              _getNotificationTypeIcon(notification.type),
-              color: _getNotificationTypeColor(notification.type),
-              size: 20,
-            ),
-          ),
           title: Builder(
             builder: (context) {
               final translated = _translateNotification(notification);
@@ -2699,14 +2702,16 @@ class _HomePageState extends ConsumerState<HomePage>
                   margin: const EdgeInsets.only(top: 4),
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primaryOrange,
+                  decoration: BoxDecoration(
+                    color: _getNotificationPrimaryColor(context),
                     shape: BoxShape.circle,
                   ),
                 ),
             ],
           ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -2747,23 +2752,32 @@ class _HomePageState extends ConsumerState<HomePage>
     }
   }
 
-  Color _getNotificationTypeColor(String type) {
+  // Fonction helper pour obtenir la couleur primaire selon le thème
+  // Orange en mode dark, bleu en mode light
+  Color _getNotificationPrimaryColor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+  }
+
+  Color _getNotificationTypeColor(String type, BuildContext context) {
+    final primaryColor = _getNotificationPrimaryColor(context);
+    
     switch (type.toLowerCase()) {
       case 'new_ticket':
       case 'ticket_created':
-        return AppTheme.primaryOrange;
+        return primaryColor;
       case 'new_mail_sender':
       case 'new_mail_recipient':
       case 'mail_created':
       case 'mail_received':
       case 'mail_collected':
-        return AppTheme.primaryOrange;
+        return primaryColor;
       case 'loyalty_point':
       case 'loyalty':
       case 'points':
         return Colors.amber;
       case 'new_feedback':
-        return AppTheme.primaryOrange;
+        return primaryColor;
       case 'feedback_status':
         return Colors.orange;
       case 'promotion':
@@ -2779,7 +2793,7 @@ class _HomePageState extends ConsumerState<HomePage>
       case 'urgent':
         return Colors.red;
       default:
-        return AppTheme.primaryOrange;
+        return primaryColor;
     }
   }
 
@@ -3527,19 +3541,6 @@ class _HomePageState extends ConsumerState<HomePage>
                           );
                         },
                       ),
-                      // Outils de débogage (visible uniquement en mode debug)
-                      if (kDebugMode)
-                        _buildModernProfileOption(
-                          icon: Icons.bug_report,
-                          title: translationService.translate('profile.debug_tools'),
-                          subtitle: translationService.translate('profile.test_notifications'),
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.orange
-                              : Colors.blue,
-                          onTap: () {
-                            Navigator.pushNamed(context, '/debug');
-                          },
-                        ),
                     ],
                   ),
 
@@ -3703,14 +3704,14 @@ class _HomePageState extends ConsumerState<HomePage>
                 ),
                 title: Text(
                   t('auth.logout_title'),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 content: Text(
                   t('auth.logout_message'),
-                  style: TextStyle(fontSize: 14),
+                  style: const TextStyle(fontSize: 14),
                 ),
                 actions: [
                   TextButton(
@@ -3734,7 +3735,7 @@ class _HomePageState extends ConsumerState<HomePage>
                     ),
                     child: Text(
                       t('auth.logout_button'),
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],

@@ -224,9 +224,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _authService.getUserProfile();
       if (user != null) {
+        // Sauvegarder l'utilisateur dans SharedPreferences pour tous les rôles
+        await _authService.saveUser(user);
+        // Mettre à jour l'état
         state = state.copyWith(user: user);
+        debugPrint('✅ [AuthProvider] Profil utilisateur rafraîchi et sauvegardé pour le rôle: ${user.role}');
+      } else {
+        debugPrint('⚠️ [AuthProvider] Aucun utilisateur récupéré depuis l\'API');
       }
     } catch (e) {
+      debugPrint('❌ [AuthProvider] Erreur lors de l\'actualisation: $e');
       state = state.copyWith(error: 'Erreur lors de l\'actualisation: $e');
     }
   }
