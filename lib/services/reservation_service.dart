@@ -313,7 +313,8 @@ class ReservationService {
   }
 
   /// Vérifier un code promotionnel
-  static Future<Map<String, dynamic>> verifyPromoCode(String code) async {
+  /// [reservationCount] : Nombre de réservations (doit être 1 pour utiliser un code promo)
+  static Future<Map<String, dynamic>> verifyPromoCode(String code, {int reservationCount = 1}) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/promo-codes/verify');
       
@@ -322,10 +323,15 @@ class ReservationService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
+      final body = {
+        'code': code,
+        'reservation_count': reservationCount,
+      };
+
       final response = await http.post(
         uri,
         headers: headers,
-        body: json.encode({'code': code}),
+        body: json.encode(body),
       ).timeout(ApiConfig.requestTimeout);
 
       final data = json.decode(response.body);

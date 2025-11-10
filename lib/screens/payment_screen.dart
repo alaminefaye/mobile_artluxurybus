@@ -66,6 +66,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   void initState() {
     super.initState();
     _loadClientPoints();
+    
+    // Désactiver le code promo si plusieurs sièges sont sélectionnés au démarrage
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_hasMultipleSeats && _usePromoCode) {
+        setState(() {
+          _usePromoCode = false;
+          _promoCode = '';
+          _promoCodeValid = false;
+          _promoCodeMessage = null;
+        });
+      }
+    });
   }
 
   Future<void> _loadClientPoints() async {
@@ -106,7 +118,28 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     }
   }
 
+  // Vérifier si plusieurs sièges sont sélectionnés
+  bool get _hasMultipleSeats {
+    if (widget.reservations != null && widget.reservations!.length > 1) {
+      return true;
+    }
+    if (widget.selectedSeats != null && widget.selectedSeats!.length > 1) {
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _verifyPromoCode() async {
+    // Vérifier d'abord si plusieurs sièges sont sélectionnés
+    if (_hasMultipleSeats) {
+      setState(() {
+        _isVerifyingPromo = false;
+        _promoCodeValid = false;
+        _promoCodeMessage = 'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.';
+      });
+      return;
+    }
+
     if (_promoCode.isEmpty) {
       setState(() {
         _promoCodeMessage = t('payment.enter_code_error');
@@ -122,12 +155,26 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     });
 
     try {
-      final result = await ReservationService.verifyPromoCode(_promoCode);
+      // Déterminer le nombre de réservations
+      int reservationCount = 1;
+      if (widget.reservations != null) {
+        reservationCount = widget.reservations!.length;
+      } else if (widget.selectedSeats != null && widget.selectedSeats!.length > 1) {
+        reservationCount = widget.selectedSeats!.length;
+      }
+      
+      final result = await ReservationService.verifyPromoCode(_promoCode, reservationCount: reservationCount);
       setState(() {
         _isVerifyingPromo = false;
         if (result['success'] == true) {
-          _promoCodeValid = true;
-          _promoCodeMessage = result['message'] ?? t('payment.code_valid');
+          // Vérifier à nouveau si plusieurs sièges (au cas où l'utilisateur aurait ajouté des sièges pendant la vérification)
+          if (_hasMultipleSeats) {
+            _promoCodeValid = false;
+            _promoCodeMessage = 'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.';
+          } else {
+            _promoCodeValid = true;
+            _promoCodeMessage = result['message'] ?? t('payment.code_valid');
+          }
         } else {
           _promoCodeValid = false;
           _promoCodeMessage = result['message'] ?? t('payment.code_invalid');
@@ -145,15 +192,24 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   double get _finalAmount {
     double total = widget.amount;
 
+    // Si plusieurs sièges sont sélectionnés, le code promo ne peut pas être utilisé
+    if (_hasMultipleSeats) {
+      // Si code promo est activé avec plusieurs sièges, ignorer le code promo
+      if (_usePromoCode) {
+        return total; // Ne pas appliquer de réduction
+      }
+    }
+
     // Si paiement avec points de fidélité (10 points = ticket gratuit)
     if (_useLoyaltyPoints && (_clientPoints ?? 0) >= 10) {
       return 0.0; // Ticket gratuit
     }
 
-    // Si code promo valide, appliquer la réduction (pour l'instant 0 car pas de discount défini dans l'API)
-    if (_usePromoCode && _promoCodeValid) {
+    // Si code promo valide et un seul siège, appliquer la réduction (pour l'instant 0 car pas de discount défini dans l'API)
+    if (_usePromoCode && _promoCodeValid && !_hasMultipleSeats) {
       // TODO: Appliquer la réduction du code promo
       // total = total * (1 - discount);
+      return 0.0; // Ticket gratuit avec code promo (pour l'instant)
     }
 
     return total;
@@ -364,14 +420,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
             const SizedBox(height: 12),
 
-            // Option 2: Code promotionnel
+            // Option 2: Code promotionnel (uniquement pour un seul siège)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.05),
+                color: _hasMultipleSeats 
+                    ? Colors.grey.withValues(alpha: 0.02)
+                    : Colors.grey.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: _hasMultipleSeats
+                      ? Colors.grey.withValues(alpha: 0.2)
+                      : Colors.grey.withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
@@ -381,30 +441,86 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     children: [
                       Checkbox(
                         value: _usePromoCode,
-                        onChanged: (value) {
+                        onChanged: _hasMultipleSeats ? null : (value) {
                           setState(() {
                             _usePromoCode = value ?? false;
+                            // Réinitialiser le code si on désactive avec plusieurs sièges
+                            if (!_usePromoCode) {
+                              _promoCode = '';
+                              _promoCodeValid = false;
+                              _promoCodeMessage = null;
+                            }
                           });
                         },
                         activeColor: AppTheme.primaryOrange,
                       ),
                       Expanded(
-                        child: Text(
-                          t('payment.use_promo_code'),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t('payment.use_promo_code'),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: _hasMultipleSeats 
+                                    ? Colors.grey 
+                                    : null,
+                              ),
+                            ),
+                            if (_hasMultipleSeats) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Uniquement pour un seul siège',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Icons.local_offer,
-                        color: AppTheme.primaryOrange,
+                        color: _hasMultipleSeats 
+                            ? Colors.grey 
+                            : AppTheme.primaryOrange,
                         size: 24,
                       ),
                     ],
                   ),
-                  if (_usePromoCode) ...[
+                  if (_hasMultipleSeats && _usePromoCode) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.warning,
+                            color: Colors.orange,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (_usePromoCode && !_hasMultipleSeats) ...[
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -734,6 +850,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         SnackBar(
           content: Text(t('payment.select_payment_method')),
           backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Vérifier que le code promo n'est pas utilisé avec plusieurs sièges
+    if (_usePromoCode && _hasMultipleSeats) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Les codes promotionnels ne peuvent être utilisés que pour un seul siège. Veuillez désélectionner le code promo ou ne réserver qu\'un seul siège.'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 4),
         ),
       );
       return;
