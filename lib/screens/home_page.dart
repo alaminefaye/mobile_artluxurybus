@@ -3632,7 +3632,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         _buildModernProfileOption(
                           icon: Icons.receipt_long_outlined,
                           title: 'Liste des dépenses',
-                          subtitle: 'Voir toutes les dépenses',
+                          subtitle: 'Voir toutes les dépenses et valider/rejeter',
                           color: Colors.blue,
                           onTap: () {
                             Navigator.push(
@@ -3646,7 +3646,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         _buildModernProfileOption(
                           icon: Icons.pending_actions,
                           title: 'Dépenses en attente',
-                          subtitle: 'Valider ou rejeter les dépenses',
+                          subtitle: 'Valider ou rejeter les dépenses en attente',
                           color: Colors.orange,
                           onTap: () {
                             Navigator.push(
@@ -3654,9 +3654,7 @@ class _HomePageState extends ConsumerState<HomePage>
                               MaterialPageRoute(
                                 builder: (context) => const ExpenseManagementScreen(showPendingOnly: true),
                               ),
-                            ).then((_) {
-                              // Après retour, on pourrait rafraîchir les données si nécessaire
-                            });
+                            );
                           },
                         ),
                       ],
