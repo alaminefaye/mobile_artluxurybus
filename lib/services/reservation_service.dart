@@ -204,7 +204,8 @@ class ReservationService {
 
   /// Confirmer une réservation (convertir en ticket)
   /// [promoCode] : Code promotionnel optionnel pour créer un laisser-passer (ticket gratuit)
-  static Future<Map<String, dynamic>> confirmReservation(int reservationId, {String? promoCode}) async {
+  /// [useLoyaltyPoints] : Utiliser les points de fidélité pour créer un ticket laisser-passer (10 points = 1 ticket gratuit)
+  static Future<Map<String, dynamic>> confirmReservation(int reservationId, {String? promoCode, bool useLoyaltyPoints = false}) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/confirm');
       
@@ -216,6 +217,9 @@ class ReservationService {
       final body = <String, dynamic>{};
       if (promoCode != null && promoCode.isNotEmpty) {
         body['promo_code'] = promoCode;
+      }
+      if (useLoyaltyPoints) {
+        body['use_loyalty_points'] = true;
       }
 
       final response = await http.post(
@@ -256,94 +260,127 @@ class ReservationService {
     }
   }
 
-  /// Initier un paiement Wave pour une réservation
+  /// Initier un paiement Wave pour une réservation avec retry automatique
   /// [totalAmount] : Montant total optionnel (pour plusieurs réservations)
   /// [paymentGroupId] : ID du groupe de paiement optionnel (pour paiement multiple)
-  static Future<Map<String, dynamic>> initiateWavePayment(int reservationId, {double? totalAmount, String? paymentGroupId}) async {
-    try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/payment/wave');
-      
-      final headers = {
-        ...ApiConfig.defaultHeaders,
-        if (_token != null) 'Authorization': 'Bearer $_token',
-      };
-
-      // Préparer le body avec le montant total et payment_group_id si fournis
-      final body = <String, dynamic>{};
-      if (totalAmount != null && totalAmount > 0) {
-        body['total_amount'] = totalAmount;
-        debugPrint('🔄 [ReservationService] Montant total fourni: $totalAmount');
-      }
-      if (paymentGroupId != null && paymentGroupId.isNotEmpty) {
-        body['payment_group_id'] = paymentGroupId;
-        debugPrint('🔄 [ReservationService] Payment Group ID fourni: $paymentGroupId');
-      }
-
-      debugPrint('🔄 [ReservationService] Initiation paiement Wave pour réservation $reservationId');
-      debugPrint('🔄 [ReservationService] URL: $uri');
-      debugPrint('🔄 [ReservationService] Headers: ${headers.keys.toList()}');
-      if (body.isNotEmpty) {
-        debugPrint('🔄 [ReservationService] Body: $body');
-      }
-
-      final response = await http.post(
-        uri, 
-        headers: headers,
-        body: body.isNotEmpty ? json.encode(body) : null,
-      ).timeout(ApiConfig.requestTimeout);
-
-      debugPrint('📡 [ReservationService] Réponse - Status: ${response.statusCode}');
-      debugPrint('📡 [ReservationService] Réponse - Body: ${response.body}');
-
-      final data = json.decode(response.body);
-
-      // Vérifier si c'est une erreur 429 (Rate Limiting)
-      if (response.statusCode == 429) {
-        return {
-          'success': false,
-          'message': 'Too Many Attempts. Veuillez patienter quelques instants.',
-          'status_code': 429,
-          'error': data['error'],
-        };
-      }
-
-      if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': data['data'],
-          'message': data['message'] ?? 'Paiement Wave initié avec succès',
-        };
-      } else {
-        // Retourner plus de détails sur l'erreur
-        final errorMessage = data['message'] ?? 
-                            data['error'] ?? 
-                            'Erreur lors de l\'initiation du paiement Wave';
+  /// [maxRetries] : Nombre maximum de tentatives (défaut: 3)
+  static Future<Map<String, dynamic>> initiateWavePayment(int reservationId, {double? totalAmount, String? paymentGroupId, int maxRetries = 3}) async {
+    int attempt = 0;
+    int delaySeconds = 2; // Délai initial de 2 secondes
+    
+    while (attempt < maxRetries) {
+      attempt++;
+      try {
+        // Ajouter un délai avant la tentative (sauf pour la première)
+        if (attempt > 1) {
+          debugPrint('⏳ [ReservationService] Attente de ${delaySeconds}s avant la tentative $attempt/$maxRetries...');
+          await Future.delayed(Duration(seconds: delaySeconds));
+          delaySeconds = delaySeconds * 2; // Backoff exponentiel (2s, 4s, 8s)
+        }
         
-        debugPrint('❌ [ReservationService] Erreur: $errorMessage');
-        debugPrint('❌ [ReservationService] Code status: ${response.statusCode}');
-        debugPrint('❌ [ReservationService] Données complètes: $data');
+        final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/payment/wave');
         
-        return {
-          'success': false,
-          'message': errorMessage,
-          'error': data['error'],
-          'status_code': response.statusCode,
-          'details': data,
+        final headers = {
+          ...ApiConfig.defaultHeaders,
+          if (_token != null) 'Authorization': 'Bearer $_token',
         };
+
+        // Préparer le body avec le montant total et payment_group_id si fournis
+        final body = <String, dynamic>{};
+        if (totalAmount != null && totalAmount > 0) {
+          body['total_amount'] = totalAmount;
+          debugPrint('🔄 [ReservationService] Montant total fourni: $totalAmount');
+        }
+        if (paymentGroupId != null && paymentGroupId.isNotEmpty) {
+          body['payment_group_id'] = paymentGroupId;
+          debugPrint('🔄 [ReservationService] Payment Group ID fourni: $paymentGroupId');
+        }
+
+        debugPrint('🔄 [ReservationService] Initiation paiement Wave pour réservation $reservationId (tentative $attempt/$maxRetries)');
+        debugPrint('🔄 [ReservationService] URL: $uri');
+        debugPrint('🔄 [ReservationService] Headers: ${headers.keys.toList()}');
+        if (body.isNotEmpty) {
+          debugPrint('🔄 [ReservationService] Body: $body');
+        }
+
+        final response = await http.post(
+          uri, 
+          headers: headers,
+          body: body.isNotEmpty ? json.encode(body) : null,
+        ).timeout(ApiConfig.requestTimeout);
+
+        debugPrint('📡 [ReservationService] Réponse - Status: ${response.statusCode}');
+        debugPrint('📡 [ReservationService] Réponse - Body: ${response.body}');
+
+        final data = json.decode(response.body);
+
+        // Vérifier si c'est une erreur 429 (Rate Limiting) - retry automatique
+        if (response.statusCode == 429) {
+          if (attempt < maxRetries) {
+            debugPrint('⏳ [ReservationService] Rate limit atteint (429), nouvelle tentative dans ${delaySeconds}s...');
+            continue; // Réessayer
+          } else {
+            return {
+              'success': false,
+              'message': 'Trop de tentatives. Veuillez patienter quelques instants avant de réessayer.',
+              'status_code': 429,
+              'error': data['error'],
+            };
+          }
+        }
+
+        if (response.statusCode == 200) {
+          return {
+            'success': true,
+            'data': data['data'],
+            'message': data['message'] ?? 'Paiement Wave initié avec succès',
+          };
+        } else {
+          // Retourner plus de détails sur l'erreur
+          final errorMessage = data['message'] ?? 
+                              data['error'] ?? 
+                              'Erreur lors de l\'initiation du paiement Wave';
+          
+          debugPrint('❌ [ReservationService] Erreur: $errorMessage');
+          debugPrint('❌ [ReservationService] Code status: ${response.statusCode}');
+          debugPrint('❌ [ReservationService] Données complètes: $data');
+          
+          return {
+            'success': false,
+            'message': errorMessage,
+            'error': data['error'],
+            'status_code': response.statusCode,
+            'details': data,
+          };
+        }
+      } catch (e, stackTrace) {
+        debugPrint('❌ [ReservationService] Exception (tentative $attempt/$maxRetries): $e');
+        debugPrint('❌ [ReservationService] Stack trace: $stackTrace');
+        
+        // Si c'est la dernière tentative, retourner l'erreur
+        if (attempt >= maxRetries) {
+          return {
+            'success': false,
+            'message': ErrorMessageHelper.getUserFriendlyError(
+              e,
+              defaultMessage: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
+            ),
+            'error': e.toString(),
+          };
+        }
+        // Sinon, continuer la boucle pour réessayer
+        debugPrint('⏳ [ReservationService] Nouvelle tentative dans ${delaySeconds}s...');
+        await Future.delayed(Duration(seconds: delaySeconds));
+        delaySeconds = delaySeconds * 2;
       }
-    } catch (e, stackTrace) {
-      debugPrint('❌ [ReservationService] Exception: $e');
-      debugPrint('❌ [ReservationService] Stack trace: $stackTrace');
-      
-      return {
-        'success': false,
-        'message': ErrorMessageHelper.getUserFriendlyError(
-          e,
-          defaultMessage: 'Impossible de se connecter au serveur. Vérifiez votre connexion internet.',
-        ),
-        'error': e.toString(),
-      };
     }
+    
+    // Ne devrait jamais arriver ici, mais au cas où
+    return {
+      'success': false,
+      'message': 'Échec après $maxRetries tentatives',
+      'error': 'Max retries exceeded',
+    };
   }
 
   /// Vérifier un code promotionnel

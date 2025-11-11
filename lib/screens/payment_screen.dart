@@ -86,14 +86,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         .addObserver(this); // Écouter les changements d'état de l'app
     _loadClientPoints();
 
-    // Désactiver le code promo si plusieurs sièges sont sélectionnés au démarrage
+    // Désactiver le code promo et les points de fidélité si plusieurs sièges sont sélectionnés au démarrage
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_hasMultipleSeats && _usePromoCode) {
+      if (_hasMultipleSeats) {
         setState(() {
-          _usePromoCode = false;
-          _promoCode = '';
-          _promoCodeValid = false;
-          _promoCodeMessage = null;
+          if (_usePromoCode) {
+            _usePromoCode = false;
+            _promoCode = '';
+            _promoCodeValid = false;
+            _promoCodeMessage = null;
+          }
+          if (_useLoyaltyPoints) {
+            _useLoyaltyPoints = false;
+            if (_selectedPaymentMethod == 'loyalty') {
+              _selectedPaymentMethod = null;
+            }
+          }
         });
       }
     });
@@ -428,7 +436,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     }
 
     // Si paiement avec points de fidélité (10 points = ticket gratuit)
-    if (_useLoyaltyPoints && (_clientPoints ?? 0) >= 10) {
+    // UNIQUEMENT pour un seul siège (comme le code promo)
+    if (_useLoyaltyPoints && (_clientPoints ?? 0) >= 10 && !_hasMultipleSeats) {
       return 0.0; // Ticket gratuit
     }
 
@@ -639,12 +648,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     children: [
                       Checkbox(
                         value: _useLoyaltyPoints,
-                        onChanged: hasEnoughPoints
+                        onChanged: (hasEnoughPoints && !_hasMultipleSeats)
                             ? (value) {
                                 setState(() {
                                   _useLoyaltyPoints = value ?? false;
                                   if (_useLoyaltyPoints) {
                                     _selectedPaymentMethod = 'loyalty';
+                                    // Désactiver le code promo si on active les points de fidélité
+                                    _usePromoCode = false;
+                                    _promoCode = '';
+                                    _promoCodeValid = false;
                                   }
                                 });
                               }
@@ -657,30 +670,45 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                           children: [
                             Text(
                               t('payment.pay_with_loyalty'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
+                                color: _hasMultipleSeats
+                                    ? Colors.grey
+                                    : Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
+                                        ?.color,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            _isLoadingPoints
+                            _hasMultipleSeats
                                 ? Text(
-                                    t('payment.loading'),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  )
-                                : Text(
-                                    '${t('payment.you_have_points').replaceAll('{{points}}', '$_clientPoints')} '
-                                    '${hasEnoughPoints ? t('payment.free_ticket_with_points') : t('payment.points_required')}',
+                                    'Uniquement pour un seul siège',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: hasEnoughPoints
-                                          ? Colors.green
-                                          : Colors.orange,
+                                      color: Colors.orange,
+                                      fontStyle: FontStyle.italic,
                                     ),
-                                  ),
+                                  )
+                                : _isLoadingPoints
+                                    ? Text(
+                                        t('payment.loading'),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      )
+                                    : Text(
+                                        '${t('payment.you_have_points').replaceAll('{{points}}', '$_clientPoints')} '
+                                        '${hasEnoughPoints ? t('payment.free_ticket_with_points') : t('payment.points_required')}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: hasEnoughPoints
+                                              ? Colors.green
+                                              : Colors.orange,
+                                        ),
+                                      ),
                           ],
                         ),
                       ),
@@ -1147,6 +1175,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
     // Si paiement avec points de fidélité
     if (_selectedPaymentMethod == 'loyalty' && _useLoyaltyPoints) {
+      // Vérifier que ce n'est pas pour plusieurs sièges
+      if (_hasMultipleSeats) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Les points de fidélité ne peuvent être utilisés que pour un seul siège.'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
       if (!hasEnoughPoints) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1171,6 +1212,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         List<int> confirmedSeats = [];
         List<int> failedSeats = [];
 
+        // IMPORTANT: Les points de fidélité ne peuvent être utilisés que pour UN SEUL siège
+        // Si plusieurs réservations, on ne peut pas utiliser les points de fidélité
+        bool canUseLoyaltyPoints = _useLoyaltyPoints &&
+            (_clientPoints ?? 0) >= 10 &&
+            !_hasMultipleSeats &&
+            reservationsToConfirm.length ==
+                1; // Seulement si une seule réservation
+
         for (var reservation in reservationsToConfirm) {
           final reservationId = reservation['reservation_id'];
 
@@ -1180,13 +1229,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             if (_usePromoCode &&
                 _promoCodeValid &&
                 !_hasMultipleSeats &&
-                _promoCode.isNotEmpty) {
+                _promoCode.isNotEmpty &&
+                reservationsToConfirm.length == 1) {
               promoCodeToSend = _promoCode;
             }
 
+            // Envoyer useLoyaltyPoints si le paiement est avec points de fidélité
+            // UNIQUEMENT pour un seul siège (comme le code promo)
+            bool useLoyaltyPoints = canUseLoyaltyPoints &&
+                reservationsToConfirm.indexOf(reservation) ==
+                    0; // Seulement pour la première (et unique) réservation
+
             final confirmResult = await ReservationService.confirmReservation(
                 reservationId,
-                promoCode: promoCodeToSend);
+                promoCode: promoCodeToSend,
+                useLoyaltyPoints: useLoyaltyPoints);
 
             if (confirmResult['success'] == true) {
               confirmedSeats
@@ -1386,12 +1443,19 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 '💳 [PaymentScreen] Payment Group ID: ${widget.paymentGroupId}');
           }
 
+          // IMPORTANT: Ajouter un délai de 2 secondes avant d'initier le paiement Wave
+          // pour éviter le rate limiting juste après la création des réservations
+          debugPrint('⏳ [PaymentScreen] Attente de 2 secondes avant d\'initier le paiement Wave...');
+          await Future.delayed(const Duration(seconds: 2));
+
           // Initier le paiement Wave avec le montant total et le payment_group_id
           // Cela permettra de payer toutes les réservations du groupe en une seule fois
+          // Avec retry automatique en cas de rate limiting (max 3 tentatives)
           final paymentResult = await ReservationService.initiateWavePayment(
             firstReservationId,
             totalAmount: totalAmountToPay > 0 ? totalAmountToPay : null,
             paymentGroupId: widget.paymentGroupId,
+            maxRetries: 3, // 3 tentatives avec backoff exponentiel
           );
 
           if (paymentResult['success'] == true &&

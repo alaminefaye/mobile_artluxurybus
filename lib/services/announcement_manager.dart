@@ -43,7 +43,8 @@ class AnnouncementManager {
     
     await refresh();
     
-    // Vérifier toutes les 60 secondes (au lieu de 10s) pour éviter le rate limiting
+    // Vérifier toutes les 120 secondes (2 minutes) pour éviter le rate limiting
+    _backoffSeconds = 120; // Augmenter à 2 minutes par défaut
     _checkTimer = Timer.periodic(Duration(seconds: _backoffSeconds), (timer) async {
       await _checkActiveAnnouncements();
     });
@@ -54,11 +55,12 @@ class AnnouncementManager {
     if (!_isRunning || _deviceId == null) return;
     
     // Vérifier si on doit attendre avant la prochaine requête (throttling)
+    // Augmenter à 60 secondes minimum entre chaque appel pour éviter le rate limiting
     if (_lastApiCall != null) {
       final timeSinceLastCall = DateTime.now().difference(_lastApiCall!);
-      if (timeSinceLastCall.inSeconds < 30) {
+      if (timeSinceLastCall.inSeconds < 60) {
         if (kDebugMode) {
-          debugPrint('⏸️ [AnnouncementManager] Throttling - dernière requête il y a ${timeSinceLastCall.inSeconds}s');
+          debugPrint('⏸️ [AnnouncementManager] Throttling - dernière requête il y a ${timeSinceLastCall.inSeconds}s (minimum 60s)');
         }
         return;
       }
@@ -74,9 +76,9 @@ class AnnouncementManager {
       // Utiliser getActiveMessages qui récupère les messages pour mobile ET pour ce device
       final messages = await _messageService.getActiveMessages();
       
-      // Réinitialiser le backoff en cas de succès
-      if (_backoffSeconds > 60) {
-        _backoffSeconds = 60;
+      // Réinitialiser le backoff en cas de succès (mais garder au minimum 120s)
+      if (_backoffSeconds > 120) {
+        _backoffSeconds = 120;
         _restartTimerWithNewInterval();
       }
       
@@ -130,7 +132,7 @@ class AnnouncementManager {
       
       // En cas d'erreur (probablement 429), augmenter le backoff
       if (e.toString().contains('429') || e.toString().contains('Too Many')) {
-        _backoffSeconds = (_backoffSeconds * 2).clamp(60, 300); // Max 5 minutes
+        _backoffSeconds = (_backoffSeconds * 2).clamp(120, 600); // Min 2 minutes, Max 10 minutes
         debugPrint('⚠️ [AnnouncementManager] Rate limit atteint - backoff à ${_backoffSeconds}s');
         _restartTimerWithNewInterval();
       }
