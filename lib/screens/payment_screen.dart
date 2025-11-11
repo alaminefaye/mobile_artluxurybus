@@ -322,13 +322,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         debugPrint('💳 [PaymentScreen] ✅ Téléphone: ${client['telephone']}');
         debugPrint('💳 [PaymentScreen] ✅ Données client: points=${client['points']}, points_tickets=${client['points_tickets']}');
       } else {
+        debugPrint('💳 [PaymentScreen] ❌ Échec récupération profil');
+        debugPrint('💳 [PaymentScreen] ❌ Message: ${profileResult['message']}');
+        debugPrint('💳 [PaymentScreen] ❌ Exists: ${profileResult['exists']}');
+        if (profileResult['status_code'] == 404) {
+          debugPrint('💳 [PaymentScreen] ❌ ERREUR: Profil client non trouvé - L\'utilisateur n\'a pas de ClientProfile lié à son compte');
+          debugPrint('💳 [PaymentScreen] ❌ User ID: ${profileResult['user_id']}');
+        }
         setState(() {
           _clientPoints = 0;
           _clientBalance = 0.0;
           _isLoadingPoints = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('💳 [PaymentScreen] ❌ Exception lors du chargement des points: $e');
+      debugPrint('💳 [PaymentScreen] ❌ Stack trace: $stackTrace');
       setState(() {
         _clientPoints = 0;
         _clientBalance = 0.0;
