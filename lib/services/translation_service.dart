@@ -183,7 +183,7 @@ class TranslationService {
       'services.help_center': 'Centre d\'aide',
       'language.select_language': 'Sélectionnez votre langue préférée',
       'about.title': 'À propos',
-      'about.app_name': 'Art Luxury Bus',
+      'about.app_name': 'ART MOBILE',
       'about.version': 'Version {{version}}',
       'about.device_info': 'Informations de l\'appareil',
       'about.unique_id': 'Identifiant unique',
