@@ -49,6 +49,7 @@ import '../providers/feature_permission_provider.dart';
 import '../models/feature_permission_model.dart';
 import '../providers/loyalty_provider.dart';
 import 'promo_code_management_screen.dart';
+import 'expense_management_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -1609,8 +1610,9 @@ class _HomePageState extends ConsumerState<HomePage>
           ref.watch(isFeatureEnabledProvider(FeatureCodes.mail)) ||
           ref.watch(isFeatureEnabledProvider(FeatureCodes.feedback));
     } else if (_hasAttendanceRole(user)) {
-      return ref.watch(isFeatureEnabledProvider(FeatureCodes.loyalty)) ||
-          ref.watch(isFeatureEnabledProvider(FeatureCodes.feedback));
+      // Pour pointage: Scanner et Historique sont toujours disponibles
+      // + Fidélité et Feedback si activés
+      return true; // Scanner et Historique sont toujours disponibles
     } else {
       // Admin - toujours au moins les horaires et vidéos
       return true;
@@ -1768,6 +1770,40 @@ class _HomePageState extends ConsumerState<HomePage>
             );
           }
         } else if (_hasAttendanceRole(user)) {
+          // Scanner QR Code (toujours disponible pour pointage)
+          services.add(
+            _buildServiceIcon(
+              icon: Icons.qr_code_scanner_rounded,
+              label: t('services.qr_scanner'),
+              color: const Color(0xFF9333EA),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const QrScannerScreen(),
+                  ),
+                );
+              },
+            ),
+          );
+          
+          // Historique de pointage (toujours disponible pour pointage)
+          services.add(
+            _buildServiceIcon(
+              icon: Icons.history_rounded,
+              label: t('services.history'),
+              color: AppTheme.primaryOrange,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AttendanceHistoryScreen(),
+                  ),
+                );
+              },
+            ),
+          );
+          
           // Programme de Fidélité
           final isLoyaltyEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.loyalty),
@@ -2263,9 +2299,16 @@ class _HomePageState extends ConsumerState<HomePage>
 
                       if (shouldDelete == true) {
                         if (!mounted) return;
-                        // Afficher un indicateur de chargement
+                        
+                        // Capturer après vérification de mounted
                         // ignore: use_build_context_synchronously
+                        final navigator = Navigator.of(context);
+                        // ignore: use_build_context_synchronously
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        
+                        // Afficher un indicateur de chargement
                         showDialog(
+                          // ignore: use_build_context_synchronously
                           context: context,
                           barrierDismissible: false,
                           builder: (context) => const Center(
@@ -2280,8 +2323,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
                         // Fermer l'indicateur de chargement
                         if (mounted) {
-                          // ignore: use_build_context_synchronously
-                          Navigator.of(context).pop();
+                          navigator.pop();
                         }
 
                         // Vérifier le résultat et afficher un message
@@ -2291,8 +2333,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
                           if (notificationState.error != null) {
                             // Afficher un message d'erreur
-                            // ignore: use_build_context_synchronously
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               SnackBar(
                                 content: Text(notificationState.error ??
                                     t('notifications.delete_error')),
@@ -2307,8 +2348,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                 .refresh();
 
                             // Afficher un message de succès
-                            // ignore: use_build_context_synchronously
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               SnackBar(
                                 content: Text(
                                     t('notifications.all_deleted')),
@@ -2482,7 +2522,9 @@ class _HomePageState extends ConsumerState<HomePage>
                                     .loadMore();
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryBlue,
+                                backgroundColor: Theme.of(context).brightness == Brightness.dark 
+                                    ? AppTheme.primaryOrange 
+                                    : AppTheme.primaryBlue,
                                 foregroundColor: Colors.white,
                               ),
                               child: Text(t('common.load_more')),
@@ -2891,7 +2933,9 @@ class _HomePageState extends ConsumerState<HomePage>
     return Scaffold(
       appBar: AppBar(
         title: Text(t('common.services')),
-        backgroundColor: AppTheme.primaryBlue,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? AppTheme.primaryOrange 
+            : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -3167,7 +3211,9 @@ class _HomePageState extends ConsumerState<HomePage>
       'title': t('services.help'),
       'subtitle': t('services.help_center'),
       'color': const Color(0xFF8B5CF6),
-      'onTap': () {}, // TODO: Navigation
+      'onTap': () {
+        // Feature à implémenter: navigation vers centre d'aide
+      },
     });
 
     return services;
@@ -3570,6 +3616,47 @@ class _HomePageState extends ConsumerState<HomePage>
                                 builder: (context) => const PromoCodeManagementScreen(),
                               ),
                             );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Section Gestion des dépenses (Super Admin et Admin uniquement)
+                  if (_isSuperAdminOrAdmin(user)) ...[
+                    _buildProfileSection(
+                      title: 'Gestion des dépenses',
+                      icon: Icons.receipt_long_rounded,
+                      options: [
+                        _buildModernProfileOption(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'Liste des dépenses',
+                          subtitle: 'Voir toutes les dépenses',
+                          color: Colors.blue,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ExpenseManagementScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        _buildModernProfileOption(
+                          icon: Icons.pending_actions,
+                          title: 'Dépenses en attente',
+                          subtitle: 'Valider ou rejeter les dépenses',
+                          color: Colors.orange,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ExpenseManagementScreen(showPendingOnly: true),
+                              ),
+                            ).then((_) {
+                              // Après retour, on pourrait rafraîchir les données si nécessaire
+                            });
                           },
                         ),
                       ],

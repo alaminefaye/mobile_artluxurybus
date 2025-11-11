@@ -13,6 +13,7 @@ class RechargeScreen extends StatefulWidget {
 class _RechargeScreenState extends State<RechargeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _montantController = TextEditingController();
+  final _montantFocusNode = FocusNode();
   String? _selectedModePaiement;
   bool _isLoading = false;
   double _currentSolde = 0.0;
@@ -33,10 +34,19 @@ class _RechargeScreenState extends State<RechargeScreen> {
     _selectedModePaiement = 'wave_money';
     _loadSolde();
   }
+  
+  void _moveCursorToEnd() {
+    if (!mounted) return;
+    final textLength = _montantController.text.length;
+    if (textLength > 0) {
+      _montantController.selection = TextSelection.collapsed(offset: textLength);
+    }
+  }
 
   @override
   void dispose() {
     _montantController.dispose();
+    _montantFocusNode.dispose();
     super.dispose();
   }
 
@@ -173,7 +183,7 @@ class _RechargeScreenState extends State<RechargeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recharger mon solde'),
-        backgroundColor: AppTheme.primaryBlue,
+        backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -196,14 +206,14 @@ class _RechargeScreenState extends State<RechargeScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      AppTheme.primaryBlue,
-                      AppTheme.primaryBlue.withValues(alpha: 0.8),
+                      isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                      (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue).withValues(alpha: 0.8),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                      color: (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue).withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -246,41 +256,40 @@ class _RechargeScreenState extends State<RechargeScreen> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _montantController,
+                focusNode: _montantFocusNode,
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.done,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
                   TextInputFormatter.withFunction((oldValue, newValue) {
+                    // Si le texte est vide, retourner tel quel
                     if (newValue.text.isEmpty) {
-                      return newValue;
+                      return TextEditingValue(
+                        text: '',
+                        selection: TextSelection.collapsed(offset: 0),
+                      );
                     }
-                    // Supprimer les espaces existants
+                    
+                    // Supprimer tous les espaces
                     final digitsOnly = newValue.text.replaceAll(' ', '');
                     
-                    // Formater avec des espaces tous les 3 chiffres
+                    // Formater avec des espaces tous les 3 chiffres (de droite à gauche)
+                    // Exemple: 10000 -> 10 000
                     String formatted = '';
-                    for (int i = 0; i < digitsOnly.length; i++) {
-                      if (i > 0 && (digitsOnly.length - i) % 3 == 0) {
-                        formatted += ' ';
+                    int digitCount = 0;
+                    for (int i = digitsOnly.length - 1; i >= 0; i--) {
+                      if (digitCount > 0 && digitCount % 3 == 0) {
+                        formatted = ' ' + formatted;
                       }
-                      formatted += digitsOnly[i];
+                      formatted = digitsOnly[i] + formatted;
+                      digitCount++;
                     }
                     
-                    // Préserver la position du curseur si possible
-                    int selectionOffset = formatted.length;
-                    if (oldValue.selection.isValid) {
-                      final oldDigits = oldValue.text.replaceAll(' ', '');
-                      final newDigits = digitsOnly;
-                      final oldCursorPos = oldValue.selection.baseOffset;
-                      final oldDigitsBeforeCursor = oldDigits.substring(0, oldCursorPos.clamp(0, oldDigits.length)).replaceAll(' ', '').length;
-                      final newDigitsBeforeCursor = newDigits.substring(0, oldDigitsBeforeCursor.clamp(0, newDigits.length));
-                      final spacesBeforeCursor = formatted.substring(0, formatted.indexOf(newDigitsBeforeCursor.isEmpty ? formatted : newDigitsBeforeCursor)).split(' ').length - 1;
-                      selectionOffset = (oldDigitsBeforeCursor + spacesBeforeCursor).clamp(0, formatted.length);
-                    }
-                    
+                    // Toujours placer le curseur à la fin après formatage
+                    final newLength = formatted.length;
                     return TextEditingValue(
                       text: formatted,
-                      selection: TextSelection.collapsed(offset: selectionOffset),
+                      selection: TextSelection.collapsed(offset: newLength),
                     );
                   }),
                 ],
@@ -295,11 +304,15 @@ class _RechargeScreenState extends State<RechargeScreen> {
                   fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
                 ),
                 onTap: () {
-                  // S'assurer que le clavier s'affiche correctement
-                  Future.delayed(const Duration(milliseconds: 100), () {
-                    _montantController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: _montantController.text.length),
-                    );
+                  // Placer le curseur à la fin quand on clique sur le champ
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _moveCursorToEnd();
+                  });
+                },
+                onChanged: (value) {
+                  // S'assurer que le curseur reste à la fin après chaque changement
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _moveCursorToEnd();
                   });
                 },
                 validator: (value) {

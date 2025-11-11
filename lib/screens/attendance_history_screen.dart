@@ -48,10 +48,12 @@ class _AttendanceHistoryScreenState extends ConsumerState<AttendanceHistoryScree
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Historique de pointage'),
-        backgroundColor: AppTheme.primaryBlue,
+        backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [

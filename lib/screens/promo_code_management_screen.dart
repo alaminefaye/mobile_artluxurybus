@@ -125,7 +125,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                     ),
                     filled: true,
@@ -147,7 +147,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
                     ),
-                    focusedBorder: OutlineInputBorder(
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                     ),
                     filled: true,
@@ -176,15 +176,15 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                 onPrimary: Colors.white,
                                 surface: Colors.grey[850]!,
                                 onSurface: Colors.white,
-                                background: Colors.grey[900]!,
-                                onBackground: Colors.white,
                                 secondary: AppTheme.primaryOrange,
                                 onSecondary: Colors.white,
                                 error: Colors.red,
                                 onError: Colors.white,
                                 brightness: Brightness.dark,
                               ),
-                              dialogBackgroundColor: Colors.grey[900],
+                              dialogTheme: DialogThemeData(
+                                backgroundColor: Colors.grey[900],
+                              ),
                               scaffoldBackgroundColor: Colors.grey[900],
                               cardColor: Colors.grey[800]!,
                               dividerColor: Colors.grey[700]!,
@@ -200,7 +200,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                 dayStyle: const TextStyle(color: Colors.white),
                                 weekdayStyle: const TextStyle(color: Colors.white),
                                 yearStyle: const TextStyle(color: Colors.white),
-                                todayBorder: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                                todayBorder: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -211,20 +211,20 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                         } else {
                           return Theme(
                             data: ThemeData.light().copyWith(
-                              colorScheme: ColorScheme.light(
+                              colorScheme: const ColorScheme.light(
                                 primary: AppTheme.primaryOrange,
                                 onPrimary: Colors.white,
                                 surface: Colors.white,
                                 onSurface: Colors.black,
-                                background: Colors.white,
-                                onBackground: Colors.black,
                                 secondary: AppTheme.primaryOrange,
                                 onSecondary: Colors.white,
                                 error: Colors.red,
                                 onError: Colors.white,
                                 brightness: Brightness.light,
                               ),
-                              dialogBackgroundColor: Colors.white,
+                              dialogTheme: const DialogThemeData(
+                                backgroundColor: Colors.white,
+                              ),
                               scaffoldBackgroundColor: Colors.white,
                               datePickerTheme: DatePickerThemeData(
                                 backgroundColor: Colors.white,
@@ -233,7 +233,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                 dayStyle: const TextStyle(color: Colors.black),
                                 weekdayStyle: const TextStyle(color: Colors.black),
                                 yearStyle: const TextStyle(color: Colors.black),
-                                todayBorder: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                                todayBorder: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -260,7 +260,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
                       ),
-                      focusedBorder: OutlineInputBorder(
+                      focusedBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                       ),
                       filled: true,
@@ -411,10 +411,10 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Erreur lors du partage. Veuillez réessayer.'),
+          const SnackBar(
+            content: Text('Erreur lors du partage. Veuillez réessayer.'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
       }
@@ -555,7 +555,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                      borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                     ),
                     filled: true,
                     fillColor: isDark ? Colors.grey[800] : Colors.white,
@@ -577,7 +577,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _statusFilter,
+                        initialValue: _statusFilter,
                         dropdownColor: isDark ? Colors.grey[800] : Colors.white,
                         style: TextStyle(color: isDark ? Colors.white : Colors.black),
                         decoration: InputDecoration(
@@ -593,7 +593,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                            borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
                           ),
                           filled: true,
                           fillColor: isDark ? Colors.grey[800] : Colors.white,

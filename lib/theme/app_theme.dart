@@ -180,9 +180,9 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryBlue,
-        primary: primaryBlue,
-        secondary: primaryOrange,
+        seedColor: primaryOrange,
+        primary: primaryOrange,
+        secondary: primaryBlue,
         surface: const Color(0xFF1E1E1E),
         brightness: Brightness.dark,
       ),
@@ -215,7 +215,7 @@ class AppTheme {
       // Elevated Button Theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
+          backgroundColor: primaryOrange,
           foregroundColor: Colors.white,
           elevation: 3,
           shape: RoundedRectangleBorder(

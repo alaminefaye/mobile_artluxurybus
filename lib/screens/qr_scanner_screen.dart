@@ -259,10 +259,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scanner QR Code'),
-        backgroundColor: AppTheme.primaryBlue,
+        backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -272,18 +274,18 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Instructions
-            const Card(
+            Card(
               child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
                     Icon(
                       Icons.qr_code_scanner,
                       size: 64,
-                      color: AppTheme.primaryBlue,
+                      color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                     ),
-                    SizedBox(height: 16),
-                    Text(
+                    const SizedBox(height: 16),
+                    const Text(
                       'Scanner QR Code de Pointage',
                       style: TextStyle(
                         fontSize: 18,
@@ -291,7 +293,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Appuyez sur le bouton ci-dessous pour ouvrir le scanner',
                       style: TextStyle(
@@ -367,7 +369,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   : const Icon(Icons.qr_code_scanner),
               label: Text(_isProcessing ? 'Traitement...' : 'Scanner QR Code'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryBlue,
+                backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 textStyle: const TextStyle(

@@ -735,7 +735,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                             ),
                             const SizedBox(height: 4),
                             _hasMultipleSeats
-                                ? Text(
+                                ? const Text(
                                     'Uniquement pour un seul siège',
                                     style: TextStyle(
                                       fontSize: 12,
@@ -846,7 +846,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                             ),
                             if (_hasMultipleSeats) ...[
                               const SizedBox(height: 4),
-                              Text(
+                              const Text(
                                 'Uniquement pour un seul siège',
                                 style: TextStyle(
                                   fontSize: 12,
@@ -936,7 +936,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
+                                borderSide: const BorderSide(
                                   color: AppTheme.primaryOrange,
                                   width: 2,
                                 ),
@@ -1373,11 +1373,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     // Vérifier que le code promo n'est pas utilisé avec plusieurs sièges
     if (_usePromoCode && _hasMultipleSeats) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text(
+        const SnackBar(
+          content: Text(
               'Les codes promotionnels ne peuvent être utilisés que pour un seul siège. Veuillez désélectionner le code promo ou ne réserver qu\'un seul siège.'),
           backgroundColor: Colors.orange,
-          duration: const Duration(seconds: 4),
+          duration: Duration(seconds: 4),
         ),
       );
       return;
@@ -1389,11 +1389,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       // Vérifier que ce n'est pas pour plusieurs sièges
       if (_hasMultipleSeats) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
+          const SnackBar(
+            content: Text(
                 'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.'),
             backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
         return;
@@ -1402,11 +1402,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       // Vérifier que le code promo est valide
       if (!_promoCodeValid || _promoCode.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
+          const SnackBar(
+            content: Text(
                 'Veuillez vérifier votre code promotionnel avant de continuer.'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
         return;
@@ -1436,7 +1436,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
           try {
             // Envoyer le code promo
-            String? promoCodeToSend = null;
+            String? promoCodeToSend;
             if (_usePromoCode &&
                 _promoCodeValid &&
                 !_hasMultipleSeats &&
@@ -1561,11 +1561,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       // Vérifier que ce n'est pas pour plusieurs sièges
       if (_hasMultipleSeats) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
+          const SnackBar(
+            content: Text(
                 'Les points de fidélité ne peuvent être utilisés que pour un seul siège.'),
             backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 3),
+            duration: Duration(seconds: 3),
           ),
         );
         return;
@@ -1608,7 +1608,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
           try {
             // Envoyer le code promo si valide et un seul siège
-            String? promoCodeToSend = null;
+            String? promoCodeToSend;
             if (_usePromoCode &&
                 _promoCodeValid &&
                 !_hasMultipleSeats &&

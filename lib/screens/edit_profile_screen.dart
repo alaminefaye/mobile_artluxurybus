@@ -509,7 +509,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   final primaryColor = _getPrimaryColor();
                   return OutlinedButton.icon(
                     onPressed: () {
-                      // TODO: Navigation vers écran de changement de mot de passe
+                      // Feature à implémenter: écran de changement de mot de passe
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(t('security.feature_coming')),

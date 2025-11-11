@@ -5,6 +5,7 @@ import '../services/mail_api_service.dart';
 import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/loading_indicator.dart';
+import '../theme/app_theme.dart';
 import 'mail_detail_screen.dart';
 import 'create_mail_screen.dart';
 import 'package:intl/intl.dart';
@@ -73,7 +74,9 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
       child: Scaffold(
         drawer: _buildDrawer(context),
         appBar: AppBar(
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark 
+            ? AppTheme.primaryOrange 
+            : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 4,
         title: const Text(
@@ -145,6 +148,8 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
   Widget _buildDrawer(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
 
     return Drawer(
       child: ListView(
@@ -153,7 +158,9 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           UserAccountsDrawerHeader(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.blue.shade700, Colors.blue.shade900],
+                colors: isDark
+                    ? [AppTheme.primaryOrange, AppTheme.primaryOrange.withValues(alpha: 0.8)]
+                    : [AppTheme.primaryBlue, AppTheme.primaryBlue.withValues(alpha: 0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -167,7 +174,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
+                  color: primaryColor,
                 ),
               ),
             ),
@@ -240,11 +247,19 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
 
   void _showProfileDialog(BuildContext context) {
     final user = ref.read(authProvider).user;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Mon Profil'),
+        backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+        title: Text(
+          'Mon Profil',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,7 +276,12 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
+            child: Text(
+              'Fermer',
+              style: TextStyle(
+                color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+              ),
+            ),
           ),
         ],
       ),
@@ -298,38 +318,61 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     bool isLoading = false;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Changer le mot de passe'),
+          backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+          title: Text(
+            'Changer le mot de passe',
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: currentPasswordController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: InputDecoration(
                   labelText: 'Mot de passe actuel',
-                  prefixIcon: Icon(Icons.lock_outline),
+                  labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  prefixIcon: Icon(
+                    Icons.lock_outline,
+                    color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                  ),
                 ),
                 obscureText: true,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: newPasswordController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: InputDecoration(
                   labelText: 'Nouveau mot de passe',
-                  prefixIcon: Icon(Icons.lock),
+                  labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  prefixIcon: Icon(
+                    Icons.lock,
+                    color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                  ),
                 ),
                 obscureText: true,
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: confirmPasswordController,
-                decoration: const InputDecoration(
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: InputDecoration(
                   labelText: 'Confirmer le mot de passe',
-                  prefixIcon: Icon(Icons.lock),
+                  labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  prefixIcon: Icon(
+                    Icons.lock,
+                    color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                  ),
                 ),
                 obscureText: true,
               ),
@@ -338,9 +381,18 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           actions: [
             TextButton(
               onPressed: isLoading ? null : () => Navigator.pop(context),
-              child: const Text('Annuler'),
+              child: Text(
+                'Annuler',
+                style: TextStyle(
+                  color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                ),
+              ),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+              ),
               onPressed: isLoading
                   ? null
                   : () async {
@@ -411,15 +463,34 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
   }
 
   void _showLogoutDialog(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        backgroundColor: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+        title: Text(
+          'Déconnexion',
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Êtes-vous sûr de vouloir vous déconnecter ?',
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black87,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: Text(
+              'Annuler',
+              style: TextStyle(
+                color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -497,6 +568,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
   Widget _buildStatsPeriodCard(String title, DashboardPeriod period) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardColor;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
     
     return Card(
       elevation: 4,
@@ -510,7 +582,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           gradient: isDark 
               ? null
               : LinearGradient(
-                  colors: [Colors.blue.shade50, cardColor],
+                  colors: [primaryColor.withValues(alpha: 0.1), cardColor],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -524,7 +596,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade700,
+                    color: primaryColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
@@ -535,7 +607,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade900,
+                    color: primaryColor,
                   ),
                 ),
               ],
@@ -548,7 +620,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                   Icons.mail,
                   'Total',
                   period.total.toString(),
-                  Colors.blue,
+                  primaryColor,
                 ),
                 _buildStatItem(
                   Icons.check_circle,
@@ -621,6 +693,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
     
     return Card(
       elevation: 2,
@@ -642,7 +715,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
               return ListTile(
                 leading: Icon(
                   Icons.location_on,
-                  color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                  color: primaryColor,
                 ),
                 title: Text(
                   dest.destination,
@@ -653,10 +726,11 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 trailing: Chip(
                   label: Text('${dest.count}'),
                   backgroundColor: isDark 
-                      ? Colors.blue.shade800
-                      : Colors.blue.shade100,
+                      ? primaryColor.withValues(alpha: 0.3)
+                      : primaryColor.withValues(alpha: 0.2),
                   labelStyle: TextStyle(
-                    color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                    color: primaryColor,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               );

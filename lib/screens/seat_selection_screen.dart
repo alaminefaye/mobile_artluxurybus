@@ -236,14 +236,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   context: context,
                   barrierDismissible: false,
                   builder: (context) => AlertDialog(
-                    title: Row(
+                    title: const Row(
                       children: [
-                        const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-                        const SizedBox(width: 8),
+                        Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                        SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Siège(s) réservé(s)',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],

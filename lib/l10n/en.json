@@ -58,6 +58,7 @@
     "loyalty_program": "Loyalty Program",
     "loyalty_subtitle": "Earn points and benefits",
     "recharge": "Recharge",
+    "recharge_subtitle": "Recharge my account",
     "recharge_account": "Recharge my account",
     "mail": "Mail",
     "my_mails": "My Mails",
@@ -107,7 +108,9 @@
     "agent": "Agent",
     "employee": "Employee",
     "client": "Client",
-    "next": "Next"
+    "next": "Next",
+    "services": "Services",
+    "load_more": "Load more"
   },
   "language": {
     "select_language": "Select your preferred language",
@@ -759,7 +762,7 @@
     "read_on": "Read on",
     "time_ago": "Ago",
     "invalid_phone": "Invalid phone number",
-    "type_new_ticket": "New ticket",
+    "type_new_ticket": "Ticket purchased",
     "type_loyalty_point": "Loyalty point",
     "type_new_feedback": "New suggestion",
     "type_feedback_status": "Status change",
@@ -945,8 +948,8 @@
     "try_again": "Try again",
     "delete_notification_message": "Do you really want to delete this notification?\n\n\"{{title}}\"",
     "delete_notification": "Delete notification",
-    "new_ticket_title": "New ticket created!",
-    "new_ticket_message": "Your ticket for {{route}} has been successfully created.",
+    "new_ticket_title": "New ticket purchased!",
+    "new_ticket_message": "Your ticket for {{route}} has been successfully purchased.",
     "loyalty_point_title": "Loyalty point earned!",
     "loyalty_point_message": "Congratulations! You have earned {{points}} loyalty point(s).",
     "feedback_status_title": "Your suggestion status",

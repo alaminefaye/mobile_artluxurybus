@@ -58,6 +58,7 @@
     "loyalty_program": "Programme Fidélité",
     "loyalty_subtitle": "Cumulez des points et avantages",
     "recharge": "Recharge",
+    "recharge_subtitle": "Recharger mon compte",
     "recharge_account": "Recharger mon compte",
     "mail": "Courrier",
     "my_mails": "Mes courriers",
@@ -107,7 +108,9 @@
     "agent": "Agent",
     "employee": "Employé",
     "client": "Client",
-    "next": "Suivant"
+    "next": "Suivant",
+    "services": "Services",
+    "load_more": "Charger plus"
   },
   "language": {
     "select_language": "Sélectionnez votre langue préférée",
@@ -761,7 +764,7 @@
     "read_on": "Lue le",
     "time_ago": "Il y a",
     "invalid_phone": "Numéro de téléphone invalide",
-    "type_new_ticket": "Nouveau ticket",
+    "type_new_ticket": "Ticket acheté",
     "type_loyalty_point": "Point de fidélité",
     "type_new_feedback": "Nouvelle suggestion",
     "type_feedback_status": "Changement de statut",
@@ -947,8 +950,8 @@
     "try_again": "Réessayer",
     "delete_notification_message": "Voulez-vous vraiment supprimer cette notification ?\n\n\"{{title}}\"",
     "delete_notification": "Supprimer notification",
-    "new_ticket_title": "Nouveau ticket créé !",
-    "new_ticket_message": "Votre ticket pour {{route}} a été créé avec succès.",
+    "new_ticket_title": "Nouveau ticket acheté !",
+    "new_ticket_message": "Votre ticket pour {{route}} a été acheté avec succès.",
     "loyalty_point_title": "Point de fidélité gagné !",
     "loyalty_point_message": "Félicitations ! Vous avez gagné {{points}} point(s) de fidélité.",
     "feedback_status_title": "Statut de votre suggestion",
