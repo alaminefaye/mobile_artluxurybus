@@ -196,7 +196,7 @@ class TranslationService {
       'about.ios_version': 'Version iOS',
       'about.app_about': 'À propos de l\'application',
       'about.app_description': 'Art Luxury Bus est votre compagnon de voyage pour un service de transport de classe nationale. Gérez vos points de fidélité, partagez vos suggestions et restez informé de nos services.',
-      'about.copyright': '© 2025 Art Luxury Bus\nTous droits réservés',
+      'about.copyright': '© 2025 ART MOBILE\nTous droits réservés',
       'about.copy': 'Copier',
       'about.copied_to_clipboard': '{{label}} copié dans le presse-papiers',
       'about.loading_error': 'Impossible de charger les informations',
