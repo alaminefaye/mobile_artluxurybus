@@ -39,10 +39,34 @@ class NotificationApiService {
       var uri = Uri.parse('$baseUrl/notifications').replace(queryParameters: queryParams);
       debugPrint('🌐 [API] URL: $uri');
       
-      var response = await http.get(uri, headers: _headers);
+      var response = await http.get(uri, headers: _headers).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          debugPrint('⏱️ [API] Timeout lors de la récupération des notifications');
+          throw TimeoutException('La requête a pris trop de temps');
+        },
+      );
       
       debugPrint('📡 [API] Status: ${response.statusCode}');
-      debugPrint('📄 [API] Body: ${response.body}');
+      debugPrint('📄 [API] Body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+      
+      if (response.statusCode == 401) {
+        debugPrint('❌ [API] Non autorisé - Token invalide ou expiré');
+        return NotificationResponse(
+          success: false,
+          message: 'Vous devez vous reconnecter',
+          notifications: [],
+        );
+      }
+
+      if (response.statusCode == 403) {
+        debugPrint('❌ [API] Accès refusé');
+        return NotificationResponse(
+          success: false,
+          message: 'Accès refusé',
+          notifications: [],
+        );
+      }
       
       final data = jsonDecode(response.body);
 

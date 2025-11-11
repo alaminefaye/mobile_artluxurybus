@@ -321,9 +321,11 @@ class _HomePageState extends ConsumerState<HomePage>
     final user = authState.user;
 
     if (authState.isLoading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryOrange,
+          ),
         ),
       );
     }
@@ -2062,10 +2064,12 @@ class _HomePageState extends ConsumerState<HomePage>
   // Section Slides
   Widget _buildSlidesSection() {
     if (_isLoadingSlides) {
-      return const SizedBox(
+      return SizedBox(
         height: 200,
         child: Center(
-          child: CircularProgressIndicator(),
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryOrange,
+          ),
         ),
       );
     }
@@ -2311,8 +2315,10 @@ class _HomePageState extends ConsumerState<HomePage>
                           // ignore: use_build_context_synchronously
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => const Center(
-                            child: CircularProgressIndicator(),
+                          builder: (context) => Center(
+                            child: CircularProgressIndicator(
+                              color: AppTheme.primaryOrange,
+                            ),
                           ),
                         );
 
@@ -2408,9 +2414,9 @@ class _HomePageState extends ConsumerState<HomePage>
 
           if (notificationState.isLoading &&
               notificationState.notifications.isEmpty) {
-            return const Center(
+            return Center(
               child: CircularProgressIndicator(
-                color: AppTheme.primaryBlue,
+                color: AppTheme.primaryOrange,
               ),
             );
           }
@@ -2500,7 +2506,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
           return RefreshIndicator(
             onRefresh: () => ref.read(notificationProvider.notifier).refresh(),
-            color: AppTheme.primaryBlue,
+            color: AppTheme.primaryOrange,
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: filteredNotifications.length +
@@ -2512,8 +2518,8 @@ class _HomePageState extends ConsumerState<HomePage>
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: notificationState.isLoading
-                          ? const CircularProgressIndicator(
-                              color: AppTheme.primaryBlue,
+                          ? CircularProgressIndicator(
+                              color: AppTheme.primaryOrange,
                             )
                           : ElevatedButton(
                               onPressed: () {
