@@ -455,7 +455,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     });
 
     return MaterialApp(
-      title: 'Art Luxury Bus',
+      title: 'ART MOBILE',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
