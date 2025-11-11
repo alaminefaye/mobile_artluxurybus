@@ -288,9 +288,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         }
 
         setState(() {
-          _clientPoints = client['points'] ?? 0;
+          // Récupérer les points (peut être 'points' ou 'points_tickets')
+          _clientPoints = client['points'] ?? 
+                         client['points_tickets'] ?? 
+                         0;
           _clientBalance = balance;
           _isLoadingPoints = false;
+          
+          // Debug pour vérifier les points récupérés
+          debugPrint('💳 [PaymentScreen] Points récupérés: $_clientPoints');
+          debugPrint('💳 [PaymentScreen] Solde récupéré: $_clientBalance');
+          debugPrint('💳 [PaymentScreen] Données client complètes: $client');
         });
       } else {
         setState(() {
@@ -1445,7 +1453,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
           // IMPORTANT: Ajouter un délai de 2 secondes avant d'initier le paiement Wave
           // pour éviter le rate limiting juste après la création des réservations
-          debugPrint('⏳ [PaymentScreen] Attente de 2 secondes avant d\'initier le paiement Wave...');
+          debugPrint(
+              '⏳ [PaymentScreen] Attente de 2 secondes avant d\'initier le paiement Wave...');
           await Future.delayed(const Duration(seconds: 2));
 
           // Initier le paiement Wave avec le montant total et le payment_group_id

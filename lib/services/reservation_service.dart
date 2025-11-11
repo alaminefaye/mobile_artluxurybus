@@ -21,27 +21,41 @@ class ReservationService {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
 
+      debugPrint('🔄 [ReservationService] Récupération profil client...');
+      debugPrint('🔄 [ReservationService] URL: $uri');
+      debugPrint('🔄 [ReservationService] Token présent: ${_token != null}');
+
       final response = await http.get(uri, headers: headers).timeout(ApiConfig.requestTimeout);
+
+      debugPrint('📡 [ReservationService] Réponse - Status: ${response.statusCode}');
+      debugPrint('📡 [ReservationService] Réponse - Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        debugPrint('✅ [ReservationService] Profil récupéré: ${data['client']}');
         return {
           'success': true,
           'client': data['client'],
         };
       } else if (response.statusCode == 404) {
+        debugPrint('❌ [ReservationService] Profil client non trouvé (404)');
         return {
           'success': false,
           'exists': false,
           'message': 'Profil client non trouvé',
         };
       } else {
+        final errorData = json.decode(response.body);
+        debugPrint('❌ [ReservationService] Erreur ${response.statusCode}: ${errorData['message']}');
         return {
           'success': false,
-          'message': 'Erreur lors de la récupération du profil',
+          'message': errorData['message'] ?? 'Erreur lors de la récupération du profil',
+          'status_code': response.statusCode,
         };
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ [ReservationService] Exception lors de la récupération du profil: $e');
+      debugPrint('❌ [ReservationService] Stack trace: $stackTrace');
       return {
         'success': false,
         'message': 'Erreur: ${e.toString()}',
