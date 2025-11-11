@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../services/reservation_service.dart';
 import '../services/translation_service.dart';
+import '../services/trip_service.dart';
+import '../models/trip_model.dart';
 import '../utils/error_message_helper.dart';
 import 'home_page.dart';
 import 'my_trips_screen.dart';
@@ -48,7 +50,8 @@ class PaymentScreen extends ConsumerStatefulWidget {
   ConsumerState<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState extends ConsumerState<PaymentScreen> {
+class _PaymentScreenState extends ConsumerState<PaymentScreen>
+    with WidgetsBindingObserver {
   String? _selectedPaymentMethod;
   bool _isProcessing = false;
   bool _useLoyaltyPoints = false;
@@ -61,6 +64,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool _isLoadingPoints = true;
   bool _useBalance = false;
   double _clientBalance = 0.0; // Solde du client
+  bool _hasCheckedPaymentStatus =
+      false; // Pour éviter de vérifier plusieurs fois
+  DateTime? _lastAppResumeTime; // Pour éviter de vérifier trop souvent
 
   // Helper pour les traductions
   String t(String key) {
@@ -76,6 +82,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance
+        .addObserver(this); // Écouter les changements d'état de l'app
     _loadClientPoints();
 
     // Désactiver le code promo si plusieurs sièges sont sélectionnés au démarrage
@@ -89,6 +97,169 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Retirer l'observateur
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    // Quand l'app revient au premier plan après avoir été en arrière-plan
+    if (state == AppLifecycleState.resumed) {
+      final now = DateTime.now();
+
+      // Éviter de vérifier trop souvent (au moins 3 secondes entre les vérifications)
+      if (_lastAppResumeTime == null ||
+          now.difference(_lastAppResumeTime!) > const Duration(seconds: 3)) {
+        _lastAppResumeTime = now;
+
+        // Si on a ouvert Wave (isProcessing était true) et qu'on n'a pas encore vérifié le statut
+        // Attendre un peu pour laisser le webhook traiter le paiement
+        if (_isProcessing || widget.reservationId != null) {
+          Future.delayed(const Duration(seconds: 2), () {
+            _checkPaymentStatus();
+          });
+        }
+      }
+    }
+  }
+
+  /// Vérifier le statut du paiement en interrogeant le backend
+  Future<void> _checkPaymentStatus() async {
+    if (_hasCheckedPaymentStatus || widget.depart == null) {
+      return; // Déjà vérifié ou pas de départ
+    }
+
+    debugPrint(
+        '🔍 [PaymentScreen] Vérification statut paiement après retour de Wave');
+
+    try {
+      // Récupérer les trajets du client
+      final tripsResult = await TripService.getMyTrips();
+
+      if (tripsResult.trips.isNotEmpty) {
+        final departId = widget.depart!['id'] as int?;
+        if (departId == null) return;
+
+        // Chercher des tickets récents pour ce départ (créés dans les 5 dernières minutes)
+        final now = DateTime.now();
+        final fiveMinutesAgo = now.subtract(const Duration(minutes: 5));
+
+        // Fonction helper pour parser dateAchat
+        DateTime? parseDateAchat(String dateAchat) {
+          try {
+            // Essayer de parser différents formats de date
+            if (dateAchat.contains('T')) {
+              return DateTime.parse(dateAchat);
+            } else if (dateAchat.contains(' ')) {
+              // Format: "2025-11-10 23:30:00"
+              return DateTime.parse(dateAchat.replaceAll(' ', 'T'));
+            } else {
+              // Format: "2025-11-10"
+              return DateTime.parse(dateAchat);
+            }
+          } catch (e) {
+            debugPrint(
+                '❌ [PaymentScreen] Erreur parsing date: $dateAchat - $e');
+            return null;
+          }
+        }
+
+        // Si on a un payment_group_id avec plusieurs réservations
+        if (widget.paymentGroupId != null && widget.reservations != null) {
+          final expectedSeats = widget.reservations!
+              .map((r) => r['seat_number'] as int?)
+              .where((s) => s != null)
+              .toSet();
+
+          // Compter les tickets trouvés pour ce départ et ces sièges
+          int foundTickets = 0;
+          for (var trip in tripsResult.trips) {
+            final tripDepartId = trip.depart?.id;
+            final tripSeatNumber = trip.siegeNumber;
+            final dateAchatParsed = parseDateAchat(trip.dateAchat);
+
+            if (tripDepartId == departId &&
+                tripSeatNumber != null &&
+                expectedSeats.contains(tripSeatNumber) &&
+                dateAchatParsed != null &&
+                dateAchatParsed.isAfter(fiveMinutesAgo)) {
+              foundTickets++;
+              debugPrint(
+                  '✅ [PaymentScreen] Ticket trouvé: siège $tripSeatNumber, créé à $dateAchatParsed');
+            }
+          }
+
+          // Si on a trouvé tous les tickets attendus
+          if (foundTickets >= expectedSeats.length) {
+            _hasCheckedPaymentStatus = true;
+            debugPrint(
+                '✅ [PaymentScreen] Tous les paiements ont réussi ($foundTickets/${expectedSeats.length} tickets), navigation vers Mes Trajets');
+
+            if (mounted) {
+              // Naviguer directement vers Mes Trajets
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => const HomePage(
+                      initialTabIndex: 1), // Onglet "Mes Trajets"
+                ),
+                (route) => route.isFirst,
+              );
+            }
+          } else {
+            debugPrint(
+                '⏳ [PaymentScreen] Tickets trouvés: $foundTickets/${expectedSeats.length}, attente...');
+          }
+        } else if (widget.seatNumber != null) {
+          // Vérifier une seule réservation
+          final seatNumber = widget.seatNumber!;
+
+          // Chercher un ticket récent pour ce siège et ce départ
+          Trip? matchingTrip;
+          for (var trip in tripsResult.trips) {
+            final tripDepartId = trip.depart?.id;
+            final tripSeatNumber = trip.siegeNumber;
+            final dateAchatParsed = parseDateAchat(trip.dateAchat);
+
+            if (tripDepartId == departId &&
+                tripSeatNumber == seatNumber &&
+                dateAchatParsed != null &&
+                dateAchatParsed.isAfter(fiveMinutesAgo)) {
+              matchingTrip = trip;
+              break;
+            }
+          }
+
+          if (matchingTrip != null) {
+            _hasCheckedPaymentStatus = true;
+            debugPrint(
+                '✅ [PaymentScreen] Ticket trouvé pour siège $seatNumber, paiement réussi, navigation vers Mes Trajets');
+
+            if (mounted) {
+              // Naviguer directement vers Mes Trajets
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => const HomePage(
+                      initialTabIndex: 1), // Onglet "Mes Trajets"
+                ),
+                (route) => route.isFirst,
+              );
+            }
+          } else {
+            debugPrint(
+                '⏳ [PaymentScreen] Ticket pas encore trouvé pour siège $seatNumber, attente...');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint(
+          '❌ [PaymentScreen] Erreur lors de la vérification du statut: $e');
+    }
   }
 
   Future<void> _loadClientPoints() async {

@@ -19,7 +19,8 @@ class SeatSelectionScreen extends StatefulWidget {
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   List<int> _availableSeats = [];
-  List<int> _reservedSeats = [];
+  List<int> _pendingReservationSeats = []; // Sièges en cours de réservation en ligne (bloqués 5 min)
+  List<int> _occupiedSeats = []; // Sièges vendus au guichet
   List<int> _selectedSeats = []; // Permettre plusieurs sièges (max 5)
   bool _isLoading = true;
   DateTime? _lastSeatsRefresh;
@@ -94,7 +95,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       if (result['success'] == true && result['data'] != null) {
         final data = result['data'];
         final newAvailableSeats = List<int>.from(data['available_seats'] ?? []);
-        final newReservedSeats = List<int>.from(data['reserved_seats'] ?? []);
+        final newPendingReservationSeats = List<int>.from(data['pending_reservation_seats'] ?? []); // Sièges en cours de réservation en ligne (bloqués 5 min)
+        final newOccupiedSeats = List<int>.from(data['occupied_seats'] ?? []); // Sièges vendus au guichet
 
         // Vérifier si le départ a des segments
         final hasSegments = data['has_segments'] == true;
@@ -107,10 +109,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
         if (mounted && !_isDisposed) {
           setState(() {
-            // IMPORTANT: Conserver les sièges sélectionnés dans availableSeats s'ils ne sont pas réservés par d'autres
+            // IMPORTANT: Conserver les sièges sélectionnés dans availableSeats s'ils ne sont pas occupés ni réservés par d'autres
             // Cela évite que les sièges sélectionnés disparaissent lors du rafraîchissement
             final seatsToKeep = _selectedSeats.where((seat) => 
-              !newReservedSeats.contains(seat) // Si le siège n'est pas réservé par un autre utilisateur
+              !newOccupiedSeats.contains(seat) && !newPendingReservationSeats.contains(seat) // Si le siège n'est ni occupé ni réservé par un autre utilisateur
             ).toList();
             
             // Ajouter les sièges sélectionnés à la liste des disponibles si ils n'y sont pas déjà
@@ -124,7 +126,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             updatedAvailableSeats.sort();
             
             _availableSeats = updatedAvailableSeats;
-            _reservedSeats = newReservedSeats;
+            _pendingReservationSeats = newPendingReservationSeats; // Sièges en cours de réservation en ligne (bloqués 5 min)
+            _occupiedSeats = newOccupiedSeats; // Sièges vendus au guichet
             _lastSeatsRefresh = DateTime.now();
             _isLoading = false;
 
@@ -216,13 +219,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               });
             }
 
-            // IMPORTANT: Ne retirer les sièges sélectionnés QUE s'ils sont vraiment réservés par D'AUTRES utilisateurs
-            // Si un siège est dans _selectedSeats mais pas dans newReservedSeats, c'est qu'il est réservé par l'utilisateur actuel
-            // Donc on ne le retire PAS - l'utilisateur peut continuer à payer
+            // IMPORTANT: Ne retirer les sièges sélectionnés QUE s'ils sont vraiment occupés ou réservés par D'AUTRES utilisateurs
+            // Si un siège est dans _selectedSeats mais pas dans newOccupiedSeats ou newPendingReservationSeats,
+            // c'est qu'il est réservé par l'utilisateur actuel. Donc on ne le retire PAS - l'utilisateur peut continuer à payer
             
-            // Seulement retirer les sièges qui sont dans la liste des réservés (par d'autres utilisateurs)
+            // Seulement retirer les sièges qui sont occupés (vendus au guichet) ou en cours de réservation par d'autres utilisateurs
             final seatsToRemove = _selectedSeats.where((seat) => 
-              newReservedSeats.contains(seat) // Réservé par un autre utilisateur
+              newOccupiedSeats.contains(seat) || newPendingReservationSeats.contains(seat)
             ).toList();
             
             if (seatsToRemove.isNotEmpty) {
@@ -386,12 +389,12 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       return;
     }
 
-    // Empêcher la sélection de sièges déjà réservés par d'autres utilisateurs
-    if (_reservedSeats.contains(seatNumber)) {
+    // Empêcher la sélection de sièges occupés (vendus au guichet)
+    if (_occupiedSeats.contains(seatNumber)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '⚠️ Le siège $seatNumber est réservé par un autre client. Veuillez choisir un autre siège.',
+            '⚠️ Le siège $seatNumber est déjà vendu. Veuillez choisir un autre siège.',
           ),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 3),
@@ -399,15 +402,28 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       );
       return;
     }
-
-    // Permettre la sélection si le siège est disponible OU s'il n'est pas dans la liste des réservés
-    // (car il pourrait être temporairement retiré de availableSeats mais pas réservé par d'autres)
-    final isSeatAvailable = _availableSeats.contains(seatNumber);
-    final isSeatReserved = _reservedSeats.contains(seatNumber);
     
-    // Si le siège n'est pas disponible ET pas réservé, il pourrait être en cours de traitement
-    // On permet quand même la sélection si le siège n'est pas explicitement réservé
-    if (!isSeatAvailable && !isSeatReserved) {
+    // Empêcher la sélection de sièges en cours de réservation par d'autres utilisateurs
+    if (_pendingReservationSeats.contains(seatNumber)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '⏳ Le siège $seatNumber est en cours de réservation par un autre client. Veuillez choisir un autre siège.',
+          ),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Vérifier les différents états du siège
+    final isSeatAvailable = _availableSeats.contains(seatNumber);
+    final isSeatOccupied = _occupiedSeats.contains(seatNumber);
+    final isSeatPendingReservation = _pendingReservationSeats.contains(seatNumber);
+    
+    // Si le siège n'est pas disponible, vérifier pourquoi
+    if (!isSeatAvailable) {
       // Vérifier si le siège est dans une plage valide
       final totalSeats = widget.depart['nombre_places'] ?? 0;
       if (seatNumber < 1 || seatNumber > totalSeats) {
@@ -421,10 +437,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         return;
       }
       
-      // Si le siège n'est pas disponible mais pas réservé non plus, 
+      // Si le siège n'est ni occupé ni en cours de réservation mais pas disponible,
       // c'est peut-être un problème de synchronisation - permettre quand même la sélection
-      // mais afficher un avertissement
-      debugPrint('⚠️ [SeatSelection] Siège $seatNumber pas dans availableSeats mais pas réservé non plus - autorisation de sélection');
+      if (!isSeatOccupied && !isSeatPendingReservation) {
+        debugPrint('⚠️ [SeatSelection] Siège $seatNumber pas dans availableSeats mais pas occupé/réservé - autorisation de sélection');
+      }
     }
 
     // Vérifier la limite de 5 sièges
@@ -476,6 +493,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  // Libre
                   _buildLegendItem(
                     Theme.of(context).brightness == Brightness.dark
                         ? Colors.grey[800]!
@@ -486,13 +504,26 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     t('seats.free'),
                   ),
                   const SizedBox(width: 12),
+                  // Occupé (guichet)
                   _buildLegendItem(
-                      Colors.red.withValues(alpha: 0.2), Colors.red, t('seats.occupied')),
+                    Colors.red.withValues(alpha: 0.3), 
+                    Colors.red, 
+                    'Occupé (Guichet)',
+                  ),
                   const SizedBox(width: 12),
-                  _buildLegendItem(Colors.green, Colors.green, t('seats.selected_seat')),
+                  // En cours de réservation (bloqué 5 min)
+                  _buildLegendItem(
+                    Colors.orange.withValues(alpha: 0.3), 
+                    Colors.orange, 
+                    '⏳ En cours de réservation',
+                  ),
                   const SizedBox(width: 12),
-                  _buildLegendItem(AppTheme.primaryOrange.withValues(alpha: 0.2),
-                      AppTheme.primaryOrange, t('seats.reserved')),
+                  // Sélectionné
+                  _buildLegendItem(
+                    Colors.green.withValues(alpha: 0.3), 
+                    Colors.green, 
+                    t('seats.selected_seat'),
+                  ),
                 ],
               ),
             ),
@@ -629,8 +660,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         ? null
                         : () {
                             // Vérifier que les sièges sélectionnés sont toujours disponibles
+                            // Un siège est valide s'il n'est ni occupé ni en cours de réservation par d'autres
                             final validSeats = _selectedSeats.where((seat) => 
-                              _availableSeats.contains(seat) && !_reservedSeats.contains(seat)
+                              !_occupiedSeats.contains(seat) && !_pendingReservationSeats.contains(seat)
                             ).toList();
                             
                             if (validSeats.isEmpty) {
@@ -991,94 +1023,124 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       child: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount:
-              7, // Encore plus de colonnes pour des sièges plus petits
-          crossAxisSpacing: 3,
-          mainAxisSpacing: 3,
-          childAspectRatio: 1,
+          crossAxisCount: 6, // 6 colonnes pour un meilleur espacement
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 0.9, // Légèrement plus haut que large
         ),
         itemCount: totalSeats,
         itemBuilder: (context, index) {
           final seatNumber = index + 1;
           final isAvailable = _availableSeats.contains(seatNumber);
-          final isReserved = _reservedSeats.contains(seatNumber);
+          final isOccupied = _occupiedSeats.contains(seatNumber);
+          final isPendingReservation = _pendingReservationSeats.contains(seatNumber);
           final isSelected = _selectedSeats.contains(seatNumber);
 
-          // Logique des couleurs
-          // PRIORITÉ 1: Siège réservé par un autre utilisateur (orange)
-          // PRIORITÉ 2: Siège sélectionné par l'utilisateur actuel (vert) - même s'il n'est plus dans availableSeats
-          // PRIORITÉ 3: Siège disponible (gris/blanc)
-          // PRIORITÉ 4: Siège occupé (rouge)
+          // Logique des couleurs avec priorités
+          // PRIORITÉ 1: Siège sélectionné par l'utilisateur actuel (vert)
+          // PRIORITÉ 2: Siège occupé/vendu au guichet (rouge)
+          // PRIORITÉ 3: Siège en cours de réservation en ligne (orange avec icône horloge)
+          // PRIORITÉ 4: Siège disponible (gris/blanc selon thème)
           
           Color seatColor;
           Color backgroundColor;
           Color borderColor;
+          IconData seatIcon;
+          double borderWidth;
 
-          if (isReserved && !isSelected) {
-            // Réservé par un autre utilisateur (et pas sélectionné par l'utilisateur actuel) : orange
-            seatColor = AppTheme.primaryOrange;
-            backgroundColor = AppTheme.primaryOrange.withValues(alpha: 0.2);
-            borderColor = AppTheme.primaryOrange;
-          } else if (isSelected) {
-            // Choisi par l'utilisateur actuel : vert (priorité sur tout sauf réservé par autres)
-            seatColor = Colors.green;
+          if (isSelected) {
+            // Choisi par l'utilisateur actuel : vert vif
+            seatColor = Colors.white;
             backgroundColor = Colors.green;
-            borderColor = Colors.green;
+            borderColor = Colors.green.shade700;
+            seatIcon = Icons.check_circle;
+            borderWidth = 2.5;
+          } else if (isOccupied) {
+            // Occupé/vendu au guichet : rouge
+            seatColor = Colors.white;
+            backgroundColor = isDark ? Colors.red.shade900 : Colors.red.shade600;
+            borderColor = Colors.red.shade700;
+            seatIcon = Icons.block;
+            borderWidth = 2;
+          } else if (isPendingReservation) {
+            // En cours de réservation en ligne (bloqué 5 min) : orange avec icône horloge
+            seatColor = Colors.white;
+            backgroundColor = isDark ? Colors.orange.shade900 : Colors.orange.shade600;
+            borderColor = Colors.orange.shade700;
+            seatIcon = Icons.access_time;
+            borderWidth = 2;
           } else if (isAvailable) {
-            // Libre : adapté au thème
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            seatColor = isDark ? Colors.grey[300]! : Colors.black87;
-            backgroundColor = isDark ? Colors.grey[800]! : Colors.white;
-            borderColor = isDark ? Colors.grey[600]! : Colors.grey.shade300;
+            // Libre : adapté au thème avec meilleur contraste
+            seatColor = isDark ? Colors.grey[300]! : Colors.grey[800]!;
+            backgroundColor = isDark ? Colors.grey[800]! : Colors.grey[50]!;
+            borderColor = isDark ? Colors.grey[700]! : Colors.grey[300]!;
+            seatIcon = Icons.event_seat;
+            borderWidth = 1.5;
           } else {
-            // Occupé ou non disponible : rouge
-            seatColor = Colors.red;
-            backgroundColor = Colors.red.withValues(alpha: 0.2);
-            borderColor = Colors.red;
+            // Non disponible (cas rare) : gris foncé
+            seatColor = isDark ? Colors.grey[600]! : Colors.grey[400]!;
+            backgroundColor = isDark ? Colors.grey[900]! : Colors.grey[200]!;
+            borderColor = isDark ? Colors.grey[700]! : Colors.grey[400]!;
+            seatIcon = Icons.close;
+            borderWidth = 1;
           }
 
           return GestureDetector(
-            // Permettre la sélection si le siège n'est pas réservé par d'autres utilisateurs
+            // Permettre la sélection si le siège n'est pas occupé ni en cours de réservation
             // OU s'il est déjà sélectionné (pour permettre la désélection)
-            onTap: (isReserved && !isSelected)
+            onTap: (isOccupied || (isPendingReservation && !isSelected))
                 ? null
                 : () => _toggleSeat(seatNumber),
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
               decoration: BoxDecoration(
                 color: backgroundColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: borderColor,
-                  width: isSelected ? 2 : 1,
+                  width: borderWidth,
                 ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Colors.green.withValues(alpha: 0.4),
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                        ),
+                      ]
+                    : isPendingReservation
+                        ? [
+                            BoxShadow(
+                              color: Colors.orange.withValues(alpha: 0.3),
+                              blurRadius: 4,
+                              spreadRadius: 0.5,
+                            ),
+                          ]
+                        : [],
               ),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      isReserved
-                          ? Icons.block
-                          : !isAvailable
-                              ? Icons.close
-                              : isSelected
-                                  ? Icons.check_circle
-                                  : Icons.event_seat,
+                      seatIcon,
                       color: seatColor,
-                      size: 12,
+                      size: isSelected ? 20 : 16,
                     ),
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 4),
                     Text(
                       '$seatNumber',
                       style: TextStyle(
                         color: seatColor,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 9,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontSize: isSelected ? 13 : 11,
                       ),
                     ),
                   ],
