@@ -306,7 +306,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             pointsValue = int.tryParse(client['points_tickets'].toString());
           }
         }
-        
+
         pointsValue = pointsValue ?? 0;
 
         setState(() {
@@ -314,20 +314,23 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           _clientBalance = balance;
           _isLoadingPoints = false;
         });
-        
+
         // Debug pour vérifier les points récupérés
         debugPrint('💳 [PaymentScreen] ✅ Points récupérés: $_clientPoints');
         debugPrint('💳 [PaymentScreen] ✅ Solde récupéré: $_clientBalance');
         debugPrint('💳 [PaymentScreen] ✅ Client ID: ${client['id']}');
         debugPrint('💳 [PaymentScreen] ✅ Téléphone: ${client['telephone']}');
-        debugPrint('💳 [PaymentScreen] ✅ Données client: points=${client['points']}, points_tickets=${client['points_tickets']}');
+        debugPrint(
+            '💳 [PaymentScreen] ✅ Données client: points=${client['points']}, points_tickets=${client['points_tickets']}');
       } else {
         debugPrint('💳 [PaymentScreen] ❌ Échec récupération profil');
         debugPrint('💳 [PaymentScreen] ❌ Message: ${profileResult['message']}');
         debugPrint('💳 [PaymentScreen] ❌ Exists: ${profileResult['exists']}');
         if (profileResult['status_code'] == 404) {
-          debugPrint('💳 [PaymentScreen] ❌ ERREUR: Profil client non trouvé - L\'utilisateur n\'a pas de ClientProfile lié à son compte');
-          debugPrint('💳 [PaymentScreen] ❌ User ID: ${profileResult['user_id']}');
+          debugPrint(
+              '💳 [PaymentScreen] ❌ ERREUR: Profil client non trouvé - L\'utilisateur n\'a pas de ClientProfile lié à son compte');
+          debugPrint(
+              '💳 [PaymentScreen] ❌ User ID: ${profileResult['user_id']}');
         }
         setState(() {
           _clientPoints = 0;
@@ -336,7 +339,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         });
       }
     } catch (e, stackTrace) {
-      debugPrint('💳 [PaymentScreen] ❌ Exception lors du chargement des points: $e');
+      debugPrint(
+          '💳 [PaymentScreen] ❌ Exception lors du chargement des points: $e');
       debugPrint('💳 [PaymentScreen] ❌ Stack trace: $stackTrace');
       setState(() {
         _clientPoints = 0;
@@ -406,6 +410,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           } else {
             _promoCodeValid = true;
             _promoCodeMessage = result['message'] ?? t('payment.code_valid');
+            // Activer automatiquement le code promo comme méthode de paiement
+            _usePromoCode = true;
+            _selectedPaymentMethod = 'promo';
+            // Désactiver les autres méthodes
+            _useLoyaltyPoints = false;
+            _useBalance = false;
           }
         } else {
           _promoCodeValid = false;
@@ -673,10 +683,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.05),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[900]
+                    : Colors.grey.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[700]!
+                      : Colors.grey.withValues(alpha: 0.3),
                 ),
               ),
               child: Column(
@@ -713,10 +727,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                                 fontWeight: FontWeight.w600,
                                 color: _hasMultipleSeats
                                     ? Colors.grey
-                                    : Theme.of(context)
-                                        .textTheme
-                                        .titleLarge
-                                        ?.color,
+                                    : (Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white70
+                                        : Colors.black87),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -743,8 +757,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: hasEnoughPoints
-                                              ? Colors.green
-                                              : Colors.orange,
+                                              ? (Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.green[400]
+                                                  : Colors.green[700])
+                                              : (Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.orange[400]
+                                                  : Colors.orange[700]),
                                         ),
                                       ),
                           ],
@@ -767,14 +787,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _hasMultipleSeats
-                    ? Colors.grey.withValues(alpha: 0.02)
-                    : Colors.grey.withValues(alpha: 0.05),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? (_hasMultipleSeats
+                        ? Colors.grey[900]?.withValues(alpha: 0.5)
+                        : Colors.grey[900])
+                    : (_hasMultipleSeats
+                        ? Colors.grey.withValues(alpha: 0.02)
+                        : Colors.grey.withValues(alpha: 0.05)),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _hasMultipleSeats
-                      ? Colors.grey.withValues(alpha: 0.2)
-                      : Colors.grey.withValues(alpha: 0.3),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? (_hasMultipleSeats
+                          ? Colors.grey[700]!.withValues(alpha: 0.5)
+                          : Colors.grey[700]!)
+                      : (_hasMultipleSeats
+                          ? Colors.grey.withValues(alpha: 0.2)
+                          : Colors.grey.withValues(alpha: 0.3)),
                 ),
               ),
               child: Column(
@@ -808,7 +836,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: _hasMultipleSeats ? Colors.grey : null,
+                                color: _hasMultipleSeats
+                                    ? Colors.grey
+                                    : (Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white70
+                                        : Colors.black87),
                               ),
                             ),
                             if (_hasMultipleSeats) ...[
@@ -869,13 +902,54 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                       children: [
                         Expanded(
                           child: TextField(
+                            style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
                             decoration: InputDecoration(
                               hintText: t('payment.enter_code'),
+                              hintStyle: TextStyle(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey[500]
+                                    : Colors.grey[600],
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey[700]!
+                                      : Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey[700]!
+                                      : Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: AppTheme.primaryOrange,
+                                  width: 2,
+                                ),
                               ),
                               filled: true,
-                              fillColor: Colors.white,
+                              fillColor: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey[800]
+                                  : Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
                             onChanged: (value) {
                               setState(() {
@@ -888,11 +962,30 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                         ),
                         const SizedBox(width: 8),
                         ElevatedButton(
-                          onPressed:
-                              _isVerifyingPromo ? null : _verifyPromoCode,
+                          onPressed: _isVerifyingPromo || _promoCode.isEmpty
+                              ? null
+                              : _verifyPromoCode,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryOrange,
+                            backgroundColor:
+                                _isVerifyingPromo || _promoCode.isEmpty
+                                    ? Colors.grey
+                                    : AppTheme.primaryOrange,
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[800]
+                                    : Colors.grey[300],
+                            disabledForegroundColor:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[600]
+                                    : Colors.grey[500],
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                           child: _isVerifyingPromo
                               ? const SizedBox(
@@ -904,39 +997,63 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                                         Colors.white),
                                   ),
                                 )
-                              : Text(t('payment.verify')),
+                              : Text(
+                                  t('payment.verify'),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                       ],
                     ),
                     if (_promoCodeMessage != null) ...[
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: _promoCodeValid
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.red.withValues(alpha: 0.1),
+                              ? (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.green.withValues(alpha: 0.2)
+                                  : Colors.green.withValues(alpha: 0.1))
+                              : (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.red.withValues(alpha: 0.2)
+                                  : Colors.red.withValues(alpha: 0.1)),
                           borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _promoCodeValid
+                                ? Colors.green.withValues(alpha: 0.5)
+                                : Colors.red.withValues(alpha: 0.5),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               _promoCodeValid
                                   ? Icons.check_circle
-                                  : Icons.error,
-                              color:
-                                  _promoCodeValid ? Colors.green : Colors.red,
-                              size: 16,
+                                  : Icons.error_outline,
+                              color: _promoCodeValid
+                                  ? Colors.green[400]
+                                  : Colors.red[400],
+                              size: 20,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 _promoCodeMessage!,
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
                                   color: _promoCodeValid
-                                      ? Colors.green
-                                      : Colors.red,
+                                      ? (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.green[300]
+                                          : Colors.green[700])
+                                      : (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.red[300]
+                                          : Colors.red[700]),
                                 ),
                               ),
                             ),
@@ -955,14 +1072,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _useBalance
-                    ? AppTheme.primaryOrange.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.05),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? (_useBalance
+                        ? AppTheme.primaryOrange.withValues(alpha: 0.15)
+                        : Colors.grey[900])
+                    : (_useBalance
+                        ? AppTheme.primaryOrange.withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.05)),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: _useBalance
                       ? AppTheme.primaryOrange
-                      : Colors.grey.withValues(alpha: 0.3),
+                      : (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[700]!
+                          : Colors.grey.withValues(alpha: 0.3)),
                   width: _useBalance ? 2 : 1,
                 ),
               ),
@@ -975,6 +1098,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                         _useBalance = value ?? false;
                         if (_useBalance) {
                           _selectedPaymentMethod = 'balance';
+                          // Désactiver les autres méthodes
+                          _useLoyaltyPoints = false;
+                          _usePromoCode = false;
+                          _promoCode = '';
+                          _promoCodeValid = false;
+                          _promoCodeMessage = null;
                         } else if (_selectedPaymentMethod == 'balance') {
                           _selectedPaymentMethod = null;
                         }
@@ -988,9 +1117,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                       children: [
                         Text(
                           t('payment.pay_with_balance'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white70
+                                    : Colors.black87,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -1011,8 +1144,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                             color: _isLoadingPoints
                                 ? Colors.grey
                                 : hasEnoughBalance
-                                    ? Colors.green
-                                    : Colors.red,
+                                    ? (Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.green[400]
+                                        : Colors.green[700])
+                                    : (Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.red[400]
+                                        : Colors.red[700]),
                           ),
                         ),
                       ],
@@ -1020,7 +1159,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                   ),
                   Icon(
                     Icons.account_balance_wallet,
-                    color: _useBalance ? AppTheme.primaryOrange : Colors.grey,
+                    color: _useBalance
+                        ? AppTheme.primaryOrange
+                        : (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[600]
+                            : Colors.grey),
                     size: 24,
                   ),
                 ],
@@ -1091,13 +1234,24 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     required String value,
   }) {
     final isSelected = _selectedPaymentMethod == value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: () {
         setState(() {
           _selectedPaymentMethod = value;
+          // Désactiver les autres méthodes de paiement
           if (value != 'loyalty') {
             _useLoyaltyPoints = false;
+          }
+          if (value != 'promo') {
+            _usePromoCode = false;
+            _promoCode = '';
+            _promoCodeValid = false;
+            _promoCodeMessage = null;
+          }
+          if (value != 'balance') {
+            _useBalance = false;
           }
         });
       },
@@ -1105,13 +1259,17 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryOrange.withValues(alpha: 0.1)
-              : Theme.of(context).cardColor,
+              ? (isDark
+                  ? AppTheme.primaryOrange.withValues(alpha: 0.15)
+                  : AppTheme.primaryOrange.withValues(alpha: 0.1))
+              : (isDark ? Colors.grey[900] : Theme.of(context).cardColor),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
                 ? AppTheme.primaryOrange
-                : Colors.grey.withValues(alpha: 0.3),
+                : (isDark
+                    ? Colors.grey[700]!
+                    : Colors.grey.withValues(alpha: 0.3)),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -1121,8 +1279,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppTheme.primaryOrange.withValues(alpha: 0.2)
-                    : Colors.grey.withValues(alpha: 0.1),
+                    ? (isDark
+                        ? AppTheme.primaryOrange.withValues(alpha: 0.25)
+                        : AppTheme.primaryOrange.withValues(alpha: 0.2))
+                    : (isDark
+                        ? Colors.grey[800]!.withValues(alpha: 0.5)
+                        : Colors.grey.withValues(alpha: 0.1)),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: imagePath != null
@@ -1136,7 +1298,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                           icon,
                           color: isSelected
                               ? AppTheme.primaryOrange
-                              : Colors.grey[600],
+                              : (isDark ? Colors.grey[400] : Colors.grey[600]),
                           size: 24,
                         );
                       },
@@ -1145,7 +1307,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                       icon,
                       color: isSelected
                           ? AppTheme.primaryOrange
-                          : Colors.grey[600],
+                          : (isDark ? Colors.grey[400] : Colors.grey[600]),
                       size: 24,
                     ),
             ),
@@ -1161,7 +1323,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                       fontWeight: FontWeight.w600,
                       color: isSelected
                           ? AppTheme.primaryOrange
-                          : Theme.of(context).textTheme.bodyLarge?.color,
+                          : (isDark
+                              ? Colors.white70
+                              : Theme.of(context).textTheme.bodyLarge?.color),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1169,7 +1333,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: isDark ? Colors.white60 : Colors.grey[600],
                     ),
                   ),
                 ],
@@ -1188,6 +1352,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   }
 
   Future<void> _processPayment() async {
+    debugPrint('💳 [PaymentScreen] _processPayment appelé');
+    debugPrint(
+        '💳 [PaymentScreen] _selectedPaymentMethod: $_selectedPaymentMethod');
+    debugPrint('💳 [PaymentScreen] _usePromoCode: $_usePromoCode');
+    debugPrint('💳 [PaymentScreen] _promoCodeValid: $_promoCodeValid');
+    debugPrint('💳 [PaymentScreen] _promoCode: $_promoCode');
+    debugPrint('💳 [PaymentScreen] _hasMultipleSeats: $_hasMultipleSeats');
+
     if (_selectedPaymentMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1208,6 +1380,179 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           duration: const Duration(seconds: 4),
         ),
       );
+      return;
+    }
+
+    // Si paiement avec code promotionnel
+    if (_selectedPaymentMethod == 'promo' && _usePromoCode && _promoCodeValid) {
+      debugPrint('💳 [PaymentScreen] ✅ Traitement du paiement avec code promo');
+      // Vérifier que ce n'est pas pour plusieurs sièges
+      if (_hasMultipleSeats) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Les codes promotionnels ne peuvent être utilisés que pour un seul siège.'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      // Vérifier que le code promo est valide
+      if (!_promoCodeValid || _promoCode.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Veuillez vérifier votre code promotionnel avant de continuer.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _isProcessing = true;
+      });
+
+      try {
+        // Confirmer toutes les réservations
+        final reservationsToConfirm = widget.reservations ??
+            (widget.reservationId != null
+                ? [
+                    {
+                      'reservation_id': widget.reservationId,
+                      'seat_number': widget.seatNumber
+                    }
+                  ]
+                : []);
+
+        List<int> confirmedSeats = [];
+        List<int> failedSeats = [];
+
+        for (var reservation in reservationsToConfirm) {
+          final reservationId = reservation['reservation_id'];
+
+          try {
+            // Envoyer le code promo
+            String? promoCodeToSend = null;
+            if (_usePromoCode &&
+                _promoCodeValid &&
+                !_hasMultipleSeats &&
+                _promoCode.isNotEmpty &&
+                reservationsToConfirm.length == 1) {
+              promoCodeToSend = _promoCode;
+            }
+
+            debugPrint(
+                '💳 [PaymentScreen] Confirmation réservation avec code promo: $promoCodeToSend');
+            final confirmResult = await ReservationService.confirmReservation(
+                reservationId,
+                promoCode: promoCodeToSend,
+                useLoyaltyPoints: false);
+
+            debugPrint(
+                '💳 [PaymentScreen] Résultat confirmation: ${confirmResult['success']}');
+            debugPrint(
+                '💳 [PaymentScreen] Message: ${confirmResult['message']}');
+
+            if (confirmResult['success'] == true) {
+              confirmedSeats
+                  .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
+              debugPrint(
+                  '💳 [PaymentScreen] ✅ Réservation confirmée avec succès');
+            } else {
+              failedSeats
+                  .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
+              debugPrint(
+                  '💳 [PaymentScreen] ❌ Échec confirmation: ${confirmResult['message']}');
+            }
+
+            // Délai entre chaque confirmation pour éviter le rate limit
+            if (reservationsToConfirm.indexOf(reservation) <
+                reservationsToConfirm.length - 1) {
+              await Future.delayed(const Duration(seconds: 1));
+            }
+          } catch (e) {
+            failedSeats
+                .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+
+          if (confirmedSeats.isNotEmpty && failedSeats.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(t('payment.tickets_created')
+                    .replaceAll('{{count}}', '${confirmedSeats.length}')
+                    .replaceAll('{{seats}}', confirmedSeats.join(", "))),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+
+            // Rediriger vers HomePage puis ouvrir Mes Trajets
+            Future.delayed(const Duration(milliseconds: 800), () {
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  (route) => false,
+                );
+
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (context) => const MyTripsScreen()),
+                    );
+                  }
+                });
+              }
+            });
+          } else if (confirmedSeats.isNotEmpty && failedSeats.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(t('payment.some_tickets_created')
+                    .replaceAll('{{success}}', '${confirmedSeats.length}')
+                    .replaceAll('{{failed}}', '${failedSeats.length}')),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            Navigator.popUntil(context, (route) => route.isFirst);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(t('payment.reservation_failed')),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+          final errorMessage = ErrorMessageHelper.getOperationError(
+            'envoyer',
+            error: e,
+            customMessage:
+                'Impossible de confirmer le paiement. Veuillez réessayer.',
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
       return;
     }
 
@@ -1352,6 +1697,153 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               SnackBar(
                 content: Text(t('payment.reservation_failed')),
                 backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+          final errorMessage = ErrorMessageHelper.getOperationError(
+            'envoyer',
+            error: e,
+            customMessage:
+                'Impossible de confirmer le paiement. Veuillez réessayer.',
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // Si paiement avec solde
+    if (_selectedPaymentMethod == 'balance' && _useBalance) {
+      // Vérifier que le client a assez de solde
+      if (_clientBalance < _finalAmount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Solde insuffisant. Votre solde actuel est de ${_clientBalance.toStringAsFixed(0)} FCFA, mais le montant requis est de ${_finalAmount.toStringAsFixed(0)} FCFA.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _isProcessing = true;
+      });
+
+      try {
+        // Confirmer toutes les réservations
+        final reservationsToConfirm = widget.reservations ??
+            (widget.reservationId != null
+                ? [
+                    {
+                      'reservation_id': widget.reservationId,
+                      'seat_number': widget.seatNumber
+                    }
+                  ]
+                : []);
+
+        List<int> confirmedSeats = [];
+        List<int> failedSeats = [];
+
+        for (var reservation in reservationsToConfirm) {
+          final reservationId = reservation['reservation_id'];
+
+          try {
+            // Envoyer useBalance pour payer avec le solde
+            final confirmResult = await ReservationService.confirmReservation(
+                reservationId,
+                promoCode: null,
+                useLoyaltyPoints: false,
+                useBalance: true);
+
+            debugPrint('💳 [PaymentScreen] Résultat confirmation avec solde: ${confirmResult['success']}');
+            debugPrint('💳 [PaymentScreen] Message: ${confirmResult['message']}');
+            
+            if (confirmResult['success'] == true) {
+              confirmedSeats
+                  .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
+              debugPrint('💳 [PaymentScreen] ✅ Réservation confirmée avec succès (paiement par solde)');
+            } else {
+              failedSeats
+                  .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
+              debugPrint('💳 [PaymentScreen] ❌ Échec confirmation: ${confirmResult['message']}');
+            }
+
+            // Délai entre chaque confirmation pour éviter le rate limit
+            if (reservationsToConfirm.indexOf(reservation) <
+                reservationsToConfirm.length - 1) {
+              await Future.delayed(const Duration(seconds: 1));
+            }
+          } catch (e) {
+            failedSeats
+                .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
+            debugPrint('💳 [PaymentScreen] ❌ Exception: $e');
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+
+          if (confirmedSeats.isNotEmpty && failedSeats.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(t('payment.tickets_created')
+                    .replaceAll('{{count}}', '${confirmedSeats.length}')
+                    .replaceAll('{{seats}}', confirmedSeats.join(", "))),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+
+            // Rediriger vers HomePage puis ouvrir Mes Trajets
+            Future.delayed(const Duration(milliseconds: 800), () {
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  (route) => false,
+                );
+
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (context) => const MyTripsScreen()),
+                    );
+                  }
+                });
+              }
+            });
+          } else if (confirmedSeats.isNotEmpty && failedSeats.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(t('payment.some_tickets_created')
+                    .replaceAll('{{success}}', '${confirmedSeats.length}')
+                    .replaceAll('{{failed}}', '${failedSeats.length}')),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            Navigator.popUntil(context, (route) => route.isFirst);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(t('payment.reservation_failed')),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
               ),
             );
           }

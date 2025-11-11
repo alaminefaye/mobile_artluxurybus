@@ -219,7 +219,7 @@ class ReservationService {
   /// Confirmer une réservation (convertir en ticket)
   /// [promoCode] : Code promotionnel optionnel pour créer un laisser-passer (ticket gratuit)
   /// [useLoyaltyPoints] : Utiliser les points de fidélité pour créer un ticket laisser-passer (10 points = 1 ticket gratuit)
-  static Future<Map<String, dynamic>> confirmReservation(int reservationId, {String? promoCode, bool useLoyaltyPoints = false}) async {
+  static Future<Map<String, dynamic>> confirmReservation(int reservationId, {String? promoCode, bool useLoyaltyPoints = false, bool useBalance = false}) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/reservations/$reservationId/confirm');
       
@@ -234,6 +234,9 @@ class ReservationService {
       }
       if (useLoyaltyPoints) {
         body['use_loyalty_points'] = true;
+      }
+      if (useBalance) {
+        body['use_balance'] = true;
       }
 
       final response = await http.post(
