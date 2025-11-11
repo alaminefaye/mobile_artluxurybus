@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/promo_code_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_message_helper.dart';
@@ -95,30 +96,62 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
     final descriptionController = TextEditingController();
     DateTime? selectedDate;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Créer un code promotionnel'),
+          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+          title: Text(
+            'Créer un code promotionnel',
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     labelText: 'Nom du client *',
+                    labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
                     hintText: 'Entrez le nom du client',
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[500]),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: isDark ? Colors.grey[800] : Colors.white,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
                     labelText: 'Description (optionnel)',
+                    labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
                     hintText: 'Description du code promo',
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[500]),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: isDark ? Colors.grey[800] : Colors.white,
                   ),
                   maxLines: 3,
                 ),
@@ -130,6 +163,18 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                       initialDate: DateTime.now().add(const Duration(days: 30)),
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: ColorScheme.light(
+                              primary: AppTheme.primaryOrange,
+                              onPrimary: Colors.white,
+                              onSurface: isDark ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (date != null) {
                       setDialogState(() {
@@ -138,15 +183,30 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                     }
                   },
                   child: InputDecorator(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Date d\'expiration (optionnel)',
-                      border: OutlineInputBorder(),
-                      suffixIcon: Icon(Icons.calendar_today),
+                      labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[800] : Colors.white,
+                      suffixIcon: Icon(
+                        Icons.calendar_today,
+                        color: isDark ? AppTheme.primaryOrange : Colors.grey[700],
+                      ),
                     ),
                     child: Text(
                       selectedDate != null
                           ? DateFormat('dd/MM/yyyy').format(selectedDate!)
                           : 'Aucune date',
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
                     ),
                   ),
                 ),
@@ -156,7 +216,10 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
+              child: Text(
+                'Annuler',
+                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -180,6 +243,10 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                       : null,
                 });
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+              ),
               child: const Text('Créer'),
             ),
           ],
@@ -234,6 +301,56 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           );
         }
       }
+    }
+  }
+
+  Future<void> _sharePromoCode(String code, String customerName, BuildContext shareContext) async {
+    try {
+      final message = 'Code promotionnel Art Luxury Bus\n\n'
+          'Code: $code\n'
+          'Client: $customerName\n\n'
+          'Utilisez ce code lors de votre réservation pour bénéficier d\'un ticket gratuit !';
+      
+      // Obtenir la position pour le partage (nécessaire pour iPad)
+      final RenderBox? box = shareContext.findRenderObject() as RenderBox?;
+      Rect? sharePositionOrigin;
+      
+      if (box != null) {
+        try {
+          final Offset position = box.localToGlobal(Offset.zero);
+          final Size size = box.size;
+          
+          // Vérifier que la position et la taille sont valides
+          if (size.width > 0 && size.height > 0) {
+            sharePositionOrigin = Rect.fromLTWH(
+              position.dx,
+              position.dy,
+              size.width,
+              size.height,
+            );
+          }
+        } catch (e) {
+          // Si l'obtention de la position échoue, on continue sans sharePositionOrigin
+          debugPrint('Erreur lors de l\'obtention de la position pour le partage: $e');
+        }
+      }
+      
+      await Share.share(
+        message,
+        subject: 'Code promotionnel Art Luxury Bus',
+        sharePositionOrigin: sharePositionOrigin,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Erreur lors du partage. Veuillez réessayer.'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      debugPrint('Erreur lors du partage: $e');
     }
   }
 
@@ -311,11 +428,14 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
       appBar: AppBar(
         title: const Text('Laisser-passer'),
         elevation: 0,
+        backgroundColor: isDark ? Colors.grey[900] : AppTheme.primaryBlue,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: _createPromoCode,
             tooltip: 'Créer un code',
+            color: Colors.white,
           ),
         ],
       ),
@@ -337,11 +457,25 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
             child: Column(
               children: [
                 TextField(
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: 'Rechercher par code ou nom...',
-                    prefixIcon: const Icon(Icons.search),
+                    hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[500]),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: isDark ? AppTheme.primaryOrange : Colors.grey[700],
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                     ),
                     filled: true,
                     fillColor: isDark ? Colors.grey[800] : Colors.white,
@@ -364,18 +498,48 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _statusFilter,
+                        dropdownColor: isDark ? Colors.grey[800] : Colors.white,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black),
                         decoration: InputDecoration(
                           labelText: 'Statut',
+                          labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
                           ),
                           filled: true,
                           fillColor: isDark ? Colors.grey[800] : Colors.white,
                         ),
-                        items: const [
-                          DropdownMenuItem(value: null, child: Text('Tous')),
-                          DropdownMenuItem(value: 'unused', child: Text('Disponible')),
-                          DropdownMenuItem(value: 'used', child: Text('Utilisé')),
+                        items: [
+                          DropdownMenuItem(
+                            value: null,
+                            child: Text(
+                              'Tous',
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'unused',
+                            child: Text(
+                              'Disponible',
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'used',
+                            child: Text(
+                              'Utilisé',
+                              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                            ),
+                          ),
                         ],
                         onChanged: (value) {
                           setState(() {
@@ -414,6 +578,10 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () => _loadPromoCodes(refresh: true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryOrange,
+                                foregroundColor: Colors.white,
+                              ),
                               child: const Text('Réessayer'),
                             ),
                           ],
@@ -475,6 +643,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                     horizontal: 16,
                                     vertical: 8,
                                   ),
+                                  color: isDark ? Colors.grey[850] : Colors.white,
                                   child: ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: isUsed
@@ -489,42 +658,78 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                       code,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: isUsed ? Colors.grey : null,
+                                        color: isUsed 
+                                            ? (isDark ? Colors.grey[500] : Colors.grey)
+                                            : (isDark ? Colors.white : Colors.black),
                                       ),
                                     ),
                                     subtitle: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Client: $customerName'),
+                                        Text(
+                                          'Client: $customerName',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.grey[400] : Colors.grey[700],
+                                          ),
+                                        ),
                                         if (createdAt != null)
                                           Text(
                                             'Créé: ${DateFormat('dd/MM/yyyy').format(createdAt)}',
-                                            style: const TextStyle(fontSize: 12),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                            ),
                                           ),
                                         if (expiresAt != null)
                                           Text(
                                             'Expire: ${DateFormat('dd/MM/yyyy').format(expiresAt)}',
-                                            style: const TextStyle(fontSize: 12),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                            ),
                                           ),
                                         if (isUsed && usedAt != null)
                                           Text(
                                             'Utilisé: ${DateFormat('dd/MM/yyyy').format(usedAt)}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 12,
-                                              color: Colors.grey,
+                                              color: isDark ? Colors.grey[600] : Colors.grey,
                                             ),
                                           ),
                                       ],
                                     ),
-                                    trailing: isUsed
-                                        ? const Icon(Icons.check_circle, color: Colors.green)
-                                        : IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.red),
-                                            onPressed: () => _deletePromoCode(
-                                              promoCode['id'],
-                                              code,
+                                    trailing: Builder(
+                                      builder: (shareContext) => Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Bouton de partage
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.share,
+                                              color: isDark ? AppTheme.primaryOrange : AppTheme.primaryOrange,
                                             ),
+                                            onPressed: () => _sharePromoCode(code, customerName, shareContext),
+                                            tooltip: 'Partager le code',
                                           ),
+                                          // Bouton de suppression (seulement si non utilisé)
+                                          if (!isUsed)
+                                            IconButton(
+                                              icon: const Icon(Icons.delete),
+                                              color: Colors.red,
+                                              onPressed: () => _deletePromoCode(
+                                                promoCode['id'],
+                                                code,
+                                              ),
+                                              tooltip: 'Supprimer le code',
+                                            )
+                                          else
+                                            const Icon(
+                                              Icons.check_circle,
+                                              color: Colors.green,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 );
                               },
