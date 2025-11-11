@@ -4,6 +4,7 @@ class MessageModel {
   final int id;
   final String titre;
   final String contenu;
+  final String? image; // URL de l'image pour les notifications
   final String type; // 'notification' ou 'annonce'
   final int? gareId;
   final GareInfo? gare;
@@ -19,6 +20,7 @@ class MessageModel {
     required this.id,
     required this.titre,
     required this.contenu,
+    this.image,
     required this.type,
     this.gareId,
     this.gare,
@@ -36,6 +38,7 @@ class MessageModel {
       id: json['id'] as int,
       titre: json['titre'] as String,
       contenu: json['contenu'] as String,
+      image: json['image'] as String?,
       type: json['type'] as String,
       gareId: json['gare_id'] as int?,
       gare: json['gare'] != null ? GareInfo.fromJson(json['gare']) : null,
@@ -57,6 +60,7 @@ class MessageModel {
       'id': id,
       'titre': titre,
       'contenu': contenu,
+      'image': image,
       'type': type,
       'gare_id': gareId,
       'gare': gare?.toJson(),
