@@ -163,17 +163,85 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                       initialDate: DateTime.now().add(const Duration(days: 30)),
                       firstDate: DateTime.now(),
                       lastDate: DateTime.now().add(const Duration(days: 365)),
+                      locale: const Locale('fr', 'FR'),
+                      helpText: 'Sélectionner une date d\'expiration',
+                      cancelText: 'Annuler',
+                      confirmText: 'OK',
                       builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.light(
-                              primary: AppTheme.primaryOrange,
-                              onPrimary: Colors.white,
-                              onSurface: isDark ? Colors.white : Colors.black,
+                        if (isDark) {
+                          return Theme(
+                            data: ThemeData.dark().copyWith(
+                              colorScheme: ColorScheme.dark(
+                                primary: AppTheme.primaryOrange,
+                                onPrimary: Colors.white,
+                                surface: Colors.grey[850]!,
+                                onSurface: Colors.white,
+                                background: Colors.grey[900]!,
+                                onBackground: Colors.white,
+                                secondary: AppTheme.primaryOrange,
+                                onSecondary: Colors.white,
+                                error: Colors.red,
+                                onError: Colors.white,
+                                brightness: Brightness.dark,
+                              ),
+                              dialogBackgroundColor: Colors.grey[900],
+                              scaffoldBackgroundColor: Colors.grey[900],
+                              cardColor: Colors.grey[800]!,
+                              dividerColor: Colors.grey[700]!,
+                              primaryColor: AppTheme.primaryOrange,
+                              textTheme: ThemeData.dark().textTheme.apply(
+                                bodyColor: Colors.white,
+                                displayColor: Colors.white,
+                              ),
+                              datePickerTheme: DatePickerThemeData(
+                                backgroundColor: Colors.grey[900]!,
+                                headerBackgroundColor: AppTheme.primaryOrange,
+                                headerForegroundColor: Colors.white,
+                                dayStyle: const TextStyle(color: Colors.white),
+                                weekdayStyle: const TextStyle(color: Colors.white),
+                                yearStyle: const TextStyle(color: Colors.white),
+                                todayBorder: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
                             ),
-                          ),
-                          child: child!,
-                        );
+                            child: child!,
+                          );
+                        } else {
+                          return Theme(
+                            data: ThemeData.light().copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: AppTheme.primaryOrange,
+                                onPrimary: Colors.white,
+                                surface: Colors.white,
+                                onSurface: Colors.black,
+                                background: Colors.white,
+                                onBackground: Colors.black,
+                                secondary: AppTheme.primaryOrange,
+                                onSecondary: Colors.white,
+                                error: Colors.red,
+                                onError: Colors.white,
+                                brightness: Brightness.light,
+                              ),
+                              dialogBackgroundColor: Colors.white,
+                              scaffoldBackgroundColor: Colors.white,
+                              datePickerTheme: DatePickerThemeData(
+                                backgroundColor: Colors.white,
+                                headerBackgroundColor: AppTheme.primaryOrange,
+                                headerForegroundColor: Colors.white,
+                                dayStyle: const TextStyle(color: Colors.black),
+                                weekdayStyle: const TextStyle(color: Colors.black),
+                                yearStyle: const TextStyle(color: Colors.black),
+                                todayBorder: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        }
                       },
                     );
                     if (date != null) {
@@ -355,15 +423,27 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   }
 
   Future<void> _deletePromoCode(int id, String code) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer le code'),
-        content: Text('Êtes-vous sûr de vouloir supprimer le code "$code" ?'),
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+        title: Text(
+          'Supprimer le code',
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        ),
+        content: Text(
+          'Êtes-vous sûr de vouloir supprimer le code "$code" ?',
+          style: TextStyle(color: isDark ? Colors.grey[300] : Colors.black87),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(
+              'Annuler',
+              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
