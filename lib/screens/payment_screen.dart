@@ -287,19 +287,40 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           balance = 0.0;
         }
 
+        // Récupérer les points (peut être 'points' ou 'points_tickets')
+        int? pointsValue;
+        if (client['points'] != null) {
+          if (client['points'] is int) {
+            pointsValue = client['points'];
+          } else if (client['points'] is num) {
+            pointsValue = (client['points'] as num).toInt();
+          } else {
+            pointsValue = int.tryParse(client['points'].toString());
+          }
+        } else if (client['points_tickets'] != null) {
+          if (client['points_tickets'] is int) {
+            pointsValue = client['points_tickets'];
+          } else if (client['points_tickets'] is num) {
+            pointsValue = (client['points_tickets'] as num).toInt();
+          } else {
+            pointsValue = int.tryParse(client['points_tickets'].toString());
+          }
+        }
+        
+        pointsValue = pointsValue ?? 0;
+
         setState(() {
-          // Récupérer les points (peut être 'points' ou 'points_tickets')
-          _clientPoints = client['points'] ?? 
-                         client['points_tickets'] ?? 
-                         0;
+          _clientPoints = pointsValue;
           _clientBalance = balance;
           _isLoadingPoints = false;
-          
-          // Debug pour vérifier les points récupérés
-          debugPrint('💳 [PaymentScreen] Points récupérés: $_clientPoints');
-          debugPrint('💳 [PaymentScreen] Solde récupéré: $_clientBalance');
-          debugPrint('💳 [PaymentScreen] Données client complètes: $client');
         });
+        
+        // Debug pour vérifier les points récupérés
+        debugPrint('💳 [PaymentScreen] ✅ Points récupérés: $_clientPoints');
+        debugPrint('💳 [PaymentScreen] ✅ Solde récupéré: $_clientBalance');
+        debugPrint('💳 [PaymentScreen] ✅ Client ID: ${client['id']}');
+        debugPrint('💳 [PaymentScreen] ✅ Téléphone: ${client['telephone']}');
+        debugPrint('💳 [PaymentScreen] ✅ Données client: points=${client['points']}, points_tickets=${client['points_tickets']}');
       } else {
         setState(() {
           _clientPoints = 0;
