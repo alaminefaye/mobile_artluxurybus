@@ -13,6 +13,7 @@ import '../services/depart_service.dart';
 import '../services/reservation_service.dart';
 import '../services/mail_api_service.dart';
 import '../services/bagage_api_service.dart';
+import '../services/promo_code_service.dart';
 import '../utils/error_message_helper.dart';
 
 // Service provider
@@ -103,6 +104,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         ReservationService.setToken(token);
         MailApiService.setToken(token);
         BagageApiService.setToken(token);
+        PromoCodeService.setToken(token);
       }
     } catch (e) {
       // Erreur silencieuse, pas critique

@@ -48,6 +48,7 @@ import '../services/recharge_service.dart';
 import '../providers/feature_permission_provider.dart';
 import '../models/feature_permission_model.dart';
 import '../providers/loyalty_provider.dart';
+import 'promo_code_management_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -513,6 +514,41 @@ class _HomePageState extends ConsumerState<HomePage>
             roleStr.contains('administrateur') ||
             roleStr.contains('chef agence') ||
             roleStr.contains('chef_agence');
+      });
+    }
+
+    return false;
+  }
+
+  // Vérifier si l'utilisateur est Super Admin ou Admin (pas Chef Agence)
+  bool _isSuperAdminOrAdmin(User user) {
+    if (user.role != null) {
+      final roleLower = user.role!.toLowerCase();
+      return roleLower.contains('super admin') ||
+          roleLower.contains('super_admin') ||
+          roleLower == 'admin' ||
+          roleLower.contains('administrateur');
+    }
+
+    // Vérifier via roles list si présent
+    if (user.rolesList != null && user.rolesList!.isNotEmpty) {
+      return user.rolesList!.any((r) {
+        final roleStr = r.toString().toLowerCase();
+        return roleStr.contains('super admin') ||
+            roleStr.contains('super_admin') ||
+            roleStr == 'admin' ||
+            roleStr.contains('administrateur');
+      });
+    }
+
+    // Vérifier aussi dans roles (ancien format)
+    if (user.roles != null && user.roles!.isNotEmpty) {
+      return user.roles!.any((r) {
+        final roleStr = r.toString().toLowerCase();
+        return roleStr.contains('super admin') ||
+            roleStr.contains('super_admin') ||
+            roleStr == 'admin' ||
+            roleStr.contains('administrateur');
       });
     }
 
@@ -3508,6 +3544,31 @@ class _HomePageState extends ConsumerState<HomePage>
                                   ),
                                 );
                               },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Section Laisser-passer (Super Admin et Admin uniquement)
+                  if (_isSuperAdminOrAdmin(user)) ...[
+                    _buildProfileSection(
+                      title: 'Laisser-passer',
+                      icon: Icons.local_offer_rounded,
+                      options: [
+                        _buildModernProfileOption(
+                          icon: Icons.local_offer_outlined,
+                          title: 'Gérer les codes promotionnels',
+                          subtitle: 'Créer et gérer les laisser-passer',
+                          color: AppTheme.primaryOrange,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PromoCodeManagementScreen(),
+                              ),
                             );
                           },
                         ),
