@@ -1,8 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart' as theme_provider;
 import 'providers/language_provider.dart';
@@ -29,6 +32,7 @@ import 'services/mail_api_service.dart';
 import 'services/bagage_api_service.dart';
 import 'services/recharge_service.dart';
 import 'services/feature_permission_service.dart';
+import 'services/version_check_service.dart';
 import 'debug/debug_screen.dart';
 import 'screens/management_hub_screen.dart';
 import 'screens/mail_management_screen.dart';
@@ -121,6 +125,25 @@ void main() async {
       // Continuer malgré l'erreur
     }
 
+    // Vérifier la version de l'application (en arrière-plan, ne bloque pas le démarrage)
+    Future.delayed(const Duration(seconds: 2), () async {
+      try {
+        debugPrint('📱 [Main] Vérification de la version...');
+        final versionCheck = await VersionCheckService.checkVersion();
+        if (versionCheck['success'] == true && versionCheck['data'] != null) {
+          final data = versionCheck['data'];
+          debugPrint(
+              '📱 [Main] Version check: update_required=${data['update_required']}, force_update=${data['force_update']}');
+          // Stocker dans SharedPreferences pour y accéder depuis MyApp
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('pending_version_check', json.encode(data));
+        }
+      } catch (e) {
+        debugPrint('⚠️ [Main] Erreur vérification version: $e');
+        // Continuer malgré l'erreur
+      }
+    });
+
     debugPrint('✅ [Main] Initialisation terminée - Lancement de l\'app');
   } catch (e, stackTrace) {
     debugPrint('❌ [Main] ERREUR lors de l\'initialisation: $e');
@@ -148,6 +171,25 @@ class _MyAppState extends ConsumerState<MyApp> {
     _setupNotificationListener();
     _setupAuthListener();
     _checkInitialNotification();
+
+    // Vérifier la version après le premier build
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final versionCheckJson = prefs.getString('pending_version_check');
+          if (versionCheckJson != null) {
+            final versionData =
+                json.decode(versionCheckJson) as Map<String, dynamic>;
+            _handleVersionCheck(versionData);
+            // Supprimer après traitement
+            await prefs.remove('pending_version_check');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [MyApp] Erreur traitement version check: $e');
+        }
+      }
+    });
 
     // Définir le contexte global pour l'AnnouncementManager après le premier build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -231,6 +273,201 @@ class _MyAppState extends ConsumerState<MyApp> {
       'body': initialMessage.notification?.body,
       'data': initialMessage.data,
     });
+  }
+
+  /// Gérer la vérification de version
+  void _handleVersionCheck(Map<String, dynamic> versionData) {
+    final navigatorContext = _navigatorKey.currentContext;
+    if (navigatorContext == null) return;
+
+    final updateRequired = versionData['update_required'] == true;
+    final forceUpdate = versionData['force_update'] == true;
+    final updateAvailable = versionData['update_available'] == true;
+    final updateMessage =
+        versionData['update_message'] ?? 'Une nouvelle version est disponible.';
+    final updateUrl = versionData['update_url'];
+    final releaseNotes = versionData['release_notes'];
+
+    if (updateRequired || forceUpdate) {
+      // Afficher dialog bloquante (mise à jour obligatoire)
+      _showForceUpdateDialog(
+        navigatorContext,
+        updateMessage,
+        updateUrl,
+        releaseNotes,
+      );
+    } else if (updateAvailable) {
+      // Afficher dialog non bloquante (mise à jour recommandée)
+      _showOptionalUpdateDialog(
+        navigatorContext,
+        updateMessage,
+        updateUrl,
+        releaseNotes,
+      );
+    }
+  }
+
+  /// Afficher dialog de mise à jour obligatoire
+  void _showForceUpdateDialog(
+    BuildContext context,
+    String message,
+    String? updateUrl,
+    String? releaseNotes,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Non fermable
+      builder: (context) => PopScope(
+        canPop: false, // Empêcher la fermeture
+        child: AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.system_update, color: Colors.orange, size: 28),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Mise à jour obligatoire',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message),
+                if (releaseNotes != null && releaseNotes.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Notes de version:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    releaseNotes,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            if (updateUrl != null && updateUrl.isNotEmpty)
+              ElevatedButton.icon(
+                onPressed: () {
+                  // Ouvrir l'URL de mise à jour
+                  launchUrl(Uri.parse(updateUrl));
+                },
+                icon: const Icon(Icons.download),
+                label: const Text('Mettre à jour'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                ),
+              )
+            else
+              ElevatedButton(
+                onPressed: () {
+                  // Si pas d'URL, rediriger vers Play Store / App Store
+                  final platform = Platform.isAndroid
+                      ? 'https://play.google.com/store/apps/details?id=com.artluxurybus.app'
+                      : 'https://apps.apple.com/app/id123456789';
+                  launchUrl(Uri.parse(platform));
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Mettre à jour'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Afficher dialog de mise à jour optionnelle
+  void _showOptionalUpdateDialog(
+    BuildContext context,
+    String message,
+    String? updateUrl,
+    String? releaseNotes,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // Fermable
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blue, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Nouvelle version disponible',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message),
+              if (releaseNotes != null && releaseNotes.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Notes de version:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  releaseNotes,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Plus tard'),
+          ),
+          if (updateUrl != null && updateUrl.isNotEmpty)
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                launchUrl(Uri.parse(updateUrl));
+              },
+              icon: const Icon(Icons.download),
+              label: const Text('Mettre à jour'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+              ),
+            )
+          else
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                final platform = Platform.isAndroid
+                    ? 'https://play.google.com/store/apps/details?id=com.artluxurybus.app'
+                    : 'https://apps.apple.com/app/id123456789';
+                launchUrl(Uri.parse(platform));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryOrange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Mettre à jour'),
+            ),
+        ],
+      ),
+    );
   }
 
   /// Gérer la navigation selon le type de notification

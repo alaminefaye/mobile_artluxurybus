@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_theme.dart';
 import '../services/device_info_service.dart';
 import '../services/translation_service.dart';
@@ -15,6 +16,8 @@ class _AboutScreenState extends State<AboutScreen> {
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
   Map<String, dynamic>? _deviceInfo;
   bool _isLoading = true;
+  String _appVersion = '1.0.0';
+  String _buildNumber = '1';
 
   // Helper pour les traductions
   String t(String key) {
@@ -36,6 +39,16 @@ class _AboutScreenState extends State<AboutScreen> {
 
   Future<void> _loadDeviceInfo() async {
     try {
+      // Charger les informations de version
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = packageInfo.version;
+          _buildNumber = packageInfo.buildNumber;
+        });
+      }
+
+      // Charger les informations de l'appareil
       final info = await _deviceInfoService.getDeviceInfo();
       if (mounted) {
         setState(() {
@@ -135,7 +148,7 @@ class _AboutScreenState extends State<AboutScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            t('about.version').replaceAll('{{version}}', '1.0.0'),
+                            t('about.version').replaceAll('{{version}}', '$_appVersion (Build $_buildNumber)'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,

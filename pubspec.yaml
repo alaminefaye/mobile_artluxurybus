@@ -65,6 +65,7 @@ dependencies:
   intl: ^0.20.2
   url_launcher: ^6.3.1
   device_info_plus: ^12.2.0
+  package_info_plus: ^8.0.0
   font_awesome_flutter: ^10.7.0
   
   # Geolocation
