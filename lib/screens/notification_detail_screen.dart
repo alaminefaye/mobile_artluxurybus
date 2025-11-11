@@ -77,6 +77,13 @@ class _NotificationDetailScreenState
             _buildMessage(),
             const SizedBox(height: 24),
 
+            // Image (si disponible dans les données)
+            if (widget.notification.data != null &&
+                widget.notification.data!.containsKey('image') &&
+                widget.notification.data!['image'] != null &&
+                widget.notification.data!['image'].toString().isNotEmpty)
+              _buildNotificationImage(),
+            
             // Informations supplémentaires
             if (widget.notification.data != null &&
                 widget.notification.data!.isNotEmpty)
@@ -303,6 +310,75 @@ class _NotificationDetailScreenState
     );
   }
 
+  Widget _buildNotificationImage() {
+    final imageUrl = widget.notification.data!['image']?.toString() ?? '';
+    if (imageUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Image:',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).textTheme.titleLarge?.color,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            imageUrl,
+            width: double.infinity,
+            height: 250,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                width: double.infinity,
+                height: 250,
+                color: Colors.grey[300],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.grey, size: 48),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Impossible de charger l\'image',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                width: double.infinity,
+                height: 250,
+                color: Colors.grey[200],
+                child: Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
   Widget _buildAdditionalInfo() {
     final data = widget.notification.data!;
 
@@ -335,7 +411,9 @@ class _NotificationDetailScreenState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ...data.entries.map((entry) => Padding(
+                  ...data.entries
+                      .where((entry) => entry.key.toLowerCase() != 'image') // Exclure l'image de cette section
+                      .map((entry) => Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
