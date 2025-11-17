@@ -69,7 +69,8 @@ class _AboutScreenState extends State<AboutScreen> {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(t('about.copied_to_clipboard').replaceAll('{{label}}', label)),
+        content:
+            Text(t('about.copied_to_clipboard').replaceAll('{{label}}', label)),
         backgroundColor: Colors.green,
         duration: const Duration(seconds: 2),
       ),
@@ -79,7 +80,7 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   Widget build(BuildContext context) {
     final primaryColor = _getPrimaryColor();
-    
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -123,7 +124,7 @@ class _AboutScreenState extends State<AboutScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),
                             child: Image.asset(
-                              '12.png',
+                              'assets/images/logo.jpeg',
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -148,7 +149,8 @@ class _AboutScreenState extends State<AboutScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            t('about.version').replaceAll('{{version}}', '$_appVersion (Build $_buildNumber)'),
+                            t('about.version').replaceAll('{{version}}',
+                                '$_appVersion (Build $_buildNumber)'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -205,7 +207,6 @@ class _AboutScreenState extends State<AboutScreen> {
                           ],
                         ),
                         const SizedBox(height: 20),
-
                         if (_deviceInfo != null) ...[
                           // Device ID (le plus important)
                           _buildInfoRow(
@@ -319,17 +320,17 @@ class _AboutScreenState extends State<AboutScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                            Row(
-                              children: [
-                                Icon(
+                        Row(
+                          children: [
+                            Icon(
                               Icons.info_outline,
                               color: primaryColor,
                               size: 24,
                             ),
                             const SizedBox(width: 12),
                             Text(
-                                t('about.app_about'),
-                                style: TextStyle(
+                              t('about.app_about'),
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: primaryColor,
@@ -342,7 +343,8 @@ class _AboutScreenState extends State<AboutScreen> {
                           t('about.app_description'),
                           style: TextStyle(
                             fontSize: 14,
-                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
                             height: 1.5,
                           ),
                         ),
@@ -394,7 +396,9 @@ class _AboutScreenState extends State<AboutScreen> {
           child: Icon(
             icon,
             size: 18,
-            color: isHighlighted ? primaryColor : Theme.of(context).iconTheme.color,
+            color: isHighlighted
+                ? primaryColor
+                : Theme.of(context).iconTheme.color,
           ),
         ),
         const SizedBox(width: 12),
@@ -418,8 +422,11 @@ class _AboutScreenState extends State<AboutScreen> {
                       value,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w600,
-                        color: isHighlighted ? primaryColor : Theme.of(context).textTheme.bodyLarge?.color,
+                        fontWeight:
+                            isHighlighted ? FontWeight.bold : FontWeight.w600,
+                        color: isHighlighted
+                            ? primaryColor
+                            : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                   ),

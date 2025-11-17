@@ -38,6 +38,7 @@ import 'screens/management_hub_screen.dart';
 import 'screens/mail_management_screen.dart';
 import 'screens/mail_detail_screen.dart' as mail_detail;
 import 'screens/embarkment_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -755,6 +756,23 @@ class AuthWrapper extends ConsumerWidget {
       debugPrint('🔍 [AuthWrapper] RolesList: ${user?.rolesList}');
       debugPrint('🔍 [AuthWrapper] Permissions: $permissions');
 
+      // Vérifier si l'utilisateur a le rôle "PDG" (redirection automatique vers dashboard)
+      bool isPDG = false;
+      if (userRole != null &&
+          (userRole == 'pdg' || userRole.contains('directeur'))) {
+        isPDG = true;
+      } else if (user?.displayRole != null &&
+          (user!.displayRole!.trim().toLowerCase() == 'pdg' ||
+              user.displayRole!.trim().toLowerCase().contains('directeur'))) {
+        isPDG = true;
+      } else if (roles.isNotEmpty) {
+        isPDG = roles.any(
+          (r) =>
+              r.toString().trim().toLowerCase() == 'pdg' ||
+              r.toString().trim().toLowerCase().contains('directeur'),
+        );
+      }
+
       // Vérifier si l'utilisateur a le rôle "courrier"
       // Vérifier dans role, displayRole, ou roles[]
       bool isCourrier = false;
@@ -792,6 +810,14 @@ class AuthWrapper extends ConsumerWidget {
               p.toLowerCase().contains('embarkment') ||
               p.toLowerCase().contains('scan_ticket'),
         );
+      }
+
+      // Rediriger vers AdminDashboardScreen si l'utilisateur a le rôle "PDG"
+      if (isPDG) {
+        debugPrint(
+          '✅ [AuthWrapper] Redirection vers AdminDashboardScreen (rôle: PDG)',
+        );
+        return const AdminDashboardScreen();
       }
 
       // Rediriger vers EmbarkmentScreen si l'utilisateur a le rôle "embarquement"

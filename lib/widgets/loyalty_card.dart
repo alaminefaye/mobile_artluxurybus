@@ -52,7 +52,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
       parent: _controller,
       curve: Curves.easeInOutBack,
     ));
-    
+
     // Démarrer le timer pour le retournement automatique toutes les 5 secondes
     _startAutoFlip();
   }
@@ -75,18 +75,18 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
       setState(() {
         _isFlipped = !_isFlipped;
         _flipCount++;
-        
+
         // Après 8 flips (4 allers-retours complets), afficher les départs
         if (_flipCount >= 8) {
           _showingDepartures = true;
           _flipCount = 0;
-          
+
           // Arrêter le timer de flip automatique
           _autoFlipTimer?.cancel();
-          
+
           // Notifier le parent que les départs sont affichés
           widget.showingDeparturesNotifier?.value = true;
-          
+
           // Retour automatique après 1 minute
           _departureTimer?.cancel();
           _departureTimer = Timer(const Duration(minutes: 1), () {
@@ -113,7 +113,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
     if (_showingDepartures) {
       return _buildDeparturesBoard();
     }
-    
+
     return GestureDetector(
       onTap: _flip,
       child: AnimatedBuilder(
@@ -121,12 +121,14 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
         builder: (context, child) {
           final angle = _animation.value * math.pi;
           final isShowingFront = angle < math.pi / 2;
-          
+
           // Calcul de la perspective et de l'échelle
           const perspective = 0.002; // Perspective plus prononcée
-          final scale = (1.0 - (math.sin(angle) * 0.1)).clamp(0.9, 1.0); // Léger rétrécissement au milieu
-          final shadowOpacity = (math.sin(angle) * 0.3).clamp(0.0, 0.3); // Ombre dynamique
-          
+          final scale = (1.0 - (math.sin(angle) * 0.1))
+              .clamp(0.9, 1.0); // Léger rétrécissement au milieu
+          final shadowOpacity =
+              (math.sin(angle) * 0.3).clamp(0.0, 0.3); // Ombre dynamique
+
           return Stack(
             children: [
               // Ombre dynamique
@@ -137,7 +139,8 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                 bottom: 4,
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(widget.screenWidth * 0.04),
+                    borderRadius:
+                        BorderRadius.circular(widget.screenWidth * 0.04),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: shadowOpacity),
@@ -156,12 +159,13 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                   ..setEntry(3, 2, perspective)
                   ..scaleByVector3(Vector3(scale, scale, scale))
                   ..rotateY(isShowingFront ? angle : math.pi)
-                  ..multiply(isShowingFront 
-                      ? Matrix4.identity() 
+                  ..multiply(isShowingFront
+                      ? Matrix4.identity()
                       : Matrix4.diagonal3Values(-1.0, 1.0, 1.0)),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(widget.screenWidth * 0.04),
+                    borderRadius:
+                        BorderRadius.circular(widget.screenWidth * 0.04),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.2),
@@ -233,7 +237,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
               ),
             ),
           ),
-          
+
           // Contenu principal
           Padding(
             padding: EdgeInsets.all(widget.screenWidth * 0.05),
@@ -272,7 +276,8 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                       padding: EdgeInsets.all(widget.screenWidth * 0.02),
                       decoration: BoxDecoration(
                         color: const Color(0xFFD4AF37).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(widget.screenWidth * 0.02),
+                        borderRadius:
+                            BorderRadius.circular(widget.screenWidth * 0.02),
                       ),
                       child: Icon(
                         Icons.diamond,
@@ -282,19 +287,23 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                     ),
                   ],
                 ),
-                
+
                 SizedBox(height: widget.screenHeight * 0.01),
-                
+
                 // Numéro de carte stylisé
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     for (int i = 0; i < 4; i++)
                       Text(
-                        i == 0 ? widget.client.telephone.substring(0, 4) :
-                        i == 1 ? '****' :
-                        i == 2 ? '****' :
-                        widget.client.telephone.substring(widget.client.telephone.length - 4),
+                        i == 0
+                            ? widget.client.telephone.substring(0, 4)
+                            : i == 1
+                                ? '****'
+                                : i == 2
+                                    ? '****'
+                                    : widget.client.telephone.substring(
+                                        widget.client.telephone.length - 4),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: widget.screenWidth * 0.045,
@@ -304,9 +313,9 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                       ),
                   ],
                 ),
-                
+
                 SizedBox(height: widget.screenHeight * 0.02),
-                
+
                 // Nom et points
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -342,7 +351,8 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                         gradient: const LinearGradient(
                           colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
                         ),
-                        borderRadius: BorderRadius.circular(widget.screenWidth * 0.03),
+                        borderRadius:
+                            BorderRadius.circular(widget.screenWidth * 0.03),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -371,7 +381,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
               ],
             ),
           ),
-          
+
           // Indication de flip
           Positioned(
             bottom: widget.screenWidth * 0.02,
@@ -396,7 +406,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
 
   Widget _buildBackCard() {
     final displayPoints = _getDisplayPoints();
-    
+
     return Container(
       width: double.infinity,
       height: widget.screenHeight * 0.32,
@@ -443,9 +453,9 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                 letterSpacing: 1.0,
               ),
             ),
-            
+
             SizedBox(height: widget.screenHeight * 0.02),
-            
+
             // Grille des 11 cases (2 rangées de 5 + 1 case cadeau)
             Expanded(
               child: Column(
@@ -454,36 +464,42 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                   // Première rangée (5 cases)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(5, (index) => _buildProgressCircle(index, displayPoints)),
+                    children: List.generate(5,
+                        (index) => _buildProgressCircle(index, displayPoints)),
                   ),
-                  
+
                   SizedBox(height: widget.screenHeight * 0.015),
-                  
+
                   // Deuxième rangée (5 cases)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(5, (index) => _buildProgressCircle(index + 5, displayPoints)),
+                    children: List.generate(
+                        5,
+                        (index) =>
+                            _buildProgressCircle(index + 5, displayPoints)),
                   ),
-                  
+
                   SizedBox(height: widget.screenHeight * 0.015),
-                  
+
                   // Case cadeau gratuit (centrée)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildProgressCircle(10, displayPoints), // 11ème case (index 10)
+                      _buildProgressCircle(
+                          10, displayPoints), // 11ème case (index 10)
                     ],
                   ),
                 ],
               ),
             ),
-            
+
             SizedBox(height: widget.screenHeight * 0.01),
-            
+
             // Message de félicitations
             Text(
-              displayPoints >= 10 ? 'Félicitations ! Vous pouvez obtenir un ${_getServiceType()} gratuit.' : 
-              'Collectez ${10 - displayPoints} points de plus pour un ${_getServiceType()} gratuit.',
+              displayPoints >= 10
+                  ? 'Félicitations ! Vous pouvez obtenir un ${_getServiceType()} gratuit.'
+                  : 'Collectez ${10 - displayPoints} points de plus pour un ${_getServiceType()} gratuit.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.8),
@@ -491,7 +507,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
                 fontStyle: FontStyle.italic,
               ),
             ),
-            
+
             // Indication de retour
             Container(
               margin: EdgeInsets.only(top: widget.screenWidth * 0.02),
@@ -514,36 +530,50 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
 
   Widget _buildProgressCircle(int index, int displayPoints) {
     final isCompleted = index < displayPoints;
-    final isFree = index == 10; // Le 11ème cercle (index 10) représente le cadeau
-    final canGetFree = displayPoints >= 10; // Peut obtenir le cadeau si 10 points ou plus
-    
+    final isFree =
+        index == 10; // Le 11ème cercle (index 10) représente le cadeau
+    final canGetFree =
+        displayPoints >= 10; // Peut obtenir le cadeau si 10 points ou plus
+
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 300 + (index * 50)),
-      tween: Tween(begin: 0.0, end: isCompleted || (isFree && canGetFree) ? 1.0 : 0.0),
+      tween: Tween(
+          begin: 0.0, end: isCompleted || (isFree && canGetFree) ? 1.0 : 0.0),
       builder: (context, value, child) {
         return Container(
-          width: isFree ? widget.screenWidth * 0.09 : widget.screenWidth * 0.06, // Cases plus petites
-          height: isFree ? widget.screenWidth * 0.09 : widget.screenWidth * 0.06,
+          width: isFree
+              ? widget.screenWidth * 0.09
+              : widget.screenWidth * 0.06, // Cases plus petites
+          height:
+              isFree ? widget.screenWidth * 0.09 : widget.screenWidth * 0.06,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: (isCompleted || (isFree && canGetFree))
-                ? Color.lerp(Colors.grey.withValues(alpha: 0.3), const Color(0xFFD4AF37), value)
+                ? Color.lerp(Colors.grey.withValues(alpha: 0.3),
+                    const Color(0xFFD4AF37), value)
                 : Colors.grey.withValues(alpha: 0.3),
             border: Border.all(
-              color: (isCompleted || (isFree && canGetFree)) ? const Color(0xFFD4AF37) : Colors.grey.withValues(alpha: 0.5),
+              color: (isCompleted || (isFree && canGetFree))
+                  ? const Color(0xFFD4AF37)
+                  : Colors.grey.withValues(alpha: 0.5),
               width: 1.5,
             ),
           ),
           child: Center(
             child: isFree
                 ? Icon(
-                    canGetFree ? Icons.card_giftcard : Icons.card_giftcard_outlined,
-                    color: canGetFree ? Colors.black : Colors.white.withValues(alpha: 0.6),
+                    canGetFree
+                        ? Icons.card_giftcard
+                        : Icons.card_giftcard_outlined,
+                    color: canGetFree
+                        ? Colors.black
+                        : Colors.white.withValues(alpha: 0.6),
                     size: widget.screenWidth * 0.04,
                   )
                 : isCompleted
                     ? Icon(
-                        Icons.directions_bus_rounded, // Icône de bus au lieu de check
+                        Icons
+                            .directions_bus_rounded, // Icône de bus au lieu de check
                         color: Colors.black,
                         size: widget.screenWidth * 0.03,
                       )
@@ -565,7 +595,7 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
   Widget _buildDeparturesBoard() {
     // Récupérer les horaires depuis le provider
     final horaires = ref.watch(prochainsDepartsProvider);
-    
+
     // Convertir les horaires en format compatible avec le carrousel
     final departures = horaires.take(14).map((h) {
       // Déterminer le statut en français
@@ -655,9 +685,9 @@ class _LoyaltyCardState extends ConsumerState<LoyaltyCard>
   String _getPointsLabel() {
     switch (widget.cardType) {
       case LoyaltyCardType.tickets:
-        return 'TICKETS';
+        return 'POINTS';
       case LoyaltyCardType.courriers:
-        return 'COURRIERS';
+        return 'POINTS';
       case LoyaltyCardType.combined:
         return 'POINTS';
     }
@@ -688,10 +718,12 @@ class _DeparturesBoardCarousel extends StatefulWidget {
   });
 
   @override
-  State<_DeparturesBoardCarousel> createState() => _DeparturesBoardCarouselState();
+  State<_DeparturesBoardCarousel> createState() =>
+      _DeparturesBoardCarouselState();
 }
 
-class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with SingleTickerProviderStateMixin {
+class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel>
+    with SingleTickerProviderStateMixin {
   int _currentPage = 0;
   Timer? _carouselTimer;
   late AnimationController _busAnimationController;
@@ -703,13 +735,13 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
   void initState() {
     super.initState();
     _startCarousel();
-    
+
     // Animation du bus qui roule en continu de gauche à droite
     _busAnimationController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
     )..repeat();
-    
+
     _busAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -730,7 +762,8 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
     _carouselTimer = Timer.periodic(_pageDuration, (timer) {
       if (mounted) {
         setState(() {
-          final totalPages = (widget.allDepartures.length / _itemsPerPage).ceil();
+          final totalPages =
+              (widget.allDepartures.length / _itemsPerPage).ceil();
           _currentPage = (_currentPage + 1) % totalPages;
         });
       }
@@ -739,7 +772,8 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
 
   List<Map<String, String>> _getCurrentDepartures() {
     final startIndex = _currentPage * _itemsPerPage;
-    final endIndex = (startIndex + _itemsPerPage).clamp(0, widget.allDepartures.length);
+    final endIndex =
+        (startIndex + _itemsPerPage).clamp(0, widget.allDepartures.length);
     return widget.allDepartures.sublist(startIndex, endIndex);
   }
 
@@ -827,10 +861,15 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                               children: [
                                 // Bus dessiné de profil
                                 Positioned(
-                                  left: (_busAnimation.value * widget.screenWidth * 0.12) - (widget.screenWidth * 0.05),
+                                  left: (_busAnimation.value *
+                                          widget.screenWidth *
+                                          0.12) -
+                                      (widget.screenWidth * 0.05),
                                   child: CustomPaint(
-                                    size: Size(widget.screenWidth * 0.08, widget.screenWidth * 0.04),
-                                    painter: _BusPainter(color: const Color(0xFFD4AF37)),
+                                    size: Size(widget.screenWidth * 0.08,
+                                        widget.screenWidth * 0.04),
+                                    painter: _BusPainter(
+                                        color: const Color(0xFFD4AF37)),
                                   ),
                                 ),
                               ],
@@ -850,7 +889,8 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                         ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(widget.screenWidth * 0.02),
+                          borderRadius:
+                              BorderRadius.circular(widget.screenWidth * 0.02),
                         ),
                         child: Text(
                           '${_currentPage + 1}/$totalPages',
@@ -875,7 +915,7 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                 ],
               ),
             ),
-            
+
             // Tableau des départs avec animation ligne par ligne
             Expanded(
               child: ListView.builder(
@@ -886,18 +926,23 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                   final departure = departures[index];
                   final isBoarding = departure['status'] == 'Embarquement';
                   final isTermine = departure['status'] == 'Terminé';
-                  
+
                   // Animation avec délai progressif pour chaque ligne (plus lent et visible)
                   return TweenAnimationBuilder<double>(
-                    duration: Duration(milliseconds: 600 + (index * 200)), // Plus lent: 200ms entre chaque ligne
-                    curve: Curves.easeOutCubic, // Courbe fluide sans rebond pour éviter les valeurs > 1.0
+                    duration: Duration(
+                        milliseconds: 600 +
+                            (index *
+                                200)), // Plus lent: 200ms entre chaque ligne
+                    curve: Curves
+                        .easeOutCubic, // Courbe fluide sans rebond pour éviter les valeurs > 1.0
                     tween: Tween<double>(begin: 0.0, end: 1.0),
                     builder: (context, value, child) {
                       // Clamp pour s'assurer que la valeur est toujours entre 0.0 et 1.0
                       final clampedValue = value.clamp(0.0, 1.0);
-                      
+
                       return Transform.translate(
-                        offset: Offset((1 - clampedValue) * 100, 0), // Glisse plus loin: 100px au lieu de 50px
+                        offset: Offset((1 - clampedValue) * 100,
+                            0), // Glisse plus loin: 100px au lieu de 50px
                         child: Opacity(
                           opacity: clampedValue,
                           child: Container(
@@ -927,7 +972,7 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                                     ),
                                   ),
                                 ),
-                                
+
                                 // Destination
                                 Expanded(
                                   child: Text(
@@ -939,7 +984,7 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                                     ),
                                   ),
                                 ),
-                                
+
                                 // Porte
                                 Container(
                                   padding: EdgeInsets.symmetric(
@@ -948,7 +993,8 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                                   ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
+                                    borderRadius: BorderRadius.circular(
+                                        widget.screenWidth * 0.01),
                                   ),
                                   child: Text(
                                     departure['gate']!,
@@ -959,9 +1005,9 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                                     ),
                                   ),
                                 ),
-                                
+
                                 SizedBox(width: widget.screenWidth * 0.02),
-                                
+
                                 // Statut
                                 Container(
                                   padding: EdgeInsets.symmetric(
@@ -969,17 +1015,20 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel> with
                                     vertical: widget.screenWidth * 0.01,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: isTermine 
+                                    color: isTermine
                                         ? Colors.red.withValues(alpha: 0.2)
                                         : isBoarding
-                                            ? Colors.green.withValues(alpha: 0.2)
-                                            : Colors.blue.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(widget.screenWidth * 0.01),
+                                            ? Colors.green
+                                                .withValues(alpha: 0.2)
+                                            : Colors.blue
+                                                .withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(
+                                        widget.screenWidth * 0.01),
                                   ),
                                   child: Text(
                                     departure['status']!,
                                     style: TextStyle(
-                                      color: isTermine 
+                                      color: isTermine
                                           ? Colors.red
                                           : isBoarding
                                               ? Colors.green

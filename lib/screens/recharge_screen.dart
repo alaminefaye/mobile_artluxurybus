@@ -34,12 +34,13 @@ class _RechargeScreenState extends State<RechargeScreen> {
     _selectedModePaiement = 'wave_money';
     _loadSolde();
   }
-  
+
   void _moveCursorToEnd() {
     if (!mounted) return;
     final textLength = _montantController.text.length;
     if (textLength > 0) {
-      _montantController.selection = TextSelection.collapsed(offset: textLength);
+      _montantController.selection =
+          TextSelection.collapsed(offset: textLength);
     }
   }
 
@@ -52,12 +53,12 @@ class _RechargeScreenState extends State<RechargeScreen> {
 
   Future<void> _loadSolde() async {
     if (!mounted) return;
-    
+
     try {
       final result = await RechargeService.getSolde();
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         if (result['success'] == true) {
           final soldeValue = result['solde'];
@@ -73,13 +74,15 @@ class _RechargeScreenState extends State<RechargeScreen> {
         } else {
           // En cas d'erreur, garder le solde à 0 mais ne pas crasher
           _currentSolde = 0.0;
-          debugPrint('⚠️ [RechargeScreen] Erreur lors du chargement du solde: ${result['message']}');
+          debugPrint(
+              '⚠️ [RechargeScreen] Erreur lors du chargement du solde: ${result['message']}');
         }
       });
     } catch (e, stackTrace) {
-      debugPrint('❌ [RechargeScreen] Exception lors du chargement du solde: $e');
+      debugPrint(
+          '❌ [RechargeScreen] Exception lors du chargement du solde: $e');
       debugPrint('❌ [RechargeScreen] Stack trace: $stackTrace');
-      
+
       if (mounted) {
         setState(() {
           _currentSolde = 0.0;
@@ -107,7 +110,8 @@ class _RechargeScreenState extends State<RechargeScreen> {
       _isLoading = true;
     });
 
-    final montant = double.tryParse(_montantController.text.replaceAll(' ', '')) ?? 0.0;
+    final montant =
+        double.tryParse(_montantController.text.replaceAll(' ', '')) ?? 0.0;
 
     final result = await RechargeService.recharge(
       montant: montant,
@@ -175,7 +179,6 @@ class _RechargeScreenState extends State<RechargeScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -198,294 +201,303 @@ class _RechargeScreenState extends State<RechargeScreen> {
           child: Form(
             key: _formKey,
             child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Carte du solde actuel
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
-                      (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue).withValues(alpha: 0.8),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Carte du solde actuel
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                        (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue)
+                            .withValues(alpha: 0.8),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isDark
+                                ? AppTheme.primaryOrange
+                                : AppTheme.primaryBlue)
+                            .withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue).withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Solde actuel',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${_currentSolde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Champ montant
-              Text(
-                'Montant de la recharge',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _montantController,
-                focusNode: _montantFocusNode,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  TextInputFormatter.withFunction((oldValue, newValue) {
-                    // Si le texte est vide, retourner tel quel
-                    if (newValue.text.isEmpty) {
-                      return TextEditingValue(
-                        text: '',
-                        selection: TextSelection.collapsed(offset: 0),
-                      );
-                    }
-                    
-                    // Supprimer tous les espaces
-                    final digitsOnly = newValue.text.replaceAll(' ', '');
-                    
-                    // Formater avec des espaces tous les 3 chiffres (de droite à gauche)
-                    // Exemple: 10000 -> 10 000
-                    String formatted = '';
-                    int digitCount = 0;
-                    for (int i = digitsOnly.length - 1; i >= 0; i--) {
-                      if (digitCount > 0 && digitCount % 3 == 0) {
-                        formatted = ' ' + formatted;
-                      }
-                      formatted = digitsOnly[i] + formatted;
-                      digitCount++;
-                    }
-                    
-                    // Toujours placer le curseur à la fin après formatage
-                    final newLength = formatted.length;
-                    return TextEditingValue(
-                      text: formatted,
-                      selection: TextSelection.collapsed(offset: newLength),
-                    );
-                  }),
-                ],
-                decoration: InputDecoration(
-                  hintText: 'Ex: 10 000',
-                  prefixIcon: const Icon(Icons.monetization_on),
-                  suffixText: 'FCFA',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade50,
-                ),
-                onTap: () {
-                  // Placer le curseur à la fin quand on clique sur le champ
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _moveCursorToEnd();
-                  });
-                },
-                onChanged: (value) {
-                  // S'assurer que le curseur reste à la fin après chaque changement
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _moveCursorToEnd();
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Veuillez entrer un montant';
-                  }
-                  final montant = double.tryParse(value.replaceAll(' ', '')) ?? 0;
-                  if (montant <= 0) {
-                    return 'Le montant doit être supérieur à 0';
-                  }
-                  if (montant < 10) {
-                    return 'Le montant minimum est de 10 FCFA';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 32),
-
-              // Sélection du mode de paiement
-              Text(
-                'Mode de paiement',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 12),
-              
-              // Mode de paiement unique (Wave)
-              Builder(
-                builder: (context) {
-                  final mode = _modesPaiement[0];
-                  final isSelected = _selectedModePaiement == mode['id'];
-
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedModePaiement = mode['id'];
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? mode['color'].withValues(alpha: 0.2)
-                            : isDark
-                                ? Colors.grey.shade800
-                                : Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSelected
-                              ? mode['color']
-                              : isDark
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade300,
-                          width: isSelected ? 2 : 1,
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Solde actuel',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Logo Wave
-                          Image.asset(
-                            'assets/images/wave.png',
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.contain,
+                      const SizedBox(height: 8),
+                      Text(
+                        '${_currentSolde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+
+                // Champ montant
+                Text(
+                  'Montant de la recharge',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _montantController,
+                  focusNode: _montantFocusNode,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    TextInputFormatter.withFunction((oldValue, newValue) {
+                      // Si le texte est vide, retourner tel quel
+                      if (newValue.text.isEmpty) {
+                        return const TextEditingValue(
+                          text: '',
+                          selection: TextSelection.collapsed(offset: 0),
+                        );
+                      }
+
+                      // Supprimer tous les espaces
+                      final digitsOnly = newValue.text.replaceAll(' ', '');
+
+                      // Formater avec des espaces tous les 3 chiffres (de droite à gauche)
+                      // Exemple: 10000 -> 10 000
+                      String formatted = '';
+                      int digitCount = 0;
+                      for (int i = digitsOnly.length - 1; i >= 0; i--) {
+                        if (digitCount > 0 && digitCount % 3 == 0) {
+                          formatted = ' $formatted';
+                        }
+                        formatted = digitsOnly[i] + formatted;
+                        digitCount++;
+                      }
+
+                      // Toujours placer le curseur à la fin après formatage
+                      final newLength = formatted.length;
+                      return TextEditingValue(
+                        text: formatted,
+                        selection: TextSelection.collapsed(offset: newLength),
+                      );
+                    }),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'Ex: 10 000',
+                    prefixIcon: const Icon(Icons.monetization_on),
+                    suffixText: 'FCFA',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor:
+                        isDark ? Colors.grey.shade800 : Colors.grey.shade50,
+                  ),
+                  onTap: () {
+                    // Placer le curseur à la fin quand on clique sur le champ
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _moveCursorToEnd();
+                    });
+                  },
+                  onChanged: (value) {
+                    // S'assurer que le curseur reste à la fin après chaque changement
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _moveCursorToEnd();
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Veuillez entrer un montant';
+                    }
+                    final montant =
+                        double.tryParse(value.replaceAll(' ', '')) ?? 0;
+                    if (montant <= 0) {
+                      return 'Le montant doit être supérieur à 0';
+                    }
+                    if (montant < 10) {
+                      return 'Le montant minimum est de 10 FCFA';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Sélection du mode de paiement
+                Text(
+                  'Mode de paiement',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Mode de paiement unique (Wave)
+                Builder(
+                  builder: (context) {
+                    final mode = _modesPaiement[0];
+                    final isSelected = _selectedModePaiement == mode['id'];
+
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedModePaiement = mode['id'];
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? mode['color'].withValues(alpha: 0.2)
+                              : isDark
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? mode['color']
+                                : isDark
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade300,
+                            width: isSelected ? 2 : 1,
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            mode['label'],
-                            style: TextStyle(
-                              color: isSelected
-                                  ? mode['color']
-                                  : (isDark ? Colors.white : Colors.black87),
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                              fontSize: 16,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Logo Wave
+                            Image.asset(
+                              'assets/images/wave.png',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
                             ),
+                            const SizedBox(width: 12),
+                            Text(
+                              mode['label'],
+                              style: TextStyle(
+                                color: isSelected
+                                    ? mode['color']
+                                    : (isDark ? Colors.white : Colors.black87),
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (isSelected) ...[
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.check_circle,
+                                color: mode['color'],
+                                size: 24,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Bouton de validation
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _recharger,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
-                          if (isSelected) ...[
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.check_circle,
-                              color: mode['color'],
-                              size: 24,
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_outline),
+                            SizedBox(width: 8),
+                            Text(
+                              'Valider la recharge',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 32),
-
-              // Bouton de validation
-              ElevatedButton(
-                onPressed: _isLoading ? null : _recharger,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 4,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
-                      )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle_outline),
-                          SizedBox(width: 8),
-                          Text(
-                            'Valider la recharge',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Message d'information
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Le montant sera ajouté à votre solde après validation.',
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 12,
                           ),
-                        ],
-                      ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Message d'information
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Colors.blue.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.blue.shade700,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Le montant sera ajouté à votre solde après validation.',
-                        style: TextStyle(
-                          color: Colors.blue.shade700,
-                          fontSize: 12,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
   }
 }
-

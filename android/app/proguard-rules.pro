@@ -26,7 +26,7 @@
 -keep class * implements com.google.gson.JsonDeserializer
 
 # Models
--keep class com.example.artluxurybus.models.** { *; }
+-keep class ci.artluxurybus.app.models.** { *; }
 
 # Keep native methods
 -keepclassmembers class * {

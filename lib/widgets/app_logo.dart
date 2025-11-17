@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppLogo extends StatelessWidget {
   final double size;
   final bool showText;
-  
+
   const AppLogo({
     super.key,
     this.size = 120,
@@ -33,12 +33,12 @@ class AppLogo extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.asset(
-              '12.png',
+              'assets/images/logo.jpeg',
               fit: BoxFit.contain,
             ),
           ),
         ),
-        
+
         if (showText) ...[
           SizedBox(height: size * 0.15),
           // Texte de l'application
@@ -47,7 +47,7 @@ class AppLogo extends StatelessWidget {
             style: TextStyle(
               fontSize: size * 0.18,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark 
+              color: Theme.of(context).brightness == Brightness.dark
                   ? const Color(0xFFF1BD92) // AppTheme.primaryOrange
                   : Theme.of(context).colorScheme.primary,
               letterSpacing: 1.2,

@@ -50,6 +50,7 @@ import '../models/feature_permission_model.dart';
 import '../providers/loyalty_provider.dart';
 import 'promo_code_management_screen.dart';
 import 'expense_management_screen.dart';
+import 'admin_dashboard_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -321,7 +322,7 @@ class _HomePageState extends ConsumerState<HomePage>
     final user = authState.user;
 
     if (authState.isLoading) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(
             color: AppTheme.primaryOrange,
@@ -407,7 +408,8 @@ class _HomePageState extends ConsumerState<HomePage>
                       Icons.notifications_outlined, unreadCount, false),
                   activeIcon: _buildNotificationIcon(
                       Icons.notifications, unreadCount, true),
-                  label: translationService.translate('navigation.notifications'),
+                  label:
+                      translationService.translate('navigation.notifications'),
                 ),
                 BottomNavigationBarItem(
                   icon: const Icon(Icons.apps_rounded),
@@ -558,6 +560,43 @@ class _HomePageState extends ConsumerState<HomePage>
     return false;
   }
 
+  // Vérifier si l'utilisateur a le rôle PDG
+  bool _isPDG(User user) {
+    // Vérifier dans le rôle principal
+    if (user.role != null) {
+      final roleLower = user.role!.toLowerCase();
+      if (roleLower == 'pdg' || roleLower.contains('directeur')) {
+        return true;
+      }
+    }
+
+    // Vérifier dans displayRole
+    if (user.displayRole != null) {
+      final displayRoleLower = user.displayRole!.toLowerCase();
+      if (displayRoleLower == 'pdg' || displayRoleLower.contains('directeur')) {
+        return true;
+      }
+    }
+
+    // Vérifier dans la liste des rôles
+    if (user.roles != null && user.roles!.isNotEmpty) {
+      return user.roles!.any((r) {
+        final roleStr = r.toString().toLowerCase();
+        return roleStr == 'pdg' || roleStr.contains('directeur');
+      });
+    }
+
+    // Vérifier dans rolesList (nouveau format)
+    if (user.rolesList != null && user.rolesList!.isNotEmpty) {
+      return user.rolesList!.any((r) {
+        final roleStr = r.toString().toLowerCase();
+        return roleStr == 'pdg' || roleStr.contains('directeur');
+      });
+    }
+
+    return false;
+  }
+
   // Helper pour les traductions
   String t(String key) {
     return TranslationService().translate(key);
@@ -567,57 +606,70 @@ class _HomePageState extends ConsumerState<HomePage>
   Map<String, String> _translateNotification(NotificationModel notification) {
     final type = notification.type.toLowerCase();
     final data = notification.data ?? {};
-    
+
     String translatedTitle = notification.title;
     String translatedMessage = notification.message;
-    
+
     // Si le titre ou le message contiennent déjà des clés de traduction, les utiliser directement
     // Sinon, traduire basé sur le type
-    
+
     switch (type) {
       case 'new_ticket':
       case 'ticket_created':
         translatedTitle = t('notifications.new_ticket_title');
         // Extraire les informations de route depuis les données ou le message
         String route = '';
-        if (data.containsKey('destination') && data.containsKey('embarquement')) {
+        if (data.containsKey('destination') &&
+            data.containsKey('embarquement')) {
           route = '${data['embarquement']} → ${data['destination']}';
         } else if (data.containsKey('trajet')) {
           final trajet = data['trajet'];
           if (trajet is Map) {
-            route = '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
+            route =
+                '${trajet['embarquement'] ?? ''} → ${trajet['destination'] ?? ''}';
           }
         } else {
           // Essayer d'extraire depuis le message original
           final message = notification.message;
           // Pattern pour "pour Abidjan → Bouaké" ou "pour Abidjan -> Bouaké" ou "pour Abidjan → Yamoussoukro"
           // Rechercher "pour" suivi du texte jusqu'à "a été"
-          final routeMatch1 = RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false).firstMatch(message);
+          final routeMatch1 =
+              RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false)
+                  .firstMatch(message);
           if (routeMatch1 != null) {
             route = routeMatch1.group(1)?.trim() ?? '';
             // Nettoyer la route (retirer les éventuels caractères indésirables)
             route = route.replaceAll(RegExp(r'\s+'), ' ').trim();
           } else {
             // Essayer de trouver directement "Ville1 → Ville2" dans le message
-            final routeMatch2 = RegExp(r'([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)\s*→\s*([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+)').firstMatch(message);
+            final routeMatch2 = RegExp(
+                    r'([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)\s*→\s*([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+)')
+                .firstMatch(message);
             if (routeMatch2 != null) {
-              route = '${routeMatch2.group(1)?.trim()} → ${routeMatch2.group(2)?.trim()}';
+              route =
+                  '${routeMatch2.group(1)?.trim()} → ${routeMatch2.group(2)?.trim()}';
             } else {
               // Essayer un pattern plus large pour trouver deux villes
-              final routeMatch3 = RegExp(r'([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)\s*(?:→|->|-)\s*([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)').firstMatch(message);
+              final routeMatch3 = RegExp(
+                      r'([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)\s*(?:→|->|-)\s*([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)')
+                  .firstMatch(message);
               if (routeMatch3 != null) {
-                route = '${routeMatch3.group(1)?.trim()} → ${routeMatch3.group(2)?.trim()}';
+                route =
+                    '${routeMatch3.group(1)?.trim()} → ${routeMatch3.group(2)?.trim()}';
               } else {
                 // Si on ne trouve rien, utiliser les données ou le message complet
-                route = data['route']?.toString() ?? 
-                        (message.length > 50 ? '${message.substring(0, 50)}...' : message);
+                route = data['route']?.toString() ??
+                    (message.length > 50
+                        ? '${message.substring(0, 50)}...'
+                        : message);
               }
             }
           }
         }
-        translatedMessage = t('notifications.new_ticket_message').replaceAll('{{route}}', route);
+        translatedMessage = t('notifications.new_ticket_message')
+            .replaceAll('{{route}}', route);
         break;
-        
+
       case 'loyalty_point':
       case 'points':
       case 'loyalty':
@@ -643,9 +695,10 @@ class _HomePageState extends ConsumerState<HomePage>
             }
           }
         }
-        translatedMessage = t('notifications.loyalty_point_message').replaceAll('{{points}}', points.toString());
+        translatedMessage = t('notifications.loyalty_point_message')
+            .replaceAll('{{points}}', points.toString());
         break;
-        
+
       case 'feedback_status':
       case 'suggestion_status':
         translatedTitle = t('notifications.feedback_status_title');
@@ -655,24 +708,29 @@ class _HomePageState extends ConsumerState<HomePage>
           final message = notification.message.toLowerCase();
           if (message.contains('approuvé') || message.contains('approved')) {
             status = t('feedback.status_approved');
-          } else if (message.contains('rejeté') || message.contains('rejected')) {
+          } else if (message.contains('rejeté') ||
+              message.contains('rejected')) {
             status = t('feedback.status_rejected');
-          } else if (message.contains('en attente') || message.contains('pending')) {
+          } else if (message.contains('en attente') ||
+              message.contains('pending')) {
             status = t('feedback.status_pending');
           } else {
             status = status.isNotEmpty ? status : 'traité';
           }
         }
-        translatedMessage = t('notifications.feedback_status_message').replaceAll('{{status}}', status);
+        translatedMessage = t('notifications.feedback_status_message')
+            .replaceAll('{{status}}', status);
         break;
-        
+
       case 'promotion':
       case 'offer':
         translatedTitle = t('notifications.promotion_title');
-        String promoMessage = data['message']?.toString() ?? notification.message;
-        translatedMessage = t('notifications.promotion_message').replaceAll('{{message}}', promoMessage);
+        String promoMessage =
+            data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.promotion_message')
+            .replaceAll('{{message}}', promoMessage);
         break;
-        
+
       case 'reminder':
       case 'travel':
         translatedTitle = t('notifications.travel_reminder_title');
@@ -685,91 +743,125 @@ class _HomePageState extends ConsumerState<HomePage>
             destination = destMatch.group(1) ?? '';
           }
         }
-        translatedMessage = t('notifications.travel_reminder_message').replaceAll('{{destination}}', destination);
+        translatedMessage = t('notifications.travel_reminder_message')
+            .replaceAll('{{destination}}', destination);
         break;
-        
+
       case 'alert':
       case 'urgent':
         translatedTitle = t('notifications.alert_title');
-        String alertMessage = data['message']?.toString() ?? notification.message;
-        translatedMessage = t('notifications.alert_message').replaceAll('{{message}}', alertMessage);
+        String alertMessage =
+            data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.alert_message')
+            .replaceAll('{{message}}', alertMessage);
         break;
-        
+
       case 'new_mail_sender':
       case 'mail_created':
         translatedTitle = t('notifications.mail_created_title');
         String destination = data['destination']?.toString() ?? '';
-        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        String number =
+            data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
         if (destination.isEmpty || number.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
           // Pattern pour destination: "pour Abidjan" ou "destination: Abidjan"
-          final destMatch1 = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
-          final destMatch2 = RegExp(r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
-          if (destMatch1 != null) destination = destMatch1.group(1)?.trim() ?? '';
-          if (destination.isEmpty && destMatch2 != null) destination = destMatch2.group(1)?.trim() ?? '';
-          
+          final destMatch1 =
+              RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
+                  .firstMatch(message);
+          final destMatch2 = RegExp(
+                  r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
+              .firstMatch(message);
+          if (destMatch1 != null)
+            destination = destMatch1.group(1)?.trim() ?? '';
+          if (destination.isEmpty && destMatch2 != null)
+            destination = destMatch2.group(1)?.trim() ?? '';
+
           // Pattern pour numéro: "Numéro: MAIL001" ou "Numéro MAIL001" ou simplement un code alphanumérique
-          final numMatch1 = RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch1 =
+              RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
           final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
           if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch2 != null) number = numMatch2.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch2 != null)
+            number = numMatch2.group(1)?.trim() ?? '';
         }
         translatedMessage = t('notifications.mail_created_message')
             .replaceAll('{{destination}}', destination)
             .replaceAll('{{number}}', number);
         break;
-        
+
       case 'new_mail_recipient':
       case 'mail_received':
         translatedTitle = t('notifications.mail_received_title');
-        String sender = data['sender']?.toString() ?? data['expediteur']?.toString() ?? '';
+        String sender =
+            data['sender']?.toString() ?? data['expediteur']?.toString() ?? '';
         String destination = data['destination']?.toString() ?? '';
-        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        String number =
+            data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
         if (sender.isEmpty || destination.isEmpty || number.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
           // Pattern pour expéditeur: "de Jean" ou "expéditeur: Jean" ou "Vous avez reçu un courrier de Jean"
-          final senderMatch1 = RegExp(r'de\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)').firstMatch(message);
-          final senderMatch2 = RegExp(r'expéditeur[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)').firstMatch(message);
-          if (senderMatch1 != null) sender = senderMatch1.group(1)?.trim() ?? '';
-          if (sender.isEmpty && senderMatch2 != null) sender = senderMatch2.group(1)?.trim() ?? '';
-          
+          final senderMatch1 =
+              RegExp(r'de\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)')
+                  .firstMatch(message);
+          final senderMatch2 = RegExp(
+                  r'expéditeur[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)')
+              .firstMatch(message);
+          if (senderMatch1 != null)
+            sender = senderMatch1.group(1)?.trim() ?? '';
+          if (sender.isEmpty && senderMatch2 != null)
+            sender = senderMatch2.group(1)?.trim() ?? '';
+
           // Pattern pour destination
-          final destMatch1 = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
-          final destMatch2 = RegExp(r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
-          if (destMatch1 != null) destination = destMatch1.group(1)?.trim() ?? '';
-          if (destination.isEmpty && destMatch2 != null) destination = destMatch2.group(1)?.trim() ?? '';
-          
+          final destMatch1 =
+              RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
+                  .firstMatch(message);
+          final destMatch2 = RegExp(
+                  r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
+              .firstMatch(message);
+          if (destMatch1 != null)
+            destination = destMatch1.group(1)?.trim() ?? '';
+          if (destination.isEmpty && destMatch2 != null)
+            destination = destMatch2.group(1)?.trim() ?? '';
+
           // Pattern pour numéro
-          final numMatch1 = RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch1 =
+              RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
           final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
           if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch2 != null) number = numMatch2.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch2 != null)
+            number = numMatch2.group(1)?.trim() ?? '';
         }
         translatedMessage = t('notifications.mail_received_message')
             .replaceAll('{{sender}}', sender)
             .replaceAll('{{destination}}', destination)
             .replaceAll('{{number}}', number);
         break;
-        
+
       case 'mail_collected':
         translatedTitle = t('notifications.mail_collected_title');
-        String number = data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
+        String number =
+            data['mail_number']?.toString() ?? data['number']?.toString() ?? '';
         if (number.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
           // Pattern pour numéro de courrier: "MAIL001" ou "Numéro: MAIL001" ou "courrier MAIL001"
-          final numMatch1 = RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
-          final numMatch2 = RegExp(r'courrier\s+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch1 =
+              RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
+          final numMatch2 =
+              RegExp(r'courrier\s+([A-Z0-9-]+)').firstMatch(message);
           final numMatch3 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
           if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch2 != null) number = numMatch2.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch3 != null) number = numMatch3.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch2 != null)
+            number = numMatch2.group(1)?.trim() ?? '';
+          if (number.isEmpty && numMatch3 != null)
+            number = numMatch3.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.mail_collected_message').replaceAll('{{number}}', number);
+        translatedMessage = t('notifications.mail_collected_message')
+            .replaceAll('{{number}}', number);
         break;
-        
+
       case 'departure_time_changed':
       case 'departure_modified':
       case 'departure_updated':
@@ -778,7 +870,8 @@ class _HomePageState extends ConsumerState<HomePage>
         String time = '';
         if (data.containsKey('route')) {
           route = data['route'].toString();
-        } else if (data.containsKey('embarquement') && data.containsKey('destination')) {
+        } else if (data.containsKey('embarquement') &&
+            data.containsKey('destination')) {
           route = '${data['embarquement']} → ${data['destination']}';
         }
         if (data.containsKey('new_time')) {
@@ -789,7 +882,9 @@ class _HomePageState extends ConsumerState<HomePage>
         if (route.isEmpty || time.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          final routeMatch = RegExp(
+                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
+              .firstMatch(message);
           final timeMatch = RegExp(r'(\d{1,2}:\d{2})').firstMatch(message);
           if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
           if (timeMatch != null) time = timeMatch.group(1)?.trim() ?? '';
@@ -798,154 +893,201 @@ class _HomePageState extends ConsumerState<HomePage>
             .replaceAll('{{route}}', route)
             .replaceAll('{{time}}', time);
         break;
-        
+
       case 'departure_cancelled':
         translatedTitle = t('notifications.departure_cancelled_title');
         String route = data['route']?.toString() ?? '';
-        if (route.isEmpty && data.containsKey('embarquement') && data.containsKey('destination')) {
+        if (route.isEmpty &&
+            data.containsKey('embarquement') &&
+            data.containsKey('destination')) {
           route = '${data['embarquement']} → ${data['destination']}';
         }
         if (route.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          final routeMatch = RegExp(
+                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
+              .firstMatch(message);
           if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.departure_cancelled_message').replaceAll('{{route}}', route);
+        translatedMessage = t('notifications.departure_cancelled_message')
+            .replaceAll('{{route}}', route);
         break;
-        
+
       case 'reservation_confirmed':
         translatedTitle = t('notifications.reservation_confirmed_title');
         String route = data['route']?.toString() ?? '';
-        if (route.isEmpty && data.containsKey('embarquement') && data.containsKey('destination')) {
+        if (route.isEmpty &&
+            data.containsKey('embarquement') &&
+            data.containsKey('destination')) {
           route = '${data['embarquement']} → ${data['destination']}';
         }
         if (route.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          final routeMatch = RegExp(
+                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
+              .firstMatch(message);
           if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.reservation_confirmed_message').replaceAll('{{route}}', route);
+        translatedMessage = t('notifications.reservation_confirmed_message')
+            .replaceAll('{{route}}', route);
         break;
-        
+
       case 'reservation_cancelled':
         translatedTitle = t('notifications.reservation_cancelled_title');
         String route = data['route']?.toString() ?? '';
-        if (route.isEmpty && data.containsKey('embarquement') && data.containsKey('destination')) {
+        if (route.isEmpty &&
+            data.containsKey('embarquement') &&
+            data.containsKey('destination')) {
           route = '${data['embarquement']} → ${data['destination']}';
         }
         if (route.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          final routeMatch = RegExp(
+                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
+              .firstMatch(message);
           if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.reservation_cancelled_message').replaceAll('{{route}}', route);
+        translatedMessage = t('notifications.reservation_cancelled_message')
+            .replaceAll('{{route}}', route);
         break;
-        
+
       case 'vidange_alert':
         translatedTitle = t('notifications.vidange_alert_title');
-        int count = int.tryParse(data['nombre_total']?.toString() ?? data['total_count']?.toString() ?? '0') ?? 0;
-        translatedMessage = t('notifications.vidange_alert_message').replaceAll('{{count}}', count.toString());
+        int count = int.tryParse(data['nombre_total']?.toString() ??
+                data['total_count']?.toString() ??
+                '0') ??
+            0;
+        translatedMessage = t('notifications.vidange_alert_message')
+            .replaceAll('{{count}}', count.toString());
         break;
-        
+
       case 'vidange_completed':
         translatedTitle = t('notifications.vidange_completed_title');
-        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        String bus = data['bus_immatriculation']?.toString() ??
+            data['bus']?.toString() ??
+            '';
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)')
+              .firstMatch(message);
           if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.vidange_completed_message').replaceAll('{{bus}}', bus);
+        translatedMessage = t('notifications.vidange_completed_message')
+            .replaceAll('{{bus}}', bus);
         break;
-        
+
       case 'vidange_updated':
         translatedTitle = t('notifications.vidange_updated_title');
-        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        String bus = data['bus_immatriculation']?.toString() ??
+            data['bus']?.toString() ??
+            '';
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)').firstMatch(message);
+          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)')
+              .firstMatch(message);
           if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.vidange_updated_message').replaceAll('{{bus}}', bus);
+        translatedMessage = t('notifications.vidange_updated_message')
+            .replaceAll('{{bus}}', bus);
         break;
-        
+
       case 'breakdown_new':
       case 'new_breakdown':
         translatedTitle = t('notifications.breakdown_new_title');
-        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        String bus = data['bus_immatriculation']?.toString() ??
+            data['bus']?.toString() ??
+            '';
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch = RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          final busMatch =
+              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
           if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.breakdown_new_message').replaceAll('{{bus}}', bus);
+        translatedMessage =
+            t('notifications.breakdown_new_message').replaceAll('{{bus}}', bus);
         break;
-        
+
       case 'breakdown_updated':
       case 'breakdown_modified':
         translatedTitle = t('notifications.breakdown_updated_title');
-        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        String bus = data['bus_immatriculation']?.toString() ??
+            data['bus']?.toString() ??
+            '';
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch = RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          final busMatch =
+              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
           if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
         }
-        translatedMessage = t('notifications.breakdown_updated_message').replaceAll('{{bus}}', bus);
+        translatedMessage = t('notifications.breakdown_updated_message')
+            .replaceAll('{{bus}}', bus);
         break;
-        
+
       case 'breakdown_status':
       case 'breakdown_status_changed':
         translatedTitle = t('notifications.breakdown_status_title');
-        String bus = data['bus_immatriculation']?.toString() ?? data['bus']?.toString() ?? '';
+        String bus = data['bus_immatriculation']?.toString() ??
+            data['bus']?.toString() ??
+            '';
         String status = data['status']?.toString() ?? '';
         if (bus.isEmpty || status.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch = RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
+          final busMatch =
+              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
           if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
           // Le statut peut être dans le message
           if (status.isEmpty) {
-            final statusMatch = RegExp(r'statut[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)').firstMatch(message);
-            if (statusMatch != null) status = statusMatch.group(1)?.trim() ?? '';
+            final statusMatch =
+                RegExp(r'statut[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
+                    .firstMatch(message);
+            if (statusMatch != null)
+              status = statusMatch.group(1)?.trim() ?? '';
           }
         }
         translatedMessage = t('notifications.breakdown_status_message')
             .replaceAll('{{bus}}', bus)
             .replaceAll('{{status}}', status);
         break;
-        
+
       case 'message_notification':
       case 'system_message':
         translatedTitle = t('notifications.message_notification_title');
-        String messageText = data['message']?.toString() ?? notification.message;
-        translatedMessage = t('notifications.message_notification_message').replaceAll('{{message}}', messageText);
+        String messageText =
+            data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.message_notification_message')
+            .replaceAll('{{message}}', messageText);
         break;
-        
+
       case 'system':
         translatedTitle = t('notifications.system_title');
-        String messageText = data['message']?.toString() ?? notification.message;
-        translatedMessage = t('notifications.system_message').replaceAll('{{message}}', messageText);
+        String messageText =
+            data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.system_message')
+            .replaceAll('{{message}}', messageText);
         break;
-        
+
       case 'general':
         translatedTitle = t('notifications.general_title');
-        String messageText = data['message']?.toString() ?? notification.message;
-        translatedMessage = t('notifications.general_message').replaceAll('{{message}}', messageText);
+        String messageText =
+            data['message']?.toString() ?? notification.message;
+        translatedMessage = t('notifications.general_message')
+            .replaceAll('{{message}}', messageText);
         break;
-        
+
       default:
         // Pour les autres types, utiliser les textes originaux ou essayer de les traduire
         // On garde les textes originaux s'ils ne correspondent à aucun type connu
         break;
     }
-    
+
     return {
       'title': translatedTitle,
       'message': translatedMessage,
@@ -1028,72 +1170,82 @@ class _HomePageState extends ConsumerState<HomePage>
           return RefreshIndicator(
             onRefresh: () async {
               // Rafraîchir toutes les données de la page d'accueil
-              debugPrint('🔄 [HomePage] Actualisation complète de l\'onglet Accueil');
-              
+              debugPrint(
+                  '🔄 [HomePage] Actualisation complète de l\'onglet Accueil');
+
               // Liste des tâches à exécuter en parallèle
               final futures = <Future>[];
-              
+
               // 1. Rafraîchir le solde
               futures.add(_loadSolde());
-              
+
               // 2. Rafraîchir les slides
               futures.add(_loadSlides());
-              
+
               // 3. Rafraîchir les permissions des fonctionnalités
               futures.add(
                 Future(() async {
-                  debugPrint('🔄 [HomePage] Actualisation des permissions des fonctionnalités');
+                  debugPrint(
+                      '🔄 [HomePage] Actualisation des permissions des fonctionnalités');
                   // Invalider le provider pour forcer le rechargement
                   ref.invalidate(featurePermissionsProvider);
                   // Attendre que le provider se recharge en vérifiant son état
                   try {
                     await ref.read(featurePermissionsProvider.future);
-                    debugPrint('✅ [HomePage] Permissions des fonctionnalités rechargées');
+                    debugPrint(
+                        '✅ [HomePage] Permissions des fonctionnalités rechargées');
                   } catch (e) {
-                    debugPrint('⚠️ [HomePage] Erreur lors du rechargement des permissions: $e');
+                    debugPrint(
+                        '⚠️ [HomePage] Erreur lors du rechargement des permissions: $e');
                   }
                 }),
               );
-              
+
               // 4. Forcer le rechargement de l'AdBanner
               futures.add(
                 Future(() async {
                   if (mounted) {
                     setState(() {
                       _adBannerKey++;
-                      debugPrint('🔄 [HomePage] AdBanner rechargé (clé: $_adBannerKey)');
+                      debugPrint(
+                          '🔄 [HomePage] AdBanner rechargé (clé: $_adBannerKey)');
                     });
                   }
                 }),
               );
-              
+
               // 5. Rafraîchir le profil utilisateur (sauf pour les clients pour éviter de perdre les données client)
               // et rafraîchir les données du client si c'est un client
               futures.add(
                 Future(() async {
                   final authState = ref.read(authProvider);
                   final currentUser = authState.user;
-                  
+
                   // Vérifier si l'utilisateur est un client
-                  final isClient = currentUser != null && 
-                      (currentUser.role?.toLowerCase().contains('client') ?? false);
-                  
+                  final isClient = currentUser != null &&
+                      (currentUser.role?.toLowerCase().contains('client') ??
+                          false);
+
                   // Pour TOUS les utilisateurs (clients et autres rôles), rafraîchir le profil utilisateur
-                  debugPrint('🔄 [HomePage] Actualisation du profil utilisateur pour le rôle: ${currentUser?.role ?? "inconnu"}');
+                  debugPrint(
+                      '🔄 [HomePage] Actualisation du profil utilisateur pour le rôle: ${currentUser?.role ?? "inconnu"}');
                   try {
                     await ref.read(authProvider.notifier).refreshUserProfile();
                     debugPrint('✅ [HomePage] Profil utilisateur rafraîchi');
                   } catch (e) {
-                    debugPrint('⚠️ [HomePage] Erreur lors du rafraîchissement du profil: $e');
+                    debugPrint(
+                        '⚠️ [HomePage] Erreur lors du rafraîchissement du profil: $e');
                   }
-                  
+
                   // Pour les clients uniquement, rafraîchir aussi les données client dans loyaltyProvider
                   if (isClient) {
-                    debugPrint('🔄 [HomePage] Actualisation des données client');
+                    debugPrint(
+                        '🔄 [HomePage] Actualisation des données client');
                     try {
-                      final loyaltyNotifier = ref.read(loyaltyProvider.notifier);
+                      final loyaltyNotifier =
+                          ref.read(loyaltyProvider.notifier);
                       final loyaltyState = ref.read(loyaltyProvider);
-                      
+
                       // Si on a déjà un client dans le state, rafraîchir ses données
                       if (loyaltyState.client?.telephone != null) {
                         await loyaltyNotifier.refreshClient();
@@ -1107,274 +1259,283 @@ class _HomePageState extends ConsumerState<HomePage>
                         }
                       }
                     } catch (e) {
-                      debugPrint('⚠️ [HomePage] Erreur lors du rafraîchissement des données client: $e');
+                      debugPrint(
+                          '⚠️ [HomePage] Erreur lors du rafraîchissement des données client: $e');
                     }
                   }
                 }),
               );
-              
+
               // Exécuter toutes les tâches en parallèle
               await Future.wait(futures);
-              
+
               // Attendre un peu pour que l'UI se mette à jour
               await Future.delayed(const Duration(milliseconds: 200));
-              
+
               debugPrint('✅ [HomePage] Actualisation complète terminée');
             },
             color: AppTheme.primaryBlue,
             child: CustomScrollView(
-          slivers: [
-            // Header avec image de fond et effet parallax
-            SliverAppBar(
-              expandedHeight: 200,
-              floating: false,
-              pinned: true,
-              elevation: 0,
-              backgroundColor: AppTheme.primaryBlue,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Image de fond
-                    Image.asset(
-                      'art.jpg',
-                      fit: BoxFit.cover,
-                    ),
-                    // Dégradé noir transparent pour voir l'image clairement
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.3),
-                            Colors.black.withValues(alpha: 0.5),
-                            Colors.black.withValues(alpha: 0.7),
-                          ],
+              slivers: [
+                // Header avec image de fond et effet parallax
+                SliverAppBar(
+                  expandedHeight: 200,
+                  floating: false,
+                  pinned: true,
+                  elevation: 0,
+                  backgroundColor: AppTheme.primaryBlue,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Image de fond
+                        Image.asset(
+                          'art.jpg',
+                          fit: BoxFit.cover,
                         ),
-                      ),
-                    ),
-                    // Contenu
-                    SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // Bienvenue en haut
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  t('home.welcome_to'),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                                const Text(
-                                  'ART LUXURY BUS',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
+                        // Dégradé noir transparent pour voir l'image clairement
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.3),
+                                Colors.black.withValues(alpha: 0.5),
+                                Colors.black.withValues(alpha: 0.7),
                               ],
                             ),
-                            // Solde en haut à droite avec bouton recharge (affiché seulement si la fonctionnalité recharge est activée)
-                            Consumer(
-                              builder: (context, ref, child) {
-                                final isRechargeEnabled = ref.watch(
-                                  isFeatureEnabledProvider(FeatureCodes.recharge),
-                                );
-                                
-                                // Si la fonctionnalité recharge est désactivée, ne pas afficher le solde
-                                if (!isRechargeEnabled) {
-                                  return const SizedBox.shrink();
-                                }
-                                
-                                return Align(
-                                  alignment: Alignment.topRight,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              Colors.white.withValues(alpha: 0.25),
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              t('home.balance'),
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.white
-                                                    .withValues(alpha: 0.9),
-                                                fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        // Contenu
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // Bienvenue en haut
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      t('home.welcome_to'),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    const Text(
+                                      'ART LUXURY BUS',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Solde en haut à droite avec bouton recharge (affiché seulement si la fonctionnalité recharge est activée)
+                                Consumer(
+                                  builder: (context, ref, child) {
+                                    final isRechargeEnabled = ref.watch(
+                                      isFeatureEnabledProvider(
+                                          FeatureCodes.recharge),
+                                    );
+
+                                    // Si la fonctionnalité recharge est désactivée, ne pas afficher le solde
+                                    if (!isRechargeEnabled) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return Align(
+                                      alignment: Alignment.topRight,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white
+                                                  .withValues(alpha: 0.25),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  t('home.balance'),
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.9),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                _isLoadingSolde
+                                                    ? const SizedBox(
+                                                        width: 12,
+                                                        height: 12,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          valueColor:
+                                                              AlwaysStoppedAnimation<
+                                                                      Color>(
+                                                                  Colors.white),
+                                                        ),
+                                                      )
+                                                    : Text(
+                                                        '${_solde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
+                                                        style: const TextStyle(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          // Bouton recharger
+                                          GestureDetector(
+                                            onTap: () async {
+                                              debugPrint(
+                                                  '🔄 Navigation vers recharge du solde');
+                                              final result =
+                                                  await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const RechargeScreen(),
+                                                ),
+                                              );
+                                              // Recharger le solde après retour de la page de recharge
+                                              if (result == true) {
+                                                _loadSolde();
+                                              }
+                                              // Forcer le rechargement de l'AdBanner après retour
+                                              if (mounted) {
+                                                setState(() {
+                                                  _adBannerKey++;
+                                                });
+                                              }
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.primaryOrange,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(
+                                                Icons.add_rounded,
+                                                color: Colors.white,
+                                                size: 16,
                                               ),
                                             ),
-                                            _isLoadingSolde
-                                                ? const SizedBox(
-                                                    width: 12,
-                                                    height: 12,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      valueColor:
-                                                          AlwaysStoppedAnimation<
-                                                              Color>(Colors.white),
-                                                    ),
-                                                  )
-                                                : Text(
-                                                    '${_solde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
-                                                    style: const TextStyle(
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      // Bouton recharger
-                                      GestureDetector(
-                                        onTap: () async {
-                                          debugPrint(
-                                              '🔄 Navigation vers recharge du solde');
-                                          final result = await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const RechargeScreen(),
-                                            ),
-                                          );
-                                          // Recharger le solde après retour de la page de recharge
-                                          if (result == true) {
-                                            _loadSolde();
-                                          }
-                                          // Forcer le rechargement de l'AdBanner après retour
-                                          if (mounted) {
-                                            setState(() {
-                                              _adBannerKey++;
-                                            });
-                                          }
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.primaryOrange,
-                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          child: const Icon(
-                                            Icons.add_rounded,
-                                            color: Colors.white,
-                                            size: 16,
-                                          ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                            // Bonjour en bas
-                            Padding(
-                              padding: const EdgeInsets.only(top: 30),
-                              child: Text(
-                                '${t("home.greeting")}, ${user.name.split(' ').first}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  fontWeight: FontWeight.w500,
+                                    );
+                                  },
                                 ),
-                              ),
+                                // Bonjour en bas
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 30),
+                                  child: Text(
+                                    '${t("home.greeting")}, ${user.name.split(' ').first}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color:
+                                          Colors.white.withValues(alpha: 0.95),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                          ],
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                  actions: const [
+                    Padding(
+                      padding: EdgeInsets.only(right: 16),
+                      child: LocationDisplayWidget(
+                        iconColor: Colors.white,
+                        textColor: Colors.white,
+                        fontSize: 13,
+                        showDropdownIcon: true,
                       ),
                     ),
                   ],
                 ),
-              ),
-              actions: const [
-                Padding(
-                  padding: EdgeInsets.only(right: 16),
-                  child: LocationDisplayWidget(
-                    iconColor: Colors.white,
-                    textColor: Colors.white,
-                    fontSize: 13,
-                    showDropdownIcon: true,
+
+                // Contenu principal
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+// Barre de recherche
+                        _buildSearchBar(),
+
+                        const SizedBox(height: 12),
+
+                        // Ad banner avec clé pour forcer le rechargement
+                        AdBanner(
+                            key: ValueKey('ad_banner_$_adBannerKey'),
+                            height: 180),
+
+                        const SizedBox(height: 20),
+
+                        // Quick Actions
+                        _buildQuickActions(user),
+
+                        const SizedBox(height: 24),
+
+                        // Section Services (affichée seulement s'il y a des services actifs)
+                        Consumer(
+                          builder: (context, ref, child) {
+                            // Vérifier s'il y a des services actifs
+                            final hasServices = _hasActiveServices(user, ref);
+                            if (!hasServices) {
+                              return const SizedBox.shrink();
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildServicesHeader(user),
+                                const SizedBox(height: 16),
+                                _buildServicesCategories(user),
+                              ],
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Section Slides
+                        _buildSlidesSection(),
+
+                        const SizedBox(height: 100), // Espace pour bottom nav
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ),
-
-            // Contenu principal
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-// Barre de recherche
-                    _buildSearchBar(),
-
-                    const SizedBox(height: 12),
-
-                    // Ad banner avec clé pour forcer le rechargement
-                    AdBanner(
-                        key: ValueKey('ad_banner_$_adBannerKey'), height: 180),
-
-                    const SizedBox(height: 20),
-
-                    // Quick Actions
-                    _buildQuickActions(user),
-
-                    const SizedBox(height: 24),
-
-                    // Section Services (affichée seulement s'il y a des services actifs)
-                    Consumer(
-                      builder: (context, ref, child) {
-                        // Vérifier s'il y a des services actifs
-                        final hasServices = _hasActiveServices(user, ref);
-                        if (!hasServices) {
-                          return const SizedBox.shrink();
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildServicesHeader(user),
-                            const SizedBox(height: 16),
-                            _buildServicesCategories(user),
-                          ],
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Section Slides
-                    _buildSlidesSection(),
-
-                    const SizedBox(height: 100), // Espace pour bottom nav
-                  ],
-                ),
-              ),
-            ),
-          ],
             ),
           );
         },
@@ -1444,7 +1605,7 @@ class _HomePageState extends ConsumerState<HomePage>
       builder: (context, ref, child) {
         // Construire la liste des quick actions actives
         final List<Widget> quickActions = [];
-        
+
         if (!_hasAttendanceRole(user)) {
           // Réservation
           final isReservationEnabled = ref.watch(
@@ -1470,7 +1631,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Mes Trajets
           final isMyTripsEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.myTrips),
@@ -1494,7 +1655,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Info
           final isInfoEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.info),
@@ -1519,12 +1680,12 @@ class _HomePageState extends ConsumerState<HomePage>
             );
           }
         }
-        
+
         // Si aucune action active, ne pas afficher la section du tout
         if (quickActions.isEmpty) {
           return const SizedBox.shrink();
         }
-        
+
         // Afficher le container avec les actions actives
         return Container(
           padding: const EdgeInsets.all(16),
@@ -1685,7 +1846,7 @@ class _HomePageState extends ConsumerState<HomePage>
       builder: (context, ref, child) {
         // Construire la liste des services actifs
         final List<Widget> services = [];
-        
+
         if (_isClient(user)) {
           // Réservation
           final isReservationEnabled = ref.watch(
@@ -1708,7 +1869,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Programme de Fidélité
           final isLoyaltyEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.loyalty),
@@ -1729,7 +1890,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Courrier
           final isMailEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.mail),
@@ -1750,7 +1911,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Feedback
           final isFeedbackEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.feedback),
@@ -1788,7 +1949,7 @@ class _HomePageState extends ConsumerState<HomePage>
               },
             ),
           );
-          
+
           // Historique de pointage (toujours disponible pour pointage)
           services.add(
             _buildServiceIcon(
@@ -1805,7 +1966,7 @@ class _HomePageState extends ConsumerState<HomePage>
               },
             ),
           );
-          
+
           // Programme de Fidélité
           final isLoyaltyEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.loyalty),
@@ -1826,7 +1987,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Feedback
           final isFeedbackEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.feedback),
@@ -1869,7 +2030,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Programme de Fidélité
           final isLoyaltyEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.loyalty),
@@ -1890,7 +2051,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Courrier
           final isMailEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.mail),
@@ -1911,7 +2072,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Horaires (toujours disponible pour admin)
           services.add(
             _buildServiceIcon(
@@ -1928,7 +2089,7 @@ class _HomePageState extends ConsumerState<HomePage>
               },
             ),
           );
-          
+
           // Feedback
           final isFeedbackEnabled = ref.watch(
             isFeatureEnabledProvider(FeatureCodes.feedback),
@@ -1949,7 +2110,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
-          
+
           // Vidéos (toujours disponible pour admin)
           services.add(
             _buildServiceIcon(
@@ -1966,18 +2127,18 @@ class _HomePageState extends ConsumerState<HomePage>
             ),
           );
         }
-        
+
         // Si aucun service actif, ne pas afficher la grille
         if (services.isEmpty) {
           return const SizedBox.shrink();
         }
-        
+
         // Adapter le nombre de colonnes selon le nombre de services
         // Minimum 2 colonnes pour un meilleur rendu visuel, maximum 4 colonnes
-        final crossAxisCount = services.length <= 2 
-            ? services.length 
+        final crossAxisCount = services.length <= 2
+            ? services.length
             : (services.length <= 4 ? services.length : 4);
-        
+
         return GridView.count(
           crossAxisCount: crossAxisCount,
           shrinkWrap: true,
@@ -2064,7 +2225,7 @@ class _HomePageState extends ConsumerState<HomePage>
   // Section Slides
   Widget _buildSlidesSection() {
     if (_isLoadingSlides) {
-      return SizedBox(
+      return const SizedBox(
         height: 200,
         child: Center(
           child: CircularProgressIndicator(
@@ -2303,19 +2464,19 @@ class _HomePageState extends ConsumerState<HomePage>
 
                       if (shouldDelete == true) {
                         if (!mounted) return;
-                        
+
                         // Capturer après vérification de mounted
                         // ignore: use_build_context_synchronously
                         final navigator = Navigator.of(context);
                         // ignore: use_build_context_synchronously
                         final scaffoldMessenger = ScaffoldMessenger.of(context);
-                        
+
                         // Afficher un indicateur de chargement
                         showDialog(
                           // ignore: use_build_context_synchronously
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => Center(
+                          builder: (context) => const Center(
                             child: CircularProgressIndicator(
                               color: AppTheme.primaryOrange,
                             ),
@@ -2356,8 +2517,7 @@ class _HomePageState extends ConsumerState<HomePage>
                             // Afficher un message de succès
                             scaffoldMessenger.showSnackBar(
                               SnackBar(
-                                content: Text(
-                                    t('notifications.all_deleted')),
+                                content: Text(t('notifications.all_deleted')),
                                 backgroundColor: Colors.green,
                                 duration: const Duration(seconds: 2),
                               ),
@@ -2414,7 +2574,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
           if (notificationState.isLoading &&
               notificationState.notifications.isEmpty) {
-            return Center(
+            return const Center(
               child: CircularProgressIndicator(
                 color: AppTheme.primaryOrange,
               ),
@@ -2518,7 +2678,7 @@ class _HomePageState extends ConsumerState<HomePage>
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: notificationState.isLoading
-                          ? CircularProgressIndicator(
+                          ? const CircularProgressIndicator(
                               color: AppTheme.primaryOrange,
                             )
                           : ElevatedButton(
@@ -2528,8 +2688,9 @@ class _HomePageState extends ConsumerState<HomePage>
                                     .loadMore();
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).brightness == Brightness.dark 
-                                    ? AppTheme.primaryOrange 
+                                backgroundColor: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? AppTheme.primaryOrange
                                     : AppTheme.primaryBlue,
                                 foregroundColor: Colors.white,
                               ),
@@ -2607,7 +2768,8 @@ class _HomePageState extends ConsumerState<HomePage>
                   ],
                 ),
                 content: Text(
-                  t('notifications.delete_notification_message').replaceAll('{{title}}', notification.title),
+                  t('notifications.delete_notification_message')
+                      .replaceAll('{{title}}', notification.title),
                   style: TextStyle(
                     fontSize: 14,
                     color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -2741,58 +2903,60 @@ class _HomePageState extends ConsumerState<HomePage>
                   size: 20,
                 ),
               ),
-          title: Builder(
-            builder: (context) {
-              final translated = _translateNotification(notification);
-              return Text(
-                translated['title'] ?? notification.title,
-                style: TextStyle(
-                  fontWeight:
-                      notification.isRead ? FontWeight.w500 : FontWeight.bold,
-                  fontSize: 14,
-                ),
-              );
-            },
-          ),
-          subtitle: Builder(
-            builder: (context) {
-              final translated = _translateNotification(notification);
-              return Text(
-                translated['message'] ?? notification.message,
-                style: const TextStyle(fontSize: 12),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              );
-            },
-          ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // Badge de priorité
-              if (notification.data != null &&
-                  notification.data!['priority'] != null)
-                _buildPriorityBadge(notification.data!['priority'].toString()),
-
-              Text(
-                notification.getTimeAgo(),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                ),
+              title: Builder(
+                builder: (context) {
+                  final translated = _translateNotification(notification);
+                  return Text(
+                    translated['title'] ?? notification.title,
+                    style: TextStyle(
+                      fontWeight: notification.isRead
+                          ? FontWeight.w500
+                          : FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  );
+                },
               ),
-              if (!notification.isRead)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _getNotificationPrimaryColor(context),
-                    shape: BoxShape.circle,
+              subtitle: Builder(
+                builder: (context) {
+                  final translated = _translateNotification(notification);
+                  return Text(
+                    translated['message'] ?? notification.message,
+                    style: const TextStyle(fontSize: 12),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // Badge de priorité
+                  if (notification.data != null &&
+                      notification.data!['priority'] != null)
+                    _buildPriorityBadge(
+                        notification.data!['priority'].toString()),
+
+                  Text(
+                    notification.getTimeAgo(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
                   ),
-                ),
-            ],
-          ),
+                  if (!notification.isRead)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: _getNotificationPrimaryColor(context),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
+              ),
             ),
           );
         },
@@ -2845,7 +3009,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Color _getNotificationTypeColor(String type, BuildContext context) {
     final primaryColor = _getNotificationPrimaryColor(context);
-    
+
     switch (type.toLowerCase()) {
       case 'new_ticket':
       case 'ticket_created':
@@ -2939,8 +3103,8 @@ class _HomePageState extends ConsumerState<HomePage>
     return Scaffold(
       appBar: AppBar(
         title: Text(t('common.services')),
-        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-            ? AppTheme.primaryOrange 
+        backgroundColor: Theme.of(context).brightness == Brightness.dark
+            ? AppTheme.primaryOrange
             : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -3033,7 +3197,7 @@ class _HomePageState extends ConsumerState<HomePage>
   // Liste des services selon le rôle et les permissions
   List<Map<String, dynamic>> _getServicesForUser(User user, WidgetRef ref) {
     List<Map<String, dynamic>> services = [];
-    
+
     // Récupérer les permissions actuelles
     final permissionsAsync = ref.read(featurePermissionsProvider);
     final permissions = permissionsAsync.value?.permissions ?? [];
@@ -3107,7 +3271,7 @@ class _HomePageState extends ConsumerState<HomePage>
               MaterialPageRoute(builder: (_) => const BusDashboardScreen())),
         });
       }
-      
+
       // Horaires (toujours disponible pour admin)
       services.add({
         'icon': Icons.schedule_rounded,
@@ -3123,7 +3287,7 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         },
       });
-      
+
       // Courrier
       if (isFeatureEnabled(FeatureCodes.mail)) {
         services.add({
@@ -3140,7 +3304,7 @@ class _HomePageState extends ConsumerState<HomePage>
           },
         });
       }
-      
+
       // Vidéos (toujours disponible pour admin)
       services.add({
         'icon': Icons.video_library_rounded,
@@ -3168,7 +3332,7 @@ class _HomePageState extends ConsumerState<HomePage>
               MaterialPageRoute(builder: (_) => const ReservationScreen())),
         });
       }
-      
+
       // Mes Trajets
       if (isFeatureEnabled(FeatureCodes.myTrips)) {
         services.add({
@@ -3176,11 +3340,11 @@ class _HomePageState extends ConsumerState<HomePage>
           'title': t('services.my_trips'),
           'subtitle': t('services.view_trips'),
           'color': AppTheme.primaryOrange,
-          'onTap': () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const MyTripsScreen())),
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const MyTripsScreen())),
         });
       }
-      
+
       // Courrier
       if (isFeatureEnabled(FeatureCodes.mail)) {
         services.add({
@@ -3197,7 +3361,7 @@ class _HomePageState extends ConsumerState<HomePage>
           },
         });
       }
-      
+
       // Recharge (si activée)
       if (isFeatureEnabled(FeatureCodes.recharge)) {
         services.add({
@@ -3205,8 +3369,8 @@ class _HomePageState extends ConsumerState<HomePage>
           'title': t('services.recharge'),
           'subtitle': t('services.recharge_subtitle'),
           'color': const Color(0xFF10B981),
-          'onTap': () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => const RechargeScreen())),
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const RechargeScreen())),
         });
       }
     }
@@ -3486,14 +3650,16 @@ class _HomePageState extends ConsumerState<HomePage>
             child: Consumer(
               builder: (context, ref, child) {
                 final locale = ref.watch(languageProvider);
-                final translationNotifier = ref.read(translationLoadingProvider.notifier);
-                final translationService = translationNotifier.translationService;
-                
+                final translationNotifier =
+                    ref.read(translationLoadingProvider.notifier);
+                final translationService =
+                    translationNotifier.translationService;
+
                 // S'assurer que les traductions sont chargées pour cette langue actuelle
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   translationNotifier.loadTranslations(locale);
                 });
-                
+
                 return Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -3501,209 +3667,263 @@ class _HomePageState extends ConsumerState<HomePage>
                     children: [
                       // Section Compte
                       _buildProfileSection(
-                        title: translationService.translate('profile.my_account'),
+                        title:
+                            translationService.translate('profile.my_account'),
                         icon: Icons.person_rounded,
                         options: [
                           _buildModernProfileOption(
                             icon: Icons.person_outline,
-                            title: translationService.translate('profile.personal_info'),
-                            subtitle: translationService.translate('profile.edit_data'),
-                        color: AppTheme.primaryBlue,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const EditProfileScreen(),
-                            ),
-                          );
-                        },
+                            title: translationService
+                                .translate('profile.personal_info'),
+                            subtitle: translationService
+                                .translate('profile.edit_data'),
+                            color: AppTheme.primaryBlue,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const EditProfileScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          _buildModernProfileOption(
+                            icon: Icons.security_rounded,
+                            title: translationService
+                                .translate('profile.security'),
+                            subtitle: translationService
+                                .translate('profile.password_security'),
+                            color: Colors.green,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SecurityScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      _buildModernProfileOption(
-                        icon: Icons.security_rounded,
-                        title: translationService.translate('profile.security'),
-                        subtitle: translationService.translate('profile.password_security'),
-                        color: Colors.green,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SecurityScreen(),
+
+                      const SizedBox(height: 20),
+
+                      // Section Préférences (seulement pour non-pointeurs)
+                      if (!_hasAttendanceRole(user)) ...[
+                        _buildProfileSection(
+                          title: translationService
+                              .translate('profile.preferences'),
+                          icon: Icons.settings_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.notifications_outlined,
+                              title: translationService
+                                  .translate('profile.notifications'),
+                              subtitle: translationService
+                                  .translate('profile.manage_alerts'),
+                              color: AppTheme.primaryOrange,
+                              onTap: () {},
                             ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Section Préférences (seulement pour non-pointeurs)
-                  if (!_hasAttendanceRole(user)) ...[
-                    _buildProfileSection(
-                      title: translationService.translate('profile.preferences'),
-                      icon: Icons.settings_rounded,
-                      options: [
-                        _buildModernProfileOption(
-                          icon: Icons.notifications_outlined,
-                          title: translationService.translate('profile.notifications'),
-                          subtitle: translationService.translate('profile.manage_alerts'),
-                          color: AppTheme.primaryOrange,
-                          onTap: () {},
-                        ),
-                        _buildModernProfileOption(
-                          icon: Icons.campaign_rounded,
-                          title: translationService.translate('profile.voice_announcements'),
-                          subtitle: translationService.translate('profile.announcement_config'),
-                          color: Colors.deepPurple,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const VoiceSettingsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildModernProfileOption(
-                          icon: Icons.palette_outlined,
-                          title: translationService.translate('profile.appearance'),
-                          subtitle: translationService.translate('profile.theme_description'),
-                          color: Colors.amber,
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const ThemeSettingsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final locale = ref.watch(languageProvider);
-                            final languageNotifier = ref.read(languageProvider.notifier);
-                            final languageName = languageNotifier.getDisplayName(locale);
-                            
-                            return _buildModernProfileOption(
-                              icon: Icons.language_rounded,
-                              title: translationService.translate('profile.language'),
-                              subtitle: languageName,
-                              color: Colors.purple,
+                            _buildModernProfileOption(
+                              icon: Icons.campaign_rounded,
+                              title: translationService
+                                  .translate('profile.voice_announcements'),
+                              subtitle: translationService
+                                  .translate('profile.announcement_config'),
+                              color: Colors.deepPurple,
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                    builder: (context) => const LanguageSettingsScreen(),
+                                    builder: (context) =>
+                                        const VoiceSettingsScreen(),
                                   ),
                                 );
                               },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // Section Laisser-passer (Super Admin et Admin uniquement)
-                  if (_isSuperAdminOrAdmin(user)) ...[
-                    _buildProfileSection(
-                      title: 'Laisser-passer',
-                      icon: Icons.local_offer_rounded,
-                      options: [
-                        _buildModernProfileOption(
-                          icon: Icons.local_offer_outlined,
-                          title: 'Gérer les codes promotionnels',
-                          subtitle: 'Créer et gérer les laisser-passer',
-                          color: AppTheme.primaryOrange,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const PromoCodeManagementScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // Section Gestion des dépenses (Super Admin et Admin uniquement)
-                  if (_isSuperAdminOrAdmin(user)) ...[
-                    _buildProfileSection(
-                      title: 'Gestion des dépenses',
-                      icon: Icons.receipt_long_rounded,
-                      options: [
-                        _buildModernProfileOption(
-                          icon: Icons.receipt_long_outlined,
-                          title: 'Liste des dépenses',
-                          subtitle: 'Voir toutes les dépenses et valider/rejeter',
-                          color: Colors.blue,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ExpenseManagementScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildModernProfileOption(
-                          icon: Icons.pending_actions,
-                          title: 'Dépenses en attente',
-                          subtitle: 'Valider ou rejeter les dépenses en attente',
-                          color: Colors.orange,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ExpenseManagementScreen(showPendingOnly: true),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // Section Support
-                  _buildProfileSection(
-                    title: translationService.translate('profile.support'),
-                    icon: Icons.help_center_rounded,
-                    options: [
-                      _buildModernProfileOption(
-                        icon: Icons.help_outline,
-                        title: translationService.translate('profile.help_support'),
-                        subtitle: translationService.translate('profile.contact_team'),
-                        color: Colors.teal,
-                        onTap: () {},
-                      ),
-                      _buildModernProfileOption(
-                        icon: Icons.info_outline,
-                        title: translationService.translate('profile.about'),
-                        subtitle: translationService.translate('profile.about_info'),
-                        color: Colors.indigo,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => const AboutScreen(),
                             ),
-                          );
-                        },
+                            _buildModernProfileOption(
+                              icon: Icons.palette_outlined,
+                              title: translationService
+                                  .translate('profile.appearance'),
+                              subtitle: translationService
+                                  .translate('profile.theme_description'),
+                              color: Colors.amber,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ThemeSettingsScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final locale = ref.watch(languageProvider);
+                                final languageNotifier =
+                                    ref.read(languageProvider.notifier);
+                                final languageName =
+                                    languageNotifier.getDisplayName(locale);
+
+                                return _buildModernProfileOption(
+                                  icon: Icons.language_rounded,
+                                  title: translationService
+                                      .translate('profile.language'),
+                                  subtitle: languageName,
+                                  color: Colors.purple,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const LanguageSettingsScreen(),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Section Dashboard (Super Admin, Admin et PDG uniquement)
+                      if (_isSuperAdminOrAdmin(user) || _isPDG(user)) ...[
+                        _buildProfileSection(
+                          title: 'Tableau de bord',
+                          icon: Icons.dashboard_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.dashboard_outlined,
+                              title: 'Dashboard Administrateur',
+                              subtitle:
+                                  'Statistiques et rapports en temps réel',
+                              color: AppTheme.primaryBlue,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AdminDashboardScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Section Laisser-passer (Super Admin et Admin uniquement)
+                      if (_isSuperAdminOrAdmin(user)) ...[
+                        _buildProfileSection(
+                          title: 'Laisser-passer',
+                          icon: Icons.local_offer_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.local_offer_outlined,
+                              title: 'Gérer les codes promotionnels',
+                              subtitle: 'Créer et gérer les laisser-passer',
+                              color: AppTheme.primaryOrange,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PromoCodeManagementScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Section Gestion des dépenses (Super Admin et Admin uniquement)
+                      if (_isSuperAdminOrAdmin(user)) ...[
+                        _buildProfileSection(
+                          title: 'Gestion des dépenses',
+                          icon: Icons.receipt_long_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.receipt_long_outlined,
+                              title: 'Liste des dépenses',
+                              subtitle:
+                                  'Voir toutes les dépenses et valider/rejeter',
+                              color: Colors.blue,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ExpenseManagementScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildModernProfileOption(
+                              icon: Icons.pending_actions,
+                              title: 'Dépenses en attente',
+                              subtitle:
+                                  'Valider ou rejeter les dépenses en attente',
+                              color: Colors.orange,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ExpenseManagementScreen(
+                                            showPendingOnly: true),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Section Support
+                      _buildProfileSection(
+                        title: translationService.translate('profile.support'),
+                        icon: Icons.help_center_rounded,
+                        options: [
+                          _buildModernProfileOption(
+                            icon: Icons.help_outline,
+                            title: translationService
+                                .translate('profile.help_support'),
+                            subtitle: translationService
+                                .translate('profile.contact_team'),
+                            color: Colors.teal,
+                            onTap: () {},
+                          ),
+                          _buildModernProfileOption(
+                            icon: Icons.info_outline,
+                            title:
+                                translationService.translate('profile.about'),
+                            subtitle: translationService
+                                .translate('profile.about_info'),
+                            color: Colors.indigo,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const AboutScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
+
+                      const SizedBox(height: 24),
+
+                      // Bouton de déconnexion compact
+                      _buildLogoutButton(),
+
+                      const SizedBox(height: 80), // Espace pour bottom nav
                     ],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Bouton de déconnexion compact
-                  _buildLogoutButton(),
-
-                  const SizedBox(height: 80), // Espace pour bottom nav
-                ],
-              ),
                 );
               },
             ),
@@ -3721,10 +3941,10 @@ class _HomePageState extends ConsumerState<HomePage>
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = isDark ? Colors.orange : AppTheme.primaryBlue;
-    final backgroundColor = isDark 
+    final backgroundColor = isDark
         ? Colors.orange.withValues(alpha: 0.1)
         : AppTheme.primaryBlue.withValues(alpha: 0.1);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

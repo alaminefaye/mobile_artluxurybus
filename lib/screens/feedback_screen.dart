@@ -27,7 +27,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   String _selectedCategory = 'suggestion';
   String? _selectedStation;
   String? _selectedRoute;
-  
+
   // Helper pour les traductions
   String t(String key) {
     return TranslationService().translate(key);
@@ -35,12 +35,36 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
 
   List<Map<String, dynamic>> _getCategories() {
     return [
-      {'value': 'suggestion', 'label': t('feedback.suggestion'), 'icon': Icons.lightbulb},
-      {'value': 'probleme', 'label': t('feedback.problem'), 'icon': Icons.report_problem},
-      {'value': 'service', 'label': t('feedback.service'), 'icon': Icons.support_agent},
-      {'value': 'securite', 'label': t('feedback.security'), 'icon': Icons.security},
-      {'value': 'confort', 'label': t('feedback.comfort'), 'icon': Icons.airline_seat_recline_extra},
-      {'value': 'autre', 'label': t('feedback.other'), 'icon': Icons.more_horiz},
+      {
+        'value': 'suggestion',
+        'label': t('feedback.suggestion'),
+        'icon': Icons.lightbulb
+      },
+      {
+        'value': 'probleme',
+        'label': t('feedback.problem'),
+        'icon': Icons.report_problem
+      },
+      {
+        'value': 'service',
+        'label': t('feedback.service'),
+        'icon': Icons.support_agent
+      },
+      {
+        'value': 'securite',
+        'label': t('feedback.security'),
+        'icon': Icons.security
+      },
+      {
+        'value': 'confort',
+        'label': t('feedback.comfort'),
+        'icon': Icons.airline_seat_recline_extra
+      },
+      {
+        'value': 'autre',
+        'label': t('feedback.other'),
+        'icon': Icons.more_horiz
+      },
     ];
   }
 
@@ -73,7 +97,9 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     final feedbackState = ref.watch(feedbackSubmissionProvider);
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+
     // Écouter les changements d'état pour afficher des messages
     ref.listen(feedbackSubmissionProvider, (previous, next) {
       next.whenOrNull(
@@ -93,7 +119,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
         error: (error, stackTrace) {
           final errorMessage = ErrorMessageHelper.getUserFriendlyError(
             error,
-            defaultMessage: 'Impossible d\'envoyer le feedback. Veuillez réessayer.',
+            defaultMessage:
+                'Impossible d\'envoyer le feedback. Veuillez réessayer.',
           );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -109,7 +136,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(t('feedback.title')),
-        backgroundColor: AppTheme.primaryBlue,
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -123,23 +150,23 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
               // En-tête informatif
               _buildInfoHeader(),
               const SizedBox(height: 16),
-              
+
               // Sélection de catégorie
               _buildCategorySection(),
               const SizedBox(height: 16),
-              
+
               // Informations personnelles
               _buildPersonalInfoSection(),
               const SizedBox(height: 16),
-              
+
               // Détails de la suggestion/préoccupation
               _buildFeedbackSection(),
               const SizedBox(height: 16),
-              
+
               // Informations de voyage
               _buildTravelInfoSection(),
               const SizedBox(height: 24),
-              
+
               // Bouton d'envoi
               _buildSubmitButton(feedbackState),
               const SizedBox(height: 16),
@@ -151,18 +178,21 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   }
 
   Widget _buildInfoHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryBlue.withValues(alpha: 0.08),
-            AppTheme.primaryOrange.withValues(alpha: 0.05),
+            primaryColor.withValues(alpha: 0.08),
+            primaryColor.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppTheme.primaryBlue.withValues(alpha: 0.15),
+          color: primaryColor.withValues(alpha: 0.15),
         ),
       ),
       child: Row(
@@ -170,7 +200,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.primaryBlue,
+              color: primaryColor,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -186,10 +216,10 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
               children: [
                 Text(
                   t('feedback.your_opinion_matters'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primaryBlue,
+                    color: primaryColor,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -209,6 +239,9 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   }
 
   Widget _buildCategorySection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -233,20 +266,17 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isSelected 
-                      ? AppTheme.primaryBlue 
-                      : (Theme.of(context).brightness == Brightness.dark 
-                          ? Colors.grey.shade800 
-                          : Colors.grey[50]),
+                  color: isSelected
+                      ? primaryColor
+                      : (isDark ? Colors.grey.shade800 : Colors.grey[50]),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSelected 
-                        ? AppTheme.primaryBlue 
-                        : (Theme.of(context).brightness == Brightness.dark 
-                            ? Colors.grey.shade700 
-                            : Colors.grey[300]!),
+                    color: isSelected
+                        ? primaryColor
+                        : (isDark ? Colors.grey.shade700 : Colors.grey[300]!),
                     width: 1,
                   ),
                 ),
@@ -256,7 +286,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                     Icon(
                       category['icon'],
                       size: 14,
-                      color: isSelected ? Colors.white : AppTheme.primaryBlue,
+                      color: isSelected ? Colors.white : primaryColor,
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -264,7 +294,9 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color,
+                        color: isSelected
+                            ? Colors.white
+                            : Theme.of(context).textTheme.bodyLarge?.color,
                       ),
                     ),
                   ],
@@ -461,17 +493,20 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
   }
 
   Widget _buildSubmitButton(AsyncValue<String?> feedbackState) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+
     return Container(
       width: double.infinity,
       height: 44,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.primaryBlue, AppTheme.primaryBlue.withValues(alpha: 0.8)],
+          colors: [primaryColor, primaryColor.withValues(alpha: 0.8)],
         ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+            color: primaryColor.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -517,6 +552,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     String? Function(String?)? validator,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.grey.shade800 : Colors.white,
@@ -550,12 +587,16 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           hintText: hint,
           hintStyle: TextStyle(
             fontSize: 11,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+            color: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.color
+                ?.withValues(alpha: 0.6),
           ),
           prefixIcon: Icon(
             icon,
             size: 18,
-            color: isDark ? Colors.white70 : AppTheme.primaryBlue,
+            color: isDark ? Colors.white70 : primaryColor,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -577,6 +618,8 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     required Function(String?) onChanged,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.grey.shade800 : Colors.white,
@@ -621,7 +664,7 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
           prefixIcon: Icon(
             icon,
             size: 18,
-            color: isDark ? Colors.white70 : AppTheme.primaryBlue,
+            color: isDark ? Colors.white70 : primaryColor,
           ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -640,14 +683,14 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     }
 
     final feedbackNotifier = ref.read(feedbackSubmissionProvider.notifier);
-    
+
     feedbackNotifier.submitFeedback(
       name: _nameController.text.trim(),
       phone: _phoneController.text.trim(),
       subject: _subjectController.text.trim(),
       message: _messageController.text.trim(),
-      email: _emailController.text.trim().isNotEmpty 
-          ? _emailController.text.trim() 
+      email: _emailController.text.trim().isNotEmpty
+          ? _emailController.text.trim()
           : null,
       station: _selectedStation,
       route: _selectedRoute,
@@ -668,13 +711,13 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     _routeController.clear();
     _seatController.clear();
     _departureController.clear();
-    
+
     setState(() {
       _selectedCategory = 'suggestion';
       _selectedStation = null;
       _selectedRoute = null;
     });
-    
+
     // Reset l'état du provider
     ref.read(feedbackSubmissionProvider.notifier).reset();
   }

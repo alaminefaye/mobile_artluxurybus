@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:755144690437:android:873a47459ad0a21aa9456c",
+        "mobilesdk_app_id": "1:755144690437:android:e90262caafff6f2aa9456c",
         "android_client_info": {
-          "package_name": "com.example.artluxurybus"
+          "package_name": "ci.artluxurybus.app"
         }
       },
       "oauth_client": [],

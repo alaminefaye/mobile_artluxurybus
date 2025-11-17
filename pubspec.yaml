@@ -1,3 +1,4 @@
+
 name: artluxurybus
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
@@ -16,7 +17,8 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+# Version +6 - Fix testOnly=false pour Google Play
+version: 1.0.1+6
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -103,6 +105,9 @@ dependencies:
   share_plus: ^7.2.1
   screenshot: ^3.0.0
   path_provider: ^2.1.1
+  
+  # Charts
+  fl_chart: ^0.69.0
 
 dev_dependencies:
   flutter_test:
@@ -138,7 +143,7 @@ flutter:
     - assets/images/
     - lib/l10n/fr.json
     - lib/l10n/en.json
-    - 12.png
+    - assets/images/logo.jpeg
     - art.jpg
     - img1.jpg
     - img2.jpg
@@ -174,8 +179,8 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon_square.png"
+  image_path: "assets/images/logo.jpeg"
   min_sdk_android: 21
   remove_alpha_ios: false
   adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/images/app_icon_square.png"
+  adaptive_icon_foreground: "assets/images/logo.jpeg"

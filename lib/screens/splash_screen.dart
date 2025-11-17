@@ -77,8 +77,8 @@ class _SplashScreenState extends State<SplashScreen>
                 const AuthWrapper(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
+              return FadeTransition(opacity: animation, child: child);
+            },
             transitionDuration: const Duration(milliseconds: 800),
           ),
         );
@@ -91,8 +91,8 @@ class _SplashScreenState extends State<SplashScreen>
                 const OnboardingScreen(),
             transitionsBuilder:
                 (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
+              return FadeTransition(opacity: animation, child: child);
+            },
             transitionDuration: const Duration(milliseconds: 800),
           ),
         );
@@ -267,10 +267,7 @@ class _SplashScreenState extends State<SplashScreen>
                             child: Container(
                               width: 120,
                               height: 120,
-                              padding: const EdgeInsets.all(15),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(35),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.25),
@@ -283,7 +280,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(20),
                                 child: Image.asset(
-                                  '12.png',
+                                  'assets/images/logo.jpeg',
                                   fit: BoxFit.contain,
                                 ),
                               ),

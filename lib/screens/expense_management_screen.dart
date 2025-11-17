@@ -7,14 +7,16 @@ import '../utils/error_message_helper.dart';
 
 class ExpenseManagementScreen extends StatefulWidget {
   final bool showPendingOnly;
-  
+
   const ExpenseManagementScreen({super.key, this.showPendingOnly = false});
 
   @override
-  State<ExpenseManagementScreen> createState() => _ExpenseManagementScreenState();
+  State<ExpenseManagementScreen> createState() =>
+      _ExpenseManagementScreenState();
 }
 
-class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with SingleTickerProviderStateMixin {
+class _ExpenseManagementScreenState extends State<ExpenseManagementScreen>
+    with SingleTickerProviderStateMixin {
   List<Expense> _expenses = [];
   bool _isLoading = false;
   String? _errorMessage;
@@ -31,7 +33,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
     super.initState();
     _showPendingOnly = widget.showPendingOnly;
     _tabController = TabController(
-      length: 2, 
+      length: 2,
       vsync: this,
       initialIndex: widget.showPendingOnly ? 1 : 0,
     );
@@ -70,7 +72,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
 
     try {
       Map<String, dynamic> result;
-      
+
       if (_showPendingOnly) {
         result = await ExpenseService.getPendingExpenses(
           page: _currentPage,
@@ -91,9 +93,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           final List<dynamic> expensesJson = data['expenses'] ?? [];
           final pagination = data['pagination'] ?? {};
 
-          final List<Expense> newExpenses = expensesJson
-              .map((json) => Expense.fromJson(json))
-              .toList();
+          final List<Expense> newExpenses =
+              expensesJson.map((json) => Expense.fromJson(json)).toList();
 
           setState(() {
             if (refresh) {
@@ -108,7 +109,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           });
         } else {
           setState(() {
-            _errorMessage = result['message'] ?? 'Erreur lors du chargement des dépenses.';
+            _errorMessage =
+                result['message'] ?? 'Erreur lors du chargement des dépenses.';
             _isLoading = false;
           });
         }
@@ -116,7 +118,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = ErrorMessageHelper.getOperationError('charger', error: e);
+          _errorMessage =
+              ErrorMessageHelper.getOperationError('charger', error: e);
           _isLoading = false;
         });
       }
@@ -141,12 +144,17 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           maxLines: 3,
           decoration: InputDecoration(
             labelText: 'Commentaire (optionnel)',
-            labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+            labelStyle:
+                TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
             border: OutlineInputBorder(
-              borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+              borderSide: BorderSide(
+                  color: isDark ? AppTheme.primaryOrange : Colors.grey),
             ),
             enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+              borderSide: BorderSide(
+                  color: isDark
+                      ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                      : Colors.grey),
             ),
             focusedBorder: const OutlineInputBorder(
               borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
@@ -160,7 +168,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Annuler',
-              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+              style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[700]),
             ),
           ),
           ElevatedButton(
@@ -200,7 +209,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           if (validateResult['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(validateResult['message'] ?? 'Dépense validée avec succès.'),
+                content: Text(validateResult['message'] ??
+                    'Dépense validée avec succès.'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -208,7 +218,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(validateResult['message'] ?? 'Erreur lors de la validation de la dépense.'),
+                content: Text(validateResult['message'] ??
+                    'Erreur lors de la validation de la dépense.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -221,7 +232,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(ErrorMessageHelper.getOperationError('valider', error: e)),
+              content: Text(
+                  ErrorMessageHelper.getOperationError('valider', error: e)),
               backgroundColor: Colors.red,
             ),
           );
@@ -248,12 +260,17 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           maxLines: 3,
           decoration: InputDecoration(
             labelText: 'Commentaire (obligatoire) *',
-            labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+            labelStyle:
+                TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
             border: OutlineInputBorder(
-              borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+              borderSide: BorderSide(
+                  color: isDark ? AppTheme.primaryOrange : Colors.grey),
             ),
             enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+              borderSide: BorderSide(
+                  color: isDark
+                      ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                      : Colors.grey),
             ),
             focusedBorder: const OutlineInputBorder(
               borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
@@ -267,7 +284,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Annuler',
-              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+              style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[700]),
             ),
           ),
           ElevatedButton(
@@ -275,7 +293,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
               if (commentaireController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Le commentaire est obligatoire pour rejeter une dépense.'),
+                    content: Text(
+                        'Le commentaire est obligatoire pour rejeter une dépense.'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -315,7 +334,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           if (rejectResult['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(rejectResult['message'] ?? 'Dépense rejetée avec succès.'),
+                content: Text(
+                    rejectResult['message'] ?? 'Dépense rejetée avec succès.'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -323,7 +343,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(rejectResult['message'] ?? 'Erreur lors du rejet de la dépense.'),
+                content: Text(rejectResult['message'] ??
+                    'Erreur lors du rejet de la dépense.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -336,7 +357,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(ErrorMessageHelper.getOperationError('rejeter', error: e)),
+              content: Text(
+                  ErrorMessageHelper.getOperationError('rejeter', error: e)),
               backgroundColor: Colors.red,
             ),
           );
@@ -387,9 +409,11 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(expense.status).withValues(alpha: 0.2),
+                    color:
+                        _getStatusColor(expense.status).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: _getStatusColor(expense.status),
@@ -410,7 +434,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.attach_money,
                   size: 20,
                   color: AppTheme.primaryOrange,
@@ -418,7 +442,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
                 const SizedBox(width: 8),
                 Text(
                   '${NumberFormat('#,###', 'fr').format(expense.montant)} FCFA',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryOrange,
@@ -478,7 +502,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
                 ),
               ],
             ),
-            if (expense.commentaire != null && expense.commentaire!.isNotEmpty) ...[
+            if (expense.commentaire != null &&
+                expense.commentaire!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 'Commentaire: ${expense.commentaire}',
@@ -559,25 +584,35 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
               child: Column(
                 children: [
                   TextField(
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
                       hintText: 'Rechercher par motif, montant...',
-                      hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[500]),
+                      hintStyle: TextStyle(
+                          color: isDark ? Colors.grey[500] : Colors.grey[500]),
                       prefixIcon: Icon(
                         Icons.search,
-                        color: isDark ? AppTheme.primaryOrange : Colors.grey[700],
+                        color:
+                            isDark ? AppTheme.primaryOrange : Colors.grey[700],
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                                : Colors.grey),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                                : Colors.grey),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppTheme.primaryOrange, width: 2),
                       ),
                       filled: true,
                       fillColor: isDark ? Colors.grey[800] : Colors.white,
@@ -595,32 +630,44 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: _statusFilter,
+                    initialValue: _statusFilter,
                     dropdownColor: isDark ? Colors.grey[800] : Colors.white,
-                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
                       labelText: 'Statut',
-                      labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                      labelStyle: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[700]),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                                : Colors.grey),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                                : Colors.grey),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                        borderSide: const BorderSide(
+                            color: AppTheme.primaryOrange, width: 2),
                       ),
                       filled: true,
                       fillColor: isDark ? Colors.grey[800] : Colors.white,
                     ),
                     items: const [
                       DropdownMenuItem(value: null, child: Text('Tous')),
-                      DropdownMenuItem(value: 'en_attente', child: Text('En attente')),
-                      DropdownMenuItem(value: 'validee', child: Text('Validée')),
-                      DropdownMenuItem(value: 'rejetee', child: Text('Rejetée')),
+                      DropdownMenuItem(
+                          value: 'en_attente', child: Text('En attente')),
+                      DropdownMenuItem(
+                          value: 'validee', child: Text('Validée')),
+                      DropdownMenuItem(
+                          value: 'rejetee', child: Text('Rejetée')),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -645,13 +692,16 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
                             Icon(
                               Icons.error_outline,
                               size: 64,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                              color:
+                                  isDark ? Colors.grey[400] : Colors.grey[600],
                             ),
                             const SizedBox(height: 16),
                             Text(
                               _errorMessage!,
                               style: TextStyle(
-                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -675,7 +725,9 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
                                 Icon(
                                   Icons.receipt_long,
                                   size: 64,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  color: isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
@@ -683,7 +735,9 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
                                       ? 'Aucune dépense en attente'
                                       : 'Aucune dépense trouvée',
                                   style: TextStyle(
-                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
                                   ),
                                 ),
                               ],
@@ -714,4 +768,3 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> with 
     );
   }
 }
-

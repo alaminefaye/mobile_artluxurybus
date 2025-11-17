@@ -50,33 +50,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     // S'assurer que les traductions sont bien chargées avant de naviguer
     final currentLanguage = ref.read(languageProvider);
     final translationService = TranslationService();
-    
-    debugPrint('🔄 [Onboarding] _completeOnboarding - Langue: ${currentLanguage.languageCode}');
+
+    debugPrint(
+        '🔄 [Onboarding] _completeOnboarding - Langue: ${currentLanguage.languageCode}');
     debugPrint('   - Traductions chargées: ${translationService.isLoaded}');
-    debugPrint('   - Locale service: ${translationService.currentLocale.languageCode}');
-    
+    debugPrint(
+        '   - Locale service: ${translationService.currentLocale.languageCode}');
+
     // Toujours recharger les traductions pour s'assurer qu'elles sont à jour
     debugPrint('🔄 [Onboarding] Rechargement des traductions...');
     await translationService.loadTranslations(currentLanguage);
-    
-    debugPrint('✅ [Onboarding] Traductions rechargées: ${translationService.isLoaded}');
-    debugPrint('   - Locale après chargement: ${translationService.currentLocale.languageCode}');
-    
+
+    debugPrint(
+        '✅ [Onboarding] Traductions rechargées: ${translationService.isLoaded}');
+    debugPrint(
+        '   - Locale après chargement: ${translationService.currentLocale.languageCode}');
+
     // Attendre un délai pour s'assurer que tout est prêt
     await Future.delayed(const Duration(milliseconds: 200));
-    
+
     await OnboardingService.completeOnboarding();
-    
+
     // Vérifier une dernière fois que les traductions sont chargées
     final finalCheck = TranslationService();
     if (!finalCheck.isLoaded || finalCheck.currentLocale != currentLanguage) {
-      debugPrint('⚠️ [Onboarding] Dernière vérification - rechargement nécessaire');
+      debugPrint(
+          '⚠️ [Onboarding] Dernière vérification - rechargement nécessaire');
       await finalCheck.loadTranslations(currentLanguage);
       await Future.delayed(const Duration(milliseconds: 100));
     }
-    
+
     if (mounted) {
-      debugPrint('✅ [Onboarding] Navigation vers LoginScreen avec langue: ${currentLanguage.languageCode}');
+      debugPrint(
+          '✅ [Onboarding] Navigation vers LoginScreen avec langue: ${currentLanguage.languageCode}');
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
@@ -155,9 +161,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ElevatedButton(
                     onPressed: _nextPage,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).brightness == Brightness.dark
-                          ? AppTheme.primaryOrange
-                          : AppTheme.primaryBlue,
+                      backgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? AppTheme.primaryOrange
+                              : AppTheme.primaryBlue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32,
@@ -197,74 +204,78 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-          // Icône
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+            // Icône
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.language,
+                size: 40,
+                color: AppTheme.primaryBlue,
+              ),
             ),
-            child: const Icon(
-              Icons.language,
-              size: 40,
-              color: AppTheme.primaryBlue,
-            ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // Titre
-          Text(
-            t('onboarding.select_language'),
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppTheme.primaryOrange
-                  : AppTheme.primaryBlue,
+            // Titre
+            Text(
+              t('onboarding.select_language'),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.primaryOrange
+                    : AppTheme.primaryBlue,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          // Description
-          Text(
-            t('onboarding.select_language_description'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
-                  Colors.grey.shade600,
+            // Description
+            Text(
+              t('onboarding.select_language_description'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.7) ??
+                    Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-          // Options de langue
-          _buildLanguageOption(
-            locale: const Locale('fr', 'FR'),
-            name: 'Français',
-            flag: '🇫🇷',
-            isSelected: currentLanguage.languageCode == 'fr',
-            onTap: () async {
-              await languageNotifier.setLanguage(const Locale('fr', 'FR'));
-              if (mounted) {
-                setState(() {}); // Forcer le rebuild
-              }
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildLanguageOption(
-            locale: const Locale('en', 'US'),
-            name: 'English',
-            flag: '🇬🇧',
-            isSelected: currentLanguage.languageCode == 'en',
-            onTap: () async {
-              await languageNotifier.setLanguage(const Locale('en', 'US'));
-              if (mounted) {
-                setState(() {}); // Forcer le rebuild
-              }
-            },
-          ),
+            // Options de langue
+            _buildLanguageOption(
+              locale: const Locale('fr', 'FR'),
+              name: 'Français',
+              flag: '🇫🇷',
+              isSelected: currentLanguage.languageCode == 'fr',
+              onTap: () async {
+                await languageNotifier.setLanguage(const Locale('fr', 'FR'));
+                if (mounted) {
+                  setState(() {}); // Forcer le rebuild
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildLanguageOption(
+              locale: const Locale('en', 'US'),
+              name: 'English',
+              flag: '🇬🇧',
+              isSelected: currentLanguage.languageCode == 'en',
+              onTap: () async {
+                await languageNotifier.setLanguage(const Locale('en', 'US'));
+                if (mounted) {
+                  setState(() {}); // Forcer le rebuild
+                }
+              },
+            ),
           ],
         ),
       ),
@@ -345,90 +356,96 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-          // Icône
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryOrange.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+            // Icône
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.palette,
+                size: 40,
+                color: AppTheme.primaryOrange,
+              ),
             ),
-            child: const Icon(
-              Icons.palette,
-              size: 40,
-              color: AppTheme.primaryOrange,
-            ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // Titre
-          Text(
-            t('onboarding.select_theme'),
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppTheme.primaryOrange
-                  : AppTheme.primaryBlue,
+            // Titre
+            Text(
+              t('onboarding.select_theme'),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.primaryOrange
+                    : AppTheme.primaryBlue,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          // Description
-          Text(
-            t('onboarding.select_theme_description'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
-                  Colors.grey.shade600,
+            // Description
+            Text(
+              t('onboarding.select_theme_description'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.7) ??
+                    Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-          // Options de thème
-          _buildThemeOption(
-            mode: theme_provider.ThemeMode.light,
-            name: t('onboarding.theme_light'),
-            icon: Icons.light_mode,
-            description: t('onboarding.theme_light_description'),
-            isSelected: currentTheme == theme_provider.ThemeMode.light,
-            onTap: () async {
-              await themeNotifier.setThemeMode(theme_provider.ThemeMode.light);
-              if (mounted) {
-                setState(() {});
-              }
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildThemeOption(
-            mode: theme_provider.ThemeMode.dark,
-            name: t('onboarding.theme_dark'),
-            icon: Icons.dark_mode,
-            description: t('onboarding.theme_dark_description'),
-            isSelected: currentTheme == theme_provider.ThemeMode.dark,
-            onTap: () async {
-              await themeNotifier.setThemeMode(theme_provider.ThemeMode.dark);
-              if (mounted) {
-                setState(() {});
-              }
-            },
-          ),
-          const SizedBox(height: 12),
-          _buildThemeOption(
-            mode: theme_provider.ThemeMode.system,
-            name: t('onboarding.theme_system'),
-            icon: Icons.brightness_auto,
-            description: t('onboarding.theme_system_description'),
-            isSelected: currentTheme == theme_provider.ThemeMode.system,
-            onTap: () async {
-              await themeNotifier.setThemeMode(theme_provider.ThemeMode.system);
-              if (mounted) {
-                setState(() {});
-              }
-            },
-          ),
+            // Options de thème
+            _buildThemeOption(
+              mode: theme_provider.ThemeMode.light,
+              name: t('onboarding.theme_light'),
+              icon: Icons.light_mode,
+              description: t('onboarding.theme_light_description'),
+              isSelected: currentTheme == theme_provider.ThemeMode.light,
+              onTap: () async {
+                await themeNotifier
+                    .setThemeMode(theme_provider.ThemeMode.light);
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildThemeOption(
+              mode: theme_provider.ThemeMode.dark,
+              name: t('onboarding.theme_dark'),
+              icon: Icons.dark_mode,
+              description: t('onboarding.theme_dark_description'),
+              isSelected: currentTheme == theme_provider.ThemeMode.dark,
+              onTap: () async {
+                await themeNotifier.setThemeMode(theme_provider.ThemeMode.dark);
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildThemeOption(
+              mode: theme_provider.ThemeMode.system,
+              name: t('onboarding.theme_system'),
+              icon: Icons.brightness_auto,
+              description: t('onboarding.theme_system_description'),
+              isSelected: currentTheme == theme_provider.ThemeMode.system,
+              onTap: () async {
+                await themeNotifier
+                    .setThemeMode(theme_provider.ThemeMode.system);
+                if (mounted) {
+                  setState(() {});
+                }
+              },
+            ),
           ],
         ),
       ),
@@ -443,7 +460,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -451,7 +467,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryOrange.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.1)
+              ? AppTheme.primaryOrange.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.3
+                      : 0.1)
               : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -477,7 +496,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 icon,
                 color: isSelected
                     ? AppTheme.primaryOrange
-                    : Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    : Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.7),
                 size: 20,
               ),
             ),
@@ -490,9 +513,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     name,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.w500,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w500,
                       color: isSelected
                           ? AppTheme.primaryOrange
                           : Theme.of(context).textTheme.bodyLarge?.color,
@@ -503,7 +525,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     description,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -529,77 +555,82 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-          // Logo
-          Container(
-            width: 100,
-            height: 100,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: (Theme.of(context).brightness == Brightness.dark
-                      ? AppTheme.primaryOrange
-                      : AppTheme.primaryBlue).withValues(alpha: 0.15),
-                  spreadRadius: 6,
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+            // Logo
+            Container(
+              width: 100,
+              height: 100,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: (Theme.of(context).brightness == Brightness.dark
+                            ? AppTheme.primaryOrange
+                            : AppTheme.primaryBlue)
+                        .withValues(alpha: 0.15),
+                    spreadRadius: 6,
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/images/logo.jpeg',
+                  fit: BoxFit.contain,
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                '12.png',
-                fit: BoxFit.contain,
               ),
             ),
-          ),
-          const SizedBox(height: 28),
+            const SizedBox(height: 28),
 
-          // Titre
-          Text(
-            t('onboarding.welcome_title'),
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? AppTheme.primaryOrange
-                  : AppTheme.primaryBlue,
+            // Titre
+            Text(
+              t('onboarding.welcome_title'),
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.primaryOrange
+                    : AppTheme.primaryBlue,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          // Description
-          Text(
-            t('onboarding.welcome_description'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7) ??
-                  Colors.grey.shade600,
-              height: 1.5,
+            // Description
+            Text(
+              t('onboarding.welcome_description'),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.7) ??
+                    Colors.grey.shade600,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-          // Points de fonctionnalités
-          _buildFeatureItem(
-            icon: Icons.directions_bus,
-            text: t('onboarding.feature_transport'),
-          ),
-          const SizedBox(height: 12),
-          _buildFeatureItem(
-            icon: Icons.card_giftcard,
-            text: t('onboarding.feature_loyalty'),
-          ),
-          const SizedBox(height: 12),
-          _buildFeatureItem(
-            icon: Icons.notifications,
-            text: t('onboarding.feature_notifications'),
-          ),
+            // Points de fonctionnalités
+            _buildFeatureItem(
+              icon: Icons.directions_bus,
+              text: t('onboarding.feature_transport'),
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureItem(
+              icon: Icons.card_giftcard,
+              text: t('onboarding.feature_loyalty'),
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureItem(
+              icon: Icons.notifications,
+              text: t('onboarding.feature_notifications'),
+            ),
           ],
         ),
       ),
@@ -613,7 +644,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final primaryColor = Theme.of(context).brightness == Brightness.dark
         ? AppTheme.primaryOrange
         : AppTheme.primaryBlue;
-    
+
     return Row(
       children: [
         Container(

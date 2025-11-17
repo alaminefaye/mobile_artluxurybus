@@ -50,8 +50,8 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBpq3IEpNo0NOwiBFpx-57byowDLPfIwN8',
-    appId: '1:755144690437:android:1b5e3f8c9d2a4e6fa9456c',
+    apiKey: 'AIzaSyDVdaOnzbqbNmXE6uF10RMDGO5tp7h3Oog',
+    appId: '1:755144690437:android:e90262caafff6f2aa9456c',
     messagingSenderId: '755144690437',
     projectId: 'artluxurybus-d7a63',
     storageBucket: 'artluxurybus-d7a63.firebasestorage.app',
@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBpq3IEpNo0NOwiBFpx-57byowDLPfIwN8',
-    appId: '1:755144690437:ios:60ed00172f7143ffa9456c',
+    appId: '1:755144690437:ios:86e9bf67a826d467a9456c',
     messagingSenderId: '755144690437',
     projectId: 'artluxurybus-d7a63',
     storageBucket: 'artluxurybus-d7a63.firebasestorage.app',
-    iosBundleId: 'com.example.artluxurybus',
+    iosBundleId: 'ci.artluxurybus.app',
   );
 }

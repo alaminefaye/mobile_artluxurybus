@@ -104,7 +104,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         final success = result['success'] ?? false;
         final statusCode = result['statusCode'];
         final data = result['data'] as Map<String, dynamic>?;
-        
+
         // Extraire le vrai message d'erreur
         String message;
         if (success) {
@@ -113,10 +113,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           // Chercher le message d'erreur dans plusieurs endroits possibles
           message = result['error'] as String? ??
               data?['data']?['failure_reason'] as String? ??
-              (data?['errors'] is Map ? (data!['errors'] as Map).values.first.toString() : null) ??
+              (data?['errors'] is Map
+                  ? (data!['errors'] as Map).values.first.toString()
+                  : null) ??
               data?['message'] as String? ??
               'Erreur lors du pointage';
-          
+
           // Ajouter le code HTTP si disponible
           if (statusCode != null && statusCode != 200) {
             message = '[$statusCode] $message';
@@ -140,9 +142,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'scanner',
           error: e,
-          customMessage: 'Impossible de traiter le QR code. Veuillez réessayer.',
+          customMessage:
+              'Impossible de traiter le QR code. Veuillez réessayer.',
         );
-        
+
         _showResultDialog(
           success: false,
           message: errorMessage,
@@ -260,7 +263,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scanner QR Code'),
@@ -282,7 +285,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     Icon(
                       Icons.qr_code_scanner,
                       size: 64,
-                      color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                      color: isDark
+                          ? AppTheme.primaryOrange
+                          : AppTheme.primaryBlue,
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -294,7 +299,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Appuyez sur le bouton ci-dessous pour ouvrir le scanner',
                       style: TextStyle(
                         fontSize: 14,
@@ -306,9 +311,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
-            
+
             // Action selection
             Card(
               child: Padding(
@@ -351,9 +356,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 ),
               ),
             ),
-            
+
             const Spacer(),
-            
+
             // Scan button
             ElevatedButton.icon(
               onPressed: _isProcessing ? null : _scanBarcode,
@@ -369,7 +374,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   : const Icon(Icons.qr_code_scanner),
               label: Text(_isProcessing ? 'Traitement...' : 'Scanner QR Code'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                backgroundColor:
+                    isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 textStyle: const TextStyle(

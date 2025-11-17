@@ -1,4 +1,4 @@
-package com.example.artluxurybus
+package ci.artluxurybus.app
 
 import io.flutter.embedding.android.FlutterActivity
 

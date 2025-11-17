@@ -56,7 +56,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
     final isSmallScreen = screenHeight < 700;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -81,9 +81,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   opacity: _fadeAnimation,
                   child: const AppLogo(size: 80, showText: false),
                 ),
-                
+
                 const SizedBox(height: 30),
-                
+
                 // Illustration principale moderne
                 Expanded(
                   flex: 4,
@@ -92,8 +92,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     child: FadeTransition(
                       opacity: _fadeAnimation,
                       child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
-                        height: isSmallScreen ? screenHeight * 0.18 : screenHeight * 0.22,
+                        margin: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.08),
+                        height: isSmallScreen
+                            ? screenHeight * 0.18
+                            : screenHeight * 0.22,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(40),
@@ -117,8 +120,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
-                                      AppTheme.primaryBlue.withValues(alpha: 0.05),
-                                      AppTheme.primaryOrange.withValues(alpha: 0.05),
+                                      AppTheme.primaryBlue
+                                          .withValues(alpha: 0.05),
+                                      AppTheme.primaryOrange
+                                          .withValues(alpha: 0.05),
                                       Colors.white,
                                     ],
                                   ),
@@ -134,7 +139,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 width: screenWidth * 0.15,
                                 height: screenWidth * 0.15,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                                  color: AppTheme.primaryOrange
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(40),
                                 ),
                               ),
@@ -147,7 +153,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                 width: screenWidth * 0.12,
                                 height: screenWidth * 0.12,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                  color: AppTheme.primaryBlue
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(30),
                                 ),
                               ),
@@ -168,7 +175,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                         borderRadius: BorderRadius.circular(35),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: AppTheme.primaryBlue.withValues(alpha: 0.4),
+                                            color: AppTheme.primaryBlue
+                                                .withValues(alpha: 0.4),
                                             spreadRadius: 3,
                                             blurRadius: 20,
                                             offset: const Offset(0, 10),
@@ -180,7 +188,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                         child: Padding(
                                           padding: const EdgeInsets.all(10),
                                           child: Image.asset(
-                                            '12.png',
+                                            'assets/images/logo.jpeg',
                                             fit: BoxFit.contain,
                                           ),
                                         ),
@@ -192,13 +200,27 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
                                   // Features avec meilleur design
                                   Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: screenWidth * 0.05),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
                                       children: [
-                                        _buildModernFeature(Icons.schedule_rounded, 'Ponctuel', AppTheme.primaryOrange, screenWidth),
-                                        _buildModernFeature(Icons.verified_user_rounded, 'Sécurisé', AppTheme.primaryBlue, screenWidth),
-                                        _buildModernFeature(Icons.star_rounded, 'Luxe', AppTheme.primaryOrange, screenWidth),
+                                        _buildModernFeature(
+                                            Icons.schedule_rounded,
+                                            'Ponctuel',
+                                            AppTheme.primaryOrange,
+                                            screenWidth),
+                                        _buildModernFeature(
+                                            Icons.verified_user_rounded,
+                                            'Sécurisé',
+                                            AppTheme.primaryBlue,
+                                            screenWidth),
+                                        _buildModernFeature(
+                                            Icons.star_rounded,
+                                            'Luxe',
+                                            AppTheme.primaryOrange,
+                                            screenWidth),
                                       ],
                                     ),
                                   ),
@@ -242,9 +264,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             letterSpacing: 1.5,
                           ),
                         ),
-
                         SizedBox(height: screenHeight * 0.015),
-
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 20,
@@ -311,9 +331,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               onPressed: () {
                                 Navigator.of(context).pushReplacement(
                                   PageRouteBuilder(
-                                    pageBuilder: (context, animation, secondaryAnimation) =>
+                                    pageBuilder: (context, animation,
+                                            secondaryAnimation) =>
                                         const LoginScreen(),
-                                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    transitionsBuilder: (context, animation,
+                                        secondaryAnimation, child) {
                                       return SlideTransition(
                                         position: Tween<Offset>(
                                           begin: const Offset(1.0, 0.0),
@@ -325,7 +347,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                         child: child,
                                       );
                                     },
-                                    transitionDuration: const Duration(milliseconds: 600),
+                                    transitionDuration:
+                                        const Duration(milliseconds: 600),
                                   ),
                                 );
                               },
@@ -385,7 +408,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                                           size: 20,
                                         ),
                                         SizedBox(width: 12),
-                                        Text('Inscription bientôt disponible !'),
+                                        Text(
+                                            'Inscription bientôt disponible !'),
                                       ],
                                     ),
                                     backgroundColor: AppTheme.primaryOrange,
@@ -427,23 +451,26 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               ),
                             ),
                           ),
-                          
+
                           SizedBox(height: screenHeight * 0.02),
-                          
+
                           // Bouton "Pas maintenant"
                           TextButton(
                             onPressed: () {
                               Navigator.of(context).pushReplacement(
                                 PageRouteBuilder(
-                                  pageBuilder: (context, animation, secondaryAnimation) =>
+                                  pageBuilder: (context, animation,
+                                          secondaryAnimation) =>
                                       const LoyaltyHomeScreen(),
-                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                  transitionsBuilder: (context, animation,
+                                      secondaryAnimation, child) {
                                     return FadeTransition(
                                       opacity: animation,
                                       child: child,
                                     );
                                   },
-                                  transitionDuration: const Duration(milliseconds: 500),
+                                  transitionDuration:
+                                      const Duration(milliseconds: 500),
                                 ),
                               );
                             },
@@ -472,7 +499,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     ),
                   ),
                 ),
-                
+
                 SizedBox(height: screenHeight * 0.015),
               ],
             ),
@@ -482,7 +509,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildModernFeature(IconData icon, String label, Color color, double screenWidth) {
+  Widget _buildModernFeature(
+      IconData icon, String label, Color color, double screenWidth) {
     final size = screenWidth * 0.09; // Taille responsive réduite
     return Column(
       children: [
