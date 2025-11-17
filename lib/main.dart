@@ -14,6 +14,7 @@ import 'widgets/loading_indicator.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_page.dart';
 import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/notification_detail_screen.dart';
 import 'screens/my_trips_screen.dart';
 import 'screens/my_mails_screen.dart';
@@ -21,6 +22,7 @@ import 'screens/loyalty_home_screen.dart';
 import 'models/notification_model.dart';
 import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
+import 'services/onboarding_service.dart';
 import 'services/auth_service.dart';
 import 'services/feedback_api_service.dart';
 import 'services/notification_api_service.dart';
@@ -678,6 +680,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   Widget build(BuildContext context) {
     final themeMode = ref.watch(theme_provider.themeModeProvider);
     final locale = ref.watch(languageProvider);
+    // Écouter l'état d'authentification pour rebuilder l'app automatiquement
+    final authState = ref.watch(authProvider);
 
     // S'assurer que les traductions sont chargées pour la locale actuelle
     ref.listen(languageProvider, (previous, next) async {
@@ -714,18 +718,64 @@ class _MyAppState extends ConsumerState<MyApp> {
         Locale('en', 'US'), // Anglais
       ],
       locale: locale, // Langue sélectionnée par l'utilisateur
-      home: const SplashScreen(),
+      // Utiliser AuthWrapper comme home pour que l'app rebuilde automatiquement après connexion
+      home: const AuthWrapper(),
       routes: {'/debug': (context) => const DebugScreen()},
     );
   }
 }
 
-class AuthWrapper extends ConsumerWidget {
+class AuthWrapper extends ConsumerStatefulWidget {
   const AuthWrapper({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends ConsumerState<AuthWrapper> {
+  bool _showSplash = true;
+  bool _onboardingChecked = false;
+  bool _shouldShowOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Vérifier si l'onboarding a été complété
+    final isOnboardingCompleted =
+        await OnboardingService.isOnboardingCompleted();
+
+    setState(() {
+      _shouldShowOnboarding = !isOnboardingCompleted;
+      _onboardingChecked = true;
+    });
+
+    // Attendre un peu pour l'animation du splash
+    await Future.delayed(const Duration(milliseconds: 3000));
+
+    if (mounted) {
+      setState(() {
+        _showSplash = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+
+    // Afficher le splash screen au démarrage
+    if (_showSplash || !_onboardingChecked) {
+      return const SplashScreen();
+    }
+
+    // Afficher l'onboarding si nécessaire
+    if (_shouldShowOnboarding) {
+      return const OnboardingScreen();
+    }
 
     // Afficher un écran de chargement pendant la vérification
     if (authState.isLoading) {
