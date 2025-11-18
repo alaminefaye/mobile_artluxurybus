@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import '../models/horaire_model.dart';
 import '../services/horaire_service.dart';
+import '../services/device_info_service.dart';
 import '../services/device_service.dart';
 import '../services/auth_service.dart';
 
@@ -158,11 +159,19 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
           error: null,
         );
       } else {
-        debugPrint('🔒 [HoraireProvider] Mode PUBLIC - Filtrage par device_id');
-        // 🔒 UTILISATEUR PUBLIC: Filtrer par device_id comme avant
-        final deviceId = await DeviceService.getDeviceId();
-        debugPrint('📱 [HoraireProvider] Device ID: $deviceId');
-        final grouped = await _service.fetchTodayHoraires(deviceId: deviceId);
+        debugPrint('🔒 [HoraireProvider] Mode PUBLIC - Filtrage par UUID OU device_id (logique OR)');
+        // 🔒 UTILISATEUR PUBLIC: Filtrer par UUID en priorité, device_id en fallback
+        final deviceInfoService = DeviceInfoService();
+        final uuid = await deviceInfoService.getUuid();
+        final deviceId = await DeviceService.getDeviceId(); // Fallback si UUID pas disponible
+        debugPrint('🔑 [HoraireProvider] UUID: $uuid');
+        debugPrint('📱 [HoraireProvider] Device ID (fallback): $deviceId');
+        
+        // ✅ LOGIQUE OR: Utiliser UUID en priorité, device_id si UUID pas disponible
+        final grouped = await _service.fetchTodayHoraires(
+          uuid: uuid.isNotEmpty ? uuid : null,
+          deviceId: uuid.isEmpty && deviceId.isNotEmpty ? deviceId : null,
+        );
         
         // Aplatir pour avoir aussi une liste simple
         final allHoraires = <Horaire>[];

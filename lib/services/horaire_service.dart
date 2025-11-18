@@ -108,13 +108,24 @@ class HoraireService {
   }
 
   /// Récupère les horaires du jour
-  /// Si deviceId est fourni, filtre les horaires par appareil
-  Future<Map<String, List<Horaire>>> fetchTodayHoraires({String? deviceId}) async {
+  /// LOGIQUE OR: Si uuid est fourni, utilise UUID en priorité, sinon utilise device_id
+  Future<Map<String, List<Horaire>>> fetchTodayHoraires({String? uuid, String? deviceId}) async {
     try {
-      // Construire l'URL avec le paramètre device_id si fourni
+      // Construire l'URL avec les paramètres (logique OR: UUID en priorité, device_id en fallback)
       String url = '$baseUrl/horaires/today';
+      List<String> params = [];
+      
+      if (uuid != null && uuid.isNotEmpty) {
+        params.add('uuid=$uuid');
+      }
+      
+      // Ajouter device_id si fourni (fallback si UUID pas disponible)
       if (deviceId != null && deviceId.isNotEmpty) {
-        url += '?device_id=$deviceId';
+        params.add('device_id=$deviceId');
+      }
+      
+      if (params.isNotEmpty) {
+        url += '?${params.join('&')}';
       }
 
       final response = await http.get(
