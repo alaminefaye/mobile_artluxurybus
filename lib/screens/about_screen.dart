@@ -16,8 +16,8 @@ class _AboutScreenState extends State<AboutScreen> {
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
   Map<String, dynamic>? _deviceInfo;
   bool _isLoading = true;
-  String _appVersion = '1.0.0';
-  String _buildNumber = '1';
+  String _appVersion = '1.0.2';
+  String _buildNumber = '7';
 
   // Helper pour les traductions
   String t(String key) {
