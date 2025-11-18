@@ -284,7 +284,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+                              color: isDark 
+                                  ? Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white
+                                  : Colors.white,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -292,7 +294,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                             widget.client.telephone,
                             style: TextStyle(
                               fontSize: 16,
-                              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.9),
+                              color: isDark 
+                                  ? Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.9) ?? Colors.white
+                                  : Colors.white,
                             ),
                           ),
                           if (widget.client.email != null) ...[
@@ -301,7 +305,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                               widget.client.email!,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                                color: isDark 
+                                    ? Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8) ?? Colors.white.withValues(alpha: 0.9)
+                                    : Colors.white.withValues(alpha: 0.9),
                               ),
                             ),
                           ],
@@ -330,7 +336,9 @@ class _CreateAccountScreenState extends ConsumerState<CreateAccountScreen> {
                                 Text(
                                   '${widget.client.points} ${t('create_account.loyalty_points')}',
                                   style: TextStyle(
-                                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                                    color: isDark 
+                                        ? Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white
+                                        : Colors.white,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
