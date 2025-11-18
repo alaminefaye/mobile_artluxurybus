@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart' as theme_provider;
 import '../../providers/language_provider.dart';
 import '../../services/translation_service.dart';
+import '../../main.dart'; // Pour accéder à AuthWrapper
 // Models d'auth maintenant dans simple_auth_models.dart
 import '../public_screen.dart';
 import '../home_page.dart';
@@ -124,10 +125,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             duration: const Duration(seconds: 1),
           ),
         );
-
-        // Laisser l'AuthWrapper gérer la navigation selon le rôle
-        // Ne pas forcer vers HomePage, l'AuthWrapper redirigera automatiquement
-        // vers AdminDashboard pour PDG, EmbarkmentScreen pour embarquement, etc.
+              
+        // Naviguer vers AuthWrapper qui redirigera automatiquement selon le rôle
+        // PDG -> AdminDashboard, Courrier -> ManagementHub, etc.
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (context) => const AuthWrapper(),
+              ),
+              (route) => false,
+            );
+          }
+        });
       }
     }
   }
