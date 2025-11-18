@@ -209,13 +209,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                color: (Theme.of(context).brightness == Brightness.dark
+                        ? AppTheme.primaryOrange
+                        : AppTheme.primaryBlue)
+                    .withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.language,
                 size: 40,
-                color: AppTheme.primaryBlue,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppTheme.primaryOrange
+                    : AppTheme.primaryBlue,
               ),
             ),
             const SizedBox(height: 24),
@@ -561,7 +566,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               height: 100,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
                   BoxShadow(

@@ -9,7 +9,6 @@ import '../../services/translation_service.dart';
 import '../../main.dart'; // Pour accéder à AuthWrapper
 // Models d'auth maintenant dans simple_auth_models.dart
 import '../public_screen.dart';
-import '../home_page.dart';
 import '../client_search_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -125,7 +124,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             duration: const Duration(seconds: 1),
           ),
         );
-              
+
         // Naviguer vers AuthWrapper qui redirigera automatiquement selon le rôle
         // PDG -> AdminDashboard, Courrier -> ManagementHub, etc.
         Future.delayed(const Duration(milliseconds: 500), () {

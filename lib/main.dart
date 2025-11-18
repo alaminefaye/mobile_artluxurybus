@@ -260,9 +260,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
 
     // Vérifier que l'utilisateur est authentifié avant de naviguer
-    final authState = ref.read(authProvider);
-
-    if (!authState.isAuthenticated) {
+    if (!ref.read(authProvider).isAuthenticated) {
       // Sauvegarder la notification pour navigation après connexion
       _pendingNotification = initialMessage;
       return;
@@ -681,7 +679,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     final themeMode = ref.watch(theme_provider.themeModeProvider);
     final locale = ref.watch(languageProvider);
     // Écouter l'état d'authentification pour rebuilder l'app automatiquement
-    final authState = ref.watch(authProvider);
+    ref.watch(authProvider);
 
     // S'assurer que les traductions sont chargées pour la locale actuelle
     ref.listen(languageProvider, (previous, next) async {

@@ -772,18 +772,23 @@ class _HomePageState extends ConsumerState<HomePage>
           final destMatch2 = RegExp(
                   r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
               .firstMatch(message);
-          if (destMatch1 != null)
+          if (destMatch1 != null) {
             destination = destMatch1.group(1)?.trim() ?? '';
-          if (destination.isEmpty && destMatch2 != null)
+          }
+          if (destination.isEmpty && destMatch2 != null) {
             destination = destMatch2.group(1)?.trim() ?? '';
+          }
 
           // Pattern pour numéro: "Numéro: MAIL001" ou "Numéro MAIL001" ou simplement un code alphanumérique
           final numMatch1 =
               RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
           final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
-          if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch2 != null)
+          if (numMatch1 != null) {
+            number = numMatch1.group(1)?.trim() ?? '';
+          }
+          if (number.isEmpty && numMatch2 != null) {
             number = numMatch2.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.mail_created_message')
             .replaceAll('{{destination}}', destination)
@@ -808,10 +813,12 @@ class _HomePageState extends ConsumerState<HomePage>
           final senderMatch2 = RegExp(
                   r'expéditeur[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)')
               .firstMatch(message);
-          if (senderMatch1 != null)
+          if (senderMatch1 != null) {
             sender = senderMatch1.group(1)?.trim() ?? '';
-          if (sender.isEmpty && senderMatch2 != null)
+          }
+          if (sender.isEmpty && senderMatch2 != null) {
             sender = senderMatch2.group(1)?.trim() ?? '';
+          }
 
           // Pattern pour destination
           final destMatch1 =
@@ -820,18 +827,23 @@ class _HomePageState extends ConsumerState<HomePage>
           final destMatch2 = RegExp(
                   r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
               .firstMatch(message);
-          if (destMatch1 != null)
+          if (destMatch1 != null) {
             destination = destMatch1.group(1)?.trim() ?? '';
-          if (destination.isEmpty && destMatch2 != null)
+          }
+          if (destination.isEmpty && destMatch2 != null) {
             destination = destMatch2.group(1)?.trim() ?? '';
+          }
 
           // Pattern pour numéro
           final numMatch1 =
               RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
           final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
-          if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch2 != null)
+          if (numMatch1 != null) {
+            number = numMatch1.group(1)?.trim() ?? '';
+          }
+          if (number.isEmpty && numMatch2 != null) {
             number = numMatch2.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.mail_received_message')
             .replaceAll('{{sender}}', sender)
@@ -852,11 +864,15 @@ class _HomePageState extends ConsumerState<HomePage>
           final numMatch2 =
               RegExp(r'courrier\s+([A-Z0-9-]+)').firstMatch(message);
           final numMatch3 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
-          if (numMatch1 != null) number = numMatch1.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch2 != null)
+          if (numMatch1 != null) {
+            number = numMatch1.group(1)?.trim() ?? '';
+          }
+          if (number.isEmpty && numMatch2 != null) {
             number = numMatch2.group(1)?.trim() ?? '';
-          if (number.isEmpty && numMatch3 != null)
+          }
+          if (number.isEmpty && numMatch3 != null) {
             number = numMatch3.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.mail_collected_message')
             .replaceAll('{{number}}', number);
@@ -886,8 +902,12 @@ class _HomePageState extends ConsumerState<HomePage>
                   r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
               .firstMatch(message);
           final timeMatch = RegExp(r'(\d{1,2}:\d{2})').firstMatch(message);
-          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
-          if (timeMatch != null) time = timeMatch.group(1)?.trim() ?? '';
+          if (routeMatch != null) {
+            route = routeMatch.group(1)?.trim() ?? '';
+          }
+          if (timeMatch != null) {
+            time = timeMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.departure_changed_message')
             .replaceAll('{{route}}', route)
@@ -908,7 +928,9 @@ class _HomePageState extends ConsumerState<HomePage>
           final routeMatch = RegExp(
                   r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
               .firstMatch(message);
-          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
+          if (routeMatch != null) {
+            route = routeMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.departure_cancelled_message')
             .replaceAll('{{route}}', route);
@@ -928,7 +950,9 @@ class _HomePageState extends ConsumerState<HomePage>
           final routeMatch = RegExp(
                   r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
               .firstMatch(message);
-          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
+          if (routeMatch != null) {
+            route = routeMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.reservation_confirmed_message')
             .replaceAll('{{route}}', route);
@@ -948,7 +972,9 @@ class _HomePageState extends ConsumerState<HomePage>
           final routeMatch = RegExp(
                   r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
               .firstMatch(message);
-          if (routeMatch != null) route = routeMatch.group(1)?.trim() ?? '';
+          if (routeMatch != null) {
+            route = routeMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.reservation_cancelled_message')
             .replaceAll('{{route}}', route);
@@ -974,7 +1000,9 @@ class _HomePageState extends ConsumerState<HomePage>
           final message = notification.message;
           final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)')
               .firstMatch(message);
-          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+          if (busMatch != null) {
+            bus = busMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.vidange_completed_message')
             .replaceAll('{{bus}}', bus);
@@ -990,7 +1018,9 @@ class _HomePageState extends ConsumerState<HomePage>
           final message = notification.message;
           final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)')
               .firstMatch(message);
-          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+          if (busMatch != null) {
+            bus = busMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.vidange_updated_message')
             .replaceAll('{{bus}}', bus);
@@ -1006,8 +1036,10 @@ class _HomePageState extends ConsumerState<HomePage>
           // Essayer d'extraire depuis le message
           final message = notification.message;
           final busMatch =
-              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
-          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.| $)').firstMatch(message);
+          if (busMatch != null) {
+            bus = busMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage =
             t('notifications.breakdown_new_message').replaceAll('{{bus}}', bus);
@@ -1023,8 +1055,10 @@ class _HomePageState extends ConsumerState<HomePage>
           // Essayer d'extraire depuis le message
           final message = notification.message;
           final busMatch =
-              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
-          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.| $)').firstMatch(message);
+          if (busMatch != null) {
+            bus = busMatch.group(1)?.trim() ?? '';
+          }
         }
         translatedMessage = t('notifications.breakdown_updated_message')
             .replaceAll('{{bus}}', bus);
@@ -1041,15 +1075,18 @@ class _HomePageState extends ConsumerState<HomePage>
           // Essayer d'extraire depuis le message
           final message = notification.message;
           final busMatch =
-              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.|$)').firstMatch(message);
-          if (busMatch != null) bus = busMatch.group(1)?.trim() ?? '';
+              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.| $)').firstMatch(message);
+          if (busMatch != null) {
+            bus = busMatch.group(1)?.trim() ?? '';
+          }
           // Le statut peut être dans le message
           if (status.isEmpty) {
-            final statusMatch =
-                RegExp(r'statut[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
-                    .firstMatch(message);
-            if (statusMatch != null)
+            final statusMatch = RegExp(
+                    r'statut[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.| $)')
+                .firstMatch(message);
+            if (statusMatch != null) {
               status = statusMatch.group(1)?.trim() ?? '';
+            }
           }
         }
         translatedMessage = t('notifications.breakdown_status_message')
