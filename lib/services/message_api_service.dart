@@ -29,18 +29,27 @@ class MessageApiService {
       final mobileMessages = await _fetchMessagesForDevice('mobile', gareId, token);
       allMessages.addAll(mobileMessages);
 
-      // 2. Récupérer les messages spécifiques à ce device ID
+      // 2. Récupérer les messages spécifiques à ce device ID ET UUID
       try {
         final deviceInfoService = DeviceInfoService();
         final deviceId = await deviceInfoService.getDeviceId();
+        final uuid = await deviceInfoService.getUuid();
         debugPrint('📱 [MessageAPI] Device ID: $deviceId');
+        debugPrint('🔑 [MessageAPI] UUID: $uuid');
         
+        // Récupérer les messages par device_id (avec UUID en paramètre pour logique OR backend)
         if (deviceId.isNotEmpty && deviceId != 'mobile') {
-          final deviceSpecificMessages = await _fetchMessagesForDevice(deviceId, gareId, token);
+          final deviceSpecificMessages = await _fetchMessagesForDevice(deviceId, gareId, token, uuid: uuid);
           allMessages.addAll(deviceSpecificMessages);
         }
+        
+        // Récupérer aussi les messages par UUID uniquement (pour les cas où seul UUID est défini)
+        if (uuid.isNotEmpty) {
+          final uuidSpecificMessages = await _fetchMessagesForUuid(uuid, gareId, token);
+          allMessages.addAll(uuidSpecificMessages);
+        }
       } catch (e) {
-        debugPrint('⚠️ Erreur récupération device ID: $e');
+        debugPrint('⚠️ Erreur récupération device ID/UUID: $e');
       }
 
       // Supprimer les doublons basés sur l'ID
@@ -61,7 +70,7 @@ class MessageApiService {
 
   /// Méthode privée pour récupérer les messages d'un appareil spécifique
   /// Fonctionne avec ou sans token d'authentification
-  Future<List<MessageModel>> _fetchMessagesForDevice(String appareil, int? gareId, String? token) async {
+  Future<List<MessageModel>> _fetchMessagesForDevice(String appareil, int? gareId, String? token, {String? uuid}) async {
     try {
       // Construire l'URL avec les filtres
       final queryParams = <String, String>{
@@ -73,10 +82,15 @@ class MessageApiService {
         queryParams['gare_id'] = gareId.toString();
       }
 
+      // Ajouter UUID si fourni (le backend utilisera logique OR)
+      if (uuid != null && uuid.isNotEmpty) {
+        queryParams['uuid'] = uuid;
+      }
+
       final uri = Uri.parse('$baseUrl/messages/active')
           .replace(queryParameters: queryParams);
 
-      debugPrint('🔍 Récupération des messages pour appareil "$appareil": $uri');
+      debugPrint('🔍 Récupération des messages pour appareil "$appareil" (UUID: ${uuid ?? "N/A"}): $uri');
 
       // Construire les headers - avec ou sans token
       final headers = <String, String>{
@@ -119,6 +133,70 @@ class MessageApiService {
       }
     } catch (e) {
       debugPrint('❌ Exception lors de la récupération des messages pour appareil "$appareil": $e');
+      return [];
+    }
+  }
+
+  /// Méthode privée pour récupérer les messages par UUID uniquement
+  /// Fonctionne avec ou sans token d'authentification
+  Future<List<MessageModel>> _fetchMessagesForUuid(String uuid, int? gareId, String? token) async {
+    try {
+      // Construire l'URL avec les filtres
+      final queryParams = <String, String>{
+        'uuid': uuid,
+        'current': 'true', // Uniquement les messages actifs et non expirés
+      };
+
+      if (gareId != null) {
+        queryParams['gare_id'] = gareId.toString();
+      }
+
+      final uri = Uri.parse('$baseUrl/messages/active')
+          .replace(queryParameters: queryParams);
+
+      debugPrint('🔍 Récupération des messages pour UUID "$uuid": $uri');
+
+      // Construire les headers - avec ou sans token
+      final headers = <String, String>{
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+      
+      // Ajouter le token seulement s'il existe
+      if (token != null) {
+        headers['Authorization'] = 'Bearer $token';
+        debugPrint('🔐 [MessageAPI] Requête avec authentification');
+      } else {
+        debugPrint('🔓 [MessageAPI] Requête SANS authentification (mode public)');
+      }
+
+      final response = await http.get(uri, headers: headers);
+
+      debugPrint('📡 Status Code pour UUID "$uuid": ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        
+        // L'API retourne soit {data: [...]} soit directement [...]
+        final List<dynamic> messagesJson = jsonData is Map 
+            ? (jsonData['data'] as List<dynamic>? ?? [])
+            : (jsonData as List<dynamic>? ?? []);
+
+        final messages = messagesJson
+            .map((json) => MessageModel.fromJson(json))
+            .toList();
+
+        debugPrint('✅ ${messages.length} messages récupérés pour UUID "$uuid"');
+        return messages;
+      } else if (response.statusCode == 401 && token == null) {
+        debugPrint('⚠️ [MessageAPI] API nécessite authentification pour UUID "$uuid"');
+        return [];
+      } else {
+        debugPrint('❌ Erreur API pour UUID "$uuid": ${response.statusCode} - ${response.body}');
+        return [];
+      }
+    } catch (e) {
+      debugPrint('❌ Exception lors de la récupération des messages pour UUID "$uuid": $e');
       return [];
     }
   }

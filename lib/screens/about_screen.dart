@@ -222,6 +222,20 @@ class _AboutScreenState extends State<AboutScreen> {
                           ),
                           const Divider(height: 24),
 
+                          // UUID unique de l'installation
+                          _buildInfoRow(
+                            icon: Icons.vpn_key,
+                            label: 'UUID Installation',
+                            value: _deviceInfo!['uuid'] ?? 'N/A',
+                            isHighlighted: true,
+                            primaryColor: primaryColor,
+                            onCopy: () => _copyToClipboard(
+                              _deviceInfo!['uuid'] ?? '',
+                              'UUID Installation',
+                            ),
+                          ),
+                          const Divider(height: 24),
+
                           // Nom de l'appareil
                           _buildInfoRow(
                             icon: Icons.phone_android,

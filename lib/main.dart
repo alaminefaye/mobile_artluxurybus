@@ -27,6 +27,7 @@ import 'services/auth_service.dart';
 import 'services/feedback_api_service.dart';
 import 'services/notification_api_service.dart';
 import 'services/announcement_manager.dart';
+import 'services/navigator_service.dart';
 import 'services/trip_service.dart';
 import 'services/depart_service.dart';
 import 'services/reservation_service.dart';
@@ -171,6 +172,9 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    // ✅ Définir le navigatorKey global pour accès depuis n'importe où (totems, etc.)
+    NavigatorService().setNavigatorKey(_navigatorKey);
+    debugPrint('✅ [MyApp] NavigatorKey global défini pour accès partout');
     _setupNotificationListener();
     _setupAuthListener();
     _checkInitialNotification();
@@ -194,21 +198,21 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
     });
 
-    // Définir le contexte global pour l'AnnouncementManager après le premier build
+    // ✅ Le contexte global est maintenant accessible via NavigatorService
+    // Pas besoin de définir manuellement - accessible partout dans l'app
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         // Utiliser le context du MaterialApp qui est toujours valide
         final navigatorContext = _navigatorKey.currentContext;
         if (navigatorContext != null) {
+          // Définir aussi dans AnnouncementManager pour compatibilité
           AnnouncementManager().setContext(navigatorContext);
           debugPrint(
-            '✅ [Main] Contexte Navigator défini pour AnnouncementManager',
+            '✅ [Main] Contexte Navigator défini pour AnnouncementManager (disponible via NavigatorService)',
           );
         } else {
-          // Fallback au context actuel
-          AnnouncementManager().setContext(context);
           debugPrint(
-            '⚠️ [Main] Contexte fallback utilisé pour AnnouncementManager',
+            '⚠️ [Main] NavigatorContext pas encore disponible (sera disponible après build)',
           );
         }
       }

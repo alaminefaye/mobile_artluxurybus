@@ -6,6 +6,7 @@ import 'package:translator/translator.dart'; // 🌍 Traduction automatique
 import '../models/message_model.dart';
 import '../screens/announcement_display_screen.dart';
 import 'audio_focus_manager.dart';
+import 'navigator_service.dart';
 
 /// Service pour gérer les annonces vocales répétées
 class VoiceAnnouncementService {
@@ -20,6 +21,8 @@ class VoiceAnnouncementService {
   final Map<int, MessageModel> _activeAnnouncements = {};
   final Map<int, OverlayEntry?> _activeOverlays =
       {}; // Pour garder les overlays/dialogues affichés (nullable car on utilise maintenant showDialog)
+  final Map<int, BuildContext?> _activeDialogContexts =
+      {}; // Pour garder les contextes des dialogues affichés (pour fermeture auto)
   final Map<int, bool> _shouldContinue =
       {}; // Pour contrôler si l'annonce doit continuer
   final Map<int, int> _repeatCounters = {}; // 🌍 Compteur de répétitions pour alternance FR/EN
@@ -171,16 +174,27 @@ class VoiceAnnouncementService {
     debugPrint(
         ' [VoiceService] Démarrage annonce #${message.id}: "${message.titre}"');
 
-    // Afficher la belle page d'annonce si un contexte est fourni
-    if (context != null) {
-      if (context.mounted) {
-        debugPrint('✅ [VoiceService] Context disponible et monté - affichage overlay');
-        _showAnnouncementDisplay(context, message);
-      } else {
-        debugPrint('⚠️ [VoiceService] Context fourni mais NON monté - pas d\'overlay');
+    // ✅ PRIORITÉ 1: Utiliser le contexte fourni (si valide)
+    // ✅ PRIORITÉ 2: Utiliser le Navigator global (accessible partout, même pour totems)
+    BuildContext? validContext = context;
+    
+    if (validContext == null || !validContext.mounted) {
+      // ✅ Si aucun contexte fourni ou non monté, utiliser le Navigator global
+      validContext = NavigatorService().getGlobalContext();
+      if (validContext != null) {
+        debugPrint('✅ [VoiceService] Contexte global Navigator utilisé (accessible partout, totems OK)');
       }
     } else {
-      debugPrint('⚠️ [VoiceService] Aucun context fourni - AUDIO SEULEMENT (pas d\'overlay visuel)');
+      debugPrint('✅ [VoiceService] Context fourni et monté - utilisation du contexte local');
+    }
+    
+    // Afficher la belle page d'annonce si un contexte valide est disponible
+    if (validContext != null && validContext.mounted) {
+      debugPrint('✅ [VoiceService] Affichage du dialogue d\'annonce');
+      _showAnnouncementDisplay(validContext, message);
+    } else {
+      debugPrint('⚠️ [VoiceService] Aucun contexte valide disponible - AUDIO SEULEMENT (pas d\'overlay visuel)');
+      debugPrint('   ℹ️ Le dialogue s\'affichera quand le Navigator sera disponible');
     }
 
     // Notifier AudioFocusManager pour mettre en pause les vidéos
@@ -368,36 +382,64 @@ class VoiceAnnouncementService {
   void _showAnnouncementDisplay(BuildContext context, MessageModel message) {
     try {
       debugPrint('📱 [VoiceService] Tentative affichage dialogue pour annonce #${message.id}');
+      debugPrint('   - Context mounted: ${context.mounted}');
+      debugPrint('   - Has Navigator: ${Navigator.maybeOf(context) != null}');
+
+      // Vérifier que le contexte est valide et monté
+      if (!context.mounted) {
+        debugPrint('❌ [VoiceService] Context non monté - impossible d\'afficher le dialogue');
+        return;
+      }
+
+      // Vérifier qu'un Navigator existe
+      final navigator = Navigator.maybeOf(context);
+      if (navigator == null) {
+        debugPrint('❌ [VoiceService] Aucun Navigator trouvé dans le contexte');
+        return;
+      }
 
       // Utiliser showDialog au lieu d'Overlay (plus fiable)
       showDialog(
         context: context,
         barrierDismissible: false, // Ne peut pas être fermé en touchant dehors
-        builder: (dialogContext) => PopScope(
-          canPop: false, // Empêcher le retour arrière
-          child: AnnouncementDisplayScreen(
-            message: message,
-            onClose: () {
-              // L'utilisateur ferme manuellement
-              Navigator.of(dialogContext).pop();
-              // Arrêter aussi l'annonce vocale
-              stopAnnouncement(message.id);
-            },
-          ),
-        ),
+        barrierColor: Colors.black54, // Fond semi-transparent
+        builder: (dialogContext) {
+          debugPrint('✅ [VoiceService] Builder du dialogue appelé pour annonce #${message.id}');
+          _activeDialogContexts[message.id] = dialogContext; // Stocker le contexte pour fermeture auto
+          
+          return PopScope(
+            canPop: false, // Empêcher le retour arrière
+            child: AnnouncementDisplayScreen(
+              message: message,
+              onClose: () {
+                debugPrint('🔴 [VoiceService] Utilisateur ferme le dialogue #${message.id}');
+                // L'utilisateur ferme manuellement
+                Navigator.of(dialogContext).pop();
+                // Arrêter aussi l'annonce vocale
+                stopAnnouncement(message.id);
+              },
+            ),
+          );
+        },
       ).then((_) {
         // Nettoyage quand le dialogue se ferme
         _activeOverlays.remove(message.id);
+        _activeDialogContexts.remove(message.id);
         debugPrint('🔴 [VoiceService] Dialogue fermé pour annonce #${message.id}');
+      }).catchError((e) {
+        debugPrint('❌ [VoiceService] ERREUR lors de la fermeture du dialogue: $e');
+        _activeOverlays.remove(message.id);
+        _activeDialogContexts.remove(message.id);
       });
 
       // Marquer comme affiché (pas besoin de OverlayEntry, juste un flag)
       _activeOverlays[message.id] = null; // On utilise la map juste comme tracker
 
-      debugPrint('✅ [VoiceService] Dialogue affiché pour annonce #${message.id}');
-    } catch (e) {
+      debugPrint('✅ [VoiceService] showDialog appelé avec succès pour annonce #${message.id}');
+    } catch (e, stackTrace) {
       debugPrint('❌ [VoiceService] ERREUR affichage dialogue: $e');
-      debugPrint('   Stack trace: ${StackTrace.current}');
+      debugPrint('   Stack trace: $stackTrace');
+      // Ne pas bloquer l'annonce vocale en cas d'erreur d'affichage
     }
   }
 
@@ -443,6 +485,24 @@ class VoiceAnnouncementService {
       _audioFocusManager.stopVoiceAnnouncement();
     }
 
+    // ✅ Fermer automatiquement le dialogue si l'annonce n'est plus active
+    if (_activeDialogContexts.containsKey(messageId)) {
+      try {
+        final dialogContext = _activeDialogContexts[messageId];
+        if (dialogContext != null && dialogContext.mounted) {
+          debugPrint('🔴 [VoiceService] Fermeture automatique du dialogue #$messageId (annonce non active)');
+          Navigator.of(dialogContext).pop();
+          _activeDialogContexts.remove(messageId);
+        } else {
+          debugPrint('⚠️ [VoiceService] Contexte du dialogue non monté ou null pour message #$messageId');
+          _activeDialogContexts.remove(messageId);
+        }
+      } catch (e) {
+        debugPrint('❌ [VoiceService] Erreur fermeture automatique dialogue: $e');
+        _activeDialogContexts.remove(messageId);
+      }
+    }
+
     // Fermer l'overlay, même si il n'y avait pas de timer
     if (_activeOverlays.containsKey(messageId)) {
       try {
@@ -460,6 +520,7 @@ class VoiceAnnouncementService {
     _activeTimers.remove(messageId);
     _activeAnnouncements.remove(messageId);
     _activeOverlays.remove(messageId);
+    _activeDialogContexts.remove(messageId);
     _shouldContinue.remove(messageId);
     _repeatCounters.remove(messageId); // Nettoyer le compteur
 
@@ -479,6 +540,19 @@ class VoiceAnnouncementService {
     for (var timer in _activeTimers.values) {
       timer.cancel();
     }
+
+    // ✅ Fermer tous les dialogues automatiquement
+    for (var entry in _activeDialogContexts.entries) {
+      try {
+        final dialogContext = entry.value;
+        if (dialogContext != null && dialogContext.mounted) {
+          Navigator.of(dialogContext).pop();
+        }
+      } catch (e) {
+        debugPrint('❌ [VoiceService] Erreur fermeture dialogue #${entry.key}: $e');
+      }
+    }
+    _activeDialogContexts.clear();
 
     // Fermer tous les overlays/dialogues (les dialogues se ferment automatiquement)
     for (var overlay in _activeOverlays.values) {

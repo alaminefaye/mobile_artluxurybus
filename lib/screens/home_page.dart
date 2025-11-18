@@ -82,6 +82,8 @@ class _HomePageState extends ConsumerState<HomePage>
     _loadSlides();
     // Initialiser le token pour l'API des feedbacks et FCM
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Mettre à jour le contexte dès le début
+      _updateVoiceAnnouncementsContext();
       final authState = ref.read(authProvider);
       if (authState.isAuthenticated) {
         // Définir le token auth pour l'API
@@ -130,16 +132,32 @@ class _HomePageState extends ConsumerState<HomePage>
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Mettre à jour le contexte chaque fois que les dépendances changent
+    // (par exemple quand on change d'onglet ou qu'on navigue)
+    _updateVoiceAnnouncementsContext();
+  }
+
   /// Mettre à jour le contexte pour le gestionnaire d'annonces vocales
   void _updateVoiceAnnouncementsContext() {
     try {
       debugPrint(
           '🔊 [HomePage] Mise à jour du contexte pour les annonces vocales...');
       // Définir le contexte pour l'affichage des annonces
-      if (mounted) {
-        AnnouncementManager().setContext(context);
-        debugPrint(
-            '✅ [HomePage] Contexte mis à jour pour les annonces vocales');
+      if (mounted && context.mounted) {
+        // Vérifier que le Navigator est disponible
+        final navigator = Navigator.maybeOf(context);
+        if (navigator != null) {
+          AnnouncementManager().setContext(context);
+          debugPrint(
+              '✅ [HomePage] Contexte mis à jour pour les annonces vocales (Navigator OK)');
+        } else {
+          debugPrint('⚠️ [HomePage] Navigator non disponible - contexte non défini');
+        }
+      } else {
+        debugPrint('⚠️ [HomePage] Widget ou contexte non monté - contexte non défini');
       }
     } catch (e) {
       debugPrint(

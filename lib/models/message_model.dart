@@ -9,6 +9,7 @@ class MessageModel {
   final int? gareId;
   final GareInfo? gare;
   final String? appareil; // 'mobile', 'ecran_tv', 'ecran_led', 'tous'
+  final String? uuid; // UUID unique de l'appareil destinataire
   final DateTime? dateDebut;
   final DateTime? dateFin;
   final bool active;
@@ -25,6 +26,7 @@ class MessageModel {
     this.gareId,
     this.gare,
     this.appareil,
+    this.uuid,
     this.dateDebut,
     this.dateFin,
     required this.active,
@@ -43,6 +45,7 @@ class MessageModel {
       gareId: json['gare_id'] as int?,
       gare: json['gare'] != null ? GareInfo.fromJson(json['gare']) : null,
       appareil: json['appareil'] as String?,
+      uuid: json['uuid'] as String?,
       dateDebut: json['date_debut'] != null
           ? DateTime.parse(json['date_debut'])
           : null,
@@ -65,6 +68,7 @@ class MessageModel {
       'gare_id': gareId,
       'gare': gare?.toJson(),
       'appareil': appareil,
+      'uuid': uuid,
       'date_debut': dateDebut?.toIso8601String(),
       'date_fin': dateFin?.toIso8601String(),
       'active': active,
@@ -118,11 +122,13 @@ class GareInfo {
   final int id;
   final String nom;
   final String? appareil;
+  final String? uuid;
 
   GareInfo({
     required this.id,
     required this.nom,
     this.appareil,
+    this.uuid,
   });
 
   factory GareInfo.fromJson(Map<String, dynamic> json) {
@@ -130,6 +136,7 @@ class GareInfo {
       id: json['id'] as int,
       nom: json['nom'] as String,
       appareil: json['appareil'] as String?,
+      uuid: json['uuid'] as String?,
     );
   }
 
@@ -138,6 +145,7 @@ class GareInfo {
       'id': id,
       'nom': nom,
       'appareil': appareil,
+      'uuid': uuid,
     };
   }
 }

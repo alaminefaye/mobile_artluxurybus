@@ -97,6 +97,9 @@ dependencies:
   
   # Video Player
   video_player: ^2.9.2
+  
+  # UUID Generator
+  uuid: ^4.5.1
 
   # QR Code
   qr_flutter: ^4.1.0

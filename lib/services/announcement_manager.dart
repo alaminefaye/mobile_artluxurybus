@@ -5,6 +5,7 @@ import '../models/message_model.dart';
 import '../services/message_api_service.dart';
 import '../services/voice_announcement_service.dart';
 import '../services/device_info_service.dart';
+import '../services/navigator_service.dart';
 
 /// Gestionnaire pour synchroniser les annonces vocales avec les messages actifs
 class AnnouncementManager {
@@ -19,15 +20,41 @@ class AnnouncementManager {
   final Set<int> _processedMessageIds = {};
   bool _isRunning = false;
   String? _deviceId;
+  String? _uuid;
   BuildContext? _context;
   Timer? _checkTimer; // Timer pour vérifier régulièrement les annonces
   DateTime? _lastApiCall; // Dernière requête API pour éviter le rate limiting
-  int _backoffSeconds = 60; // Intervalle entre vérifications (commence à 60s)
+  int _backoffSeconds = 10; // Intervalle entre vérifications (commence à 10s)
 
   /// Définir le contexte pour l'affichage des annonces
   void setContext(BuildContext context) {
-    _context = context;
-    debugPrint('📱 [AnnouncementManager] ✅ Contexte défini et prêt pour overlays');
+    if (context.mounted) {
+      _context = context;
+      debugPrint('📱 [AnnouncementManager] ✅ Contexte défini et prêt pour overlays (mounted: ${context.mounted})');
+    } else {
+      debugPrint('⚠️ [AnnouncementManager] Contexte fourni mais NON monté - ignoré');
+    }
+  }
+  
+  /// Obtenir le contexte valide pour afficher les dialogues
+  /// ✅ PRIORITÉ 1: Navigator global (accessible partout, même pour totems)
+  /// ✅ PRIORITÉ 2: Contexte local (si défini)
+  BuildContext? getValidContext() {
+    // ✅ PRIORITÉ 1: Utiliser le Navigator global (accessible partout)
+    final globalContext = NavigatorService().getGlobalContext();
+    if (globalContext != null) {
+      debugPrint('✅ [AnnouncementManager] Contexte global Navigator utilisé (disponible partout)');
+      return globalContext;
+    }
+    
+    // ✅ PRIORITÉ 2: Utiliser le contexte local si disponible
+    if (_context != null && _context!.mounted) {
+      debugPrint('✅ [AnnouncementManager] Contexte local utilisé');
+      return _context;
+    }
+    
+    debugPrint('⚠️ [AnnouncementManager] Aucun contexte disponible (ni global ni local)');
+    return null;
   }
 
   /// Démarre la surveillance des annonces
@@ -36,15 +63,17 @@ class AnnouncementManager {
     
     _isRunning = true;
     _deviceId = await _deviceInfoService.getDeviceId();
+    _uuid = await _deviceInfoService.getUuid();
     
     if (kDebugMode) {
       print('📢 AnnouncementManager démarré pour l\'appareil: $_deviceId');
+      print('🔑 AnnouncementManager démarré avec UUID: $_uuid');
     }
     
     await refresh();
     
-    // Vérifier toutes les 120 secondes (2 minutes) pour éviter le rate limiting
-    _backoffSeconds = 120; // Augmenter à 2 minutes par défaut
+    // Vérifier toutes les 10 secondes pour détecter rapidement les nouvelles annonces
+    _backoffSeconds = 10; // 10 secondes par défaut pour réactivité maximale
     _checkTimer = Timer.periodic(Duration(seconds: _backoffSeconds), (timer) async {
       await _checkActiveAnnouncements();
     });
@@ -55,12 +84,12 @@ class AnnouncementManager {
     if (!_isRunning || _deviceId == null) return;
     
     // Vérifier si on doit attendre avant la prochaine requête (throttling)
-    // Augmenter à 60 secondes minimum entre chaque appel pour éviter le rate limiting
+    // Minimum 5 secondes entre chaque appel pour éviter le rate limiting
     if (_lastApiCall != null) {
       final timeSinceLastCall = DateTime.now().difference(_lastApiCall!);
-      if (timeSinceLastCall.inSeconds < 60) {
+      if (timeSinceLastCall.inSeconds < 5) {
         if (kDebugMode) {
-          debugPrint('⏸️ [AnnouncementManager] Throttling - dernière requête il y a ${timeSinceLastCall.inSeconds}s (minimum 60s)');
+          debugPrint('⏸️ [AnnouncementManager] Throttling - dernière requête il y a ${timeSinceLastCall.inSeconds}s (minimum 5s)');
         }
         return;
       }
@@ -76,9 +105,9 @@ class AnnouncementManager {
       // Utiliser getActiveMessages qui récupère les messages pour mobile ET pour ce device
       final messages = await _messageService.getActiveMessages();
       
-      // Réinitialiser le backoff en cas de succès (mais garder au minimum 120s)
-      if (_backoffSeconds > 120) {
-        _backoffSeconds = 120;
+      // Réinitialiser le backoff en cas de succès (mais garder au minimum 10s)
+      if (_backoffSeconds > 10) {
+        _backoffSeconds = 10;
         _restartTimerWithNewInterval();
       }
       
@@ -116,9 +145,10 @@ class AnnouncementManager {
           _processedMessageIds.add(message.id);
           
           // Vérifier si le context est disponible pour l'overlay
-          if (_context != null) {
+          final validContext = getValidContext();
+          if (validContext != null) {
             debugPrint('✅ [AnnouncementManager] Démarrage avec overlay visuel (context OK)');
-            _voiceService.startAnnouncement(message, _context);
+            _voiceService.startAnnouncement(message, validContext);
           } else {
             debugPrint('⚠️ [AnnouncementManager] Contexte non disponible - annonce AUDIO SEULEMENT');
             _voiceService.startAnnouncement(message);
@@ -132,7 +162,7 @@ class AnnouncementManager {
       
       // En cas d'erreur (probablement 429), augmenter le backoff
       if (e.toString().contains('429') || e.toString().contains('Too Many')) {
-        _backoffSeconds = (_backoffSeconds * 2).clamp(120, 600); // Min 2 minutes, Max 10 minutes
+        _backoffSeconds = (_backoffSeconds * 2).clamp(10, 120); // Min 10 secondes, Max 2 minutes
         debugPrint('⚠️ [AnnouncementManager] Rate limit atteint - backoff à ${_backoffSeconds}s');
         _restartTimerWithNewInterval();
       }
@@ -182,7 +212,8 @@ class AnnouncementManager {
       for (var annonce in annonces) {
         if (!activeVoiceIds.contains(annonce.id) && !_processedMessageIds.contains(annonce.id)) {
           debugPrint('🎙️ [AnnouncementManager] Démarrage annonce #${annonce.id}: "${annonce.titre}"');
-          await _voiceService.startAnnouncement(annonce, _context);
+          final validContext = getValidContext();
+          await _voiceService.startAnnouncement(annonce, validContext);
           _processedMessageIds.add(annonce.id);
         }
       }
@@ -253,50 +284,77 @@ class AnnouncementManager {
   }
 
   /// Vérifier si le message est destiné à cet appareil
-  /// RÈGLE: Les annonces sont filtrées UNIQUEMENT par device_id exact (pas par "mobile")
+  /// LOGIQUE OR: Vérifie device_id OU uuid (message ou gare)
   bool _isForThisDevice(MessageModel message) {
     final appareil = message.appareil?.trim();
+    final messageUuid = message.uuid?.trim();
     final gareAppareil = message.gare?.appareil?.trim();
+    final gareUuid = message.gare?.uuid?.trim();
     
     debugPrint('🔍 [AnnouncementManager] Vérification message #${message.id}:');
     debugPrint('   - appareil dans message: "$appareil"');
+    debugPrint('   - UUID dans message: "$messageUuid"');
     debugPrint('   - appareil de la gare: "$gareAppareil"');
+    debugPrint('   - UUID de la gare: "$gareUuid"');
     debugPrint('   - device ID local: "$_deviceId"');
+    debugPrint('   - UUID local: "$_uuid"');
     debugPrint('   - type: ${message.type}');
     debugPrint('   - isAnnonce: ${message.isAnnonce}');
     
     // Si pas d'appareil spécifié ou 'tous', l'annonce concerne tout le monde
-    if (appareil == null || appareil.isEmpty || appareil.toLowerCase() == 'tous') {
-      // Vérifier aussi l'appareil de la gare
-      if (gareAppareil != null && gareAppareil.isNotEmpty && gareAppareil.toLowerCase() != 'tous') {
-        return _checkDeviceMatch(gareAppareil, message.id, 'gare.appareil');
-      }
+    if ((appareil == null || appareil.isEmpty || appareil.toLowerCase() == 'tous') &&
+        (messageUuid == null || messageUuid.isEmpty) &&
+        (gareAppareil == null || gareAppareil.isEmpty || gareAppareil.toLowerCase() == 'tous') &&
+        (gareUuid == null || gareUuid.isEmpty)) {
       debugPrint('✅ [AnnouncementManager] Message #${message.id} pour TOUS les appareils');
       return true;
     }
     
-    // ✅ RÈGLE PRINCIPALE: Pour les ANNONCES, ignorer "mobile" et utiliser SEULEMENT le device_id
-    if (message.isAnnonce && appareil.toLowerCase() == 'mobile') {
-      debugPrint('❌ [AnnouncementManager] Annonce #${message.id} avec appareil="mobile" - IGNORÉE');
-      debugPrint('   ℹ️ Les annonces doivent cibler un device_id SPÉCIFIQUE (ex: DAKAR-TOTEM-01)');
+    // ✅ RÈGLE PRINCIPALE: Pour les ANNONCES, ignorer "mobile" pour appareil (mais vérifier UUID)
+    if (message.isAnnonce && appareil != null && appareil.toLowerCase() == 'mobile' && 
+        (messageUuid == null || messageUuid.isEmpty) && (gareUuid == null || gareUuid.isEmpty)) {
+      debugPrint('❌ [AnnouncementManager] Annonce #${message.id} avec appareil="mobile" et pas d\'UUID - IGNORÉE');
+      debugPrint('   ℹ️ Les annonces doivent cibler un device_id SPÉCIFIQUE ou un UUID');
       return false;
     }
     
     // Pour les notifications normales (pas annonces), accepter "mobile"
-    if (!message.isAnnonce && appareil.toLowerCase() == 'mobile') {
+    if (!message.isAnnonce && appareil != null && appareil.toLowerCase() == 'mobile') {
       debugPrint('✅ [AnnouncementManager] Notification #${message.id} pour catégorie "mobile"');
       return true;
     }
     
-    // Vérifier si c'est l'identifiant unique de CET appareil (comparaison insensible à la casse)
-    if (_checkDeviceMatch(appareil, message.id, 'message.appareil')) {
-      return true;
+    // ✅ LOGIQUE OR: Vérifier device_id OU UUID
+    
+    // 1. Vérifier device_id du message
+    if (appareil != null && appareil.isNotEmpty && appareil.toLowerCase() != 'mobile' && 
+        appareil.toLowerCase() != 'tous') {
+      if (_checkDeviceMatch(appareil, message.id, 'message.appareil')) {
+        debugPrint('✅ [AnnouncementManager] Match trouvé via message.appareil');
+        return true;
+      }
     }
     
-    // Vérifier aussi l'appareil de la gare si le message.appareil ne correspond pas
-    if (gareAppareil != null && gareAppareil.isNotEmpty) {
-
+    // 2. Vérifier UUID du message
+    if (messageUuid != null && messageUuid.isNotEmpty && _uuid != null) {
+      if (_checkUuidMatch(messageUuid, message.id, 'message.uuid')) {
+        debugPrint('✅ [AnnouncementManager] Match trouvé via message.uuid');
+        return true;
+      }
+    }
+    
+    // 3. Vérifier device_id de la gare
+    if (gareAppareil != null && gareAppareil.isNotEmpty && gareAppareil.toLowerCase() != 'tous') {
       if (_checkDeviceMatch(gareAppareil, message.id, 'gare.appareil')) {
+        debugPrint('✅ [AnnouncementManager] Match trouvé via gare.appareil');
+        return true;
+      }
+    }
+    
+    // 4. Vérifier UUID de la gare
+    if (gareUuid != null && gareUuid.isNotEmpty && _uuid != null) {
+      if (_checkUuidMatch(gareUuid, message.id, 'gare.uuid')) {
+        debugPrint('✅ [AnnouncementManager] Match trouvé via gare.uuid');
         return true;
       }
     }
@@ -304,9 +362,36 @@ class AnnouncementManager {
     // Aucun match trouvé - cette annonce n'est pas pour cet appareil
     debugPrint('❌ [AnnouncementManager] Annonce #${message.id} NON destinée à cet appareil');
     debugPrint('   - message.appareil: $appareil');
+    debugPrint('   - message.uuid: $messageUuid');
     debugPrint('   - gare.appareil: $gareAppareil');
+    debugPrint('   - gare.uuid: $gareUuid');
     debugPrint('   - device_id local: $_deviceId');
-    debugPrint('   ℹ️ Pour cibler cet appareil, utilisez le device_id exact dans l\'admin');
+    debugPrint('   - UUID local: $_uuid');
+    debugPrint('   ℹ️ Pour cibler cet appareil, utilisez le device_id ou UUID exact dans l\'admin');
+    return false;
+  }
+
+  /// Vérifier si un UUID correspond (comparaison insensible à la casse)
+  bool _checkUuidMatch(String messageUuid, int messageId, String source) {
+    final normalizedMessageUuid = messageUuid.trim().toUpperCase();
+    final normalizedLocalUuid = _uuid?.trim().toUpperCase();
+    
+    if (normalizedLocalUuid != null && normalizedMessageUuid == normalizedLocalUuid) {
+      debugPrint('✅ [AnnouncementManager] Message #$messageId: Match UUID trouvé via $source');
+      debugPrint('   - "$normalizedMessageUuid" == "$normalizedLocalUuid"');
+      return true;
+    }
+    
+    // Vérifier liste séparée par virgules
+    if (messageUuid.contains(',')) {
+      final uuids = messageUuid.split(',').map((e) => e.trim().toUpperCase()).toList();
+      if (normalizedLocalUuid != null && uuids.contains(normalizedLocalUuid)) {
+        debugPrint('✅ [AnnouncementManager] Message #$messageId: Match UUID trouvé dans liste via $source');
+        debugPrint('   - Liste: $uuids');
+        return true;
+      }
+    }
+    
     return false;
   }
 

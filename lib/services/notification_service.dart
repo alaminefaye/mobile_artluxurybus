@@ -356,13 +356,18 @@ class NotificationService {
         );
       }
 
+      // 🔑 Récupérer l'UUID unique de l'installation
+      final uuid = await deviceInfoService.getUuid();
+
       debugPrint('📱 Enregistrement FCM Token avec device_id: $deviceId');
+      debugPrint('🔑 Enregistrement FCM Token avec uuid: $uuid');
       debugPrint('📱 Type d\'appareil: $deviceType');
 
       final result = await FeedbackApiService.registerFcmToken(
         token,
         deviceType: deviceType,
         deviceId: deviceId,
+        uuid: uuid,
       );
 
       if (result['success'] == true) {

@@ -231,6 +231,7 @@ class FeedbackApiService {
     String token, {
     String? deviceType,
     String? deviceId,
+    String? uuid,
   }) async {
     // Débugger le token d'authentification
     debugPrint(
@@ -253,6 +254,7 @@ class FeedbackApiService {
           'token': token,
           'device_type': deviceType ?? 'android',
           'device_id': deviceId,
+          'uuid': uuid,
         }),
       );
 

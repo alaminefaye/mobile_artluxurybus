@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'uuid_service.dart';
 
 class DeviceInfoService {
   static final DeviceInfoService _instance = DeviceInfoService._internal();
@@ -8,11 +9,13 @@ class DeviceInfoService {
   DeviceInfoService._internal();
 
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
+  final UuidService _uuidService = UuidService();
   
   String? _deviceId;
   String? _deviceType;
   String? _deviceModel;
   String? _deviceName;
+  String? _uuid;
 
   /// Obtenir l'ID unique de l'appareil
   Future<String> getDeviceId() async {
@@ -71,15 +74,24 @@ class DeviceInfoService {
     return _deviceName ?? 'Unknown Device';
   }
 
+  /// Obtenir l'UUID unique de cette installation
+  Future<String> getUuid() async {
+    if (_uuid != null) return _uuid!;
+    _uuid = await _uuidService.getUuid();
+    return _uuid!;
+  }
+
   /// Obtenir toutes les informations détaillées de l'appareil
   Future<Map<String, dynamic>> getDeviceInfo() async {
     await getDeviceId(); // S'assure que tout est initialisé
+    final uuid = await getUuid(); // Récupère l'UUID unique
 
     try {
       if (Platform.isAndroid) {
         final androidInfo = await _deviceInfo.androidInfo;
         return {
           'device_id': _deviceId,
+          'uuid': uuid,
           'device_type': 'android',
           'device_name': _deviceName,
           'model': androidInfo.model,
@@ -93,6 +105,7 @@ class DeviceInfoService {
         final iosInfo = await _deviceInfo.iosInfo;
         return {
           'device_id': _deviceId,
+          'uuid': uuid,
           'device_type': 'ios',
           'device_name': _deviceName,
           'model': iosInfo.model,
@@ -108,6 +121,7 @@ class DeviceInfoService {
 
     return {
       'device_id': _deviceId ?? 'unknown',
+      'uuid': uuid,
       'device_type': _deviceType ?? 'unknown',
       'device_name': _deviceName ?? 'Unknown Device',
     };
@@ -119,6 +133,7 @@ class DeviceInfoService {
     _deviceType = null;
     _deviceModel = null;
     _deviceName = null;
+    _uuid = null;
   }
 
   /// Afficher les informations de l'appareil dans les logs
