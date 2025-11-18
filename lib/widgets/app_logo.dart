@@ -20,7 +20,7 @@ class AppLogo extends StatelessWidget {
           width: size,
           height: size * 0.7, // Ratio du logo
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.1),
@@ -31,7 +31,7 @@ class AppLogo extends StatelessWidget {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             child: Image.asset(
               'assets/images/logo.jpeg',
               fit: BoxFit.contain,

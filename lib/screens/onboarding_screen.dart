@@ -632,6 +632,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
             const SizedBox(height: 12),
             _buildFeatureItem(
+              icon: Icons.mail_outline,
+              text: t('onboarding.feature_mail'),
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureItem(
+              icon: Icons.feedback_outlined,
+              text: t('onboarding.feature_feedback'),
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureItem(
               icon: Icons.notifications,
               text: t('onboarding.feature_notifications'),
             ),

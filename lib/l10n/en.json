@@ -150,12 +150,6 @@
     "logout_button": "Logout",
     "cancel": "Cancel"
   },
-  "notifications": {
-    "title": "Notifications",
-    "no_notifications": "No notifications",
-    "mark_all_read": "Mark all as read",
-    "delete_all": "Delete all"
-  },
   "reservation": {
     "title": "Book a trip",
     "embarquement": "Departure",
@@ -199,7 +193,6 @@
     "select_seats": "Select seats",
     "selected_seats": "Selected seats",
     "available": "Available",
-    "reserved": "Reserved",
     "selected": "Selected",
     "max_seats": "Maximum 5 seats",
     "continue": "Continue",
@@ -216,7 +209,6 @@
     "free": "Free",
     "occupied": "Occupied",
     "selected_seat": "Selected",
-    "reserved": "Reserved",
     "seats_reserved_by_others": "These seats have been reserved by someone else. You can continue with the available seats.",
     "please_select_stops": "Please select the stops",
     "last_update": "Last update: {{time}}",
@@ -233,10 +225,6 @@
     "temporarily_unavailable": "⚠️ Seat(s) {{seats}} temporarily unavailable",
     "ago_seconds": "{{seconds}}s ago",
     "ago_minutes": "{{minutes}}min ago"
-  },
-  "mail": {
-    "ago_days": "{{days}} days ago",
-    "send_date": "Send date"
   },
   "trips": {
     "title": "My Trips",
@@ -291,7 +279,8 @@
     "bus_label": "Bus",
     "price_label": "Price",
     "type_label": "Type",
-    "already_used": "ALREADY USED"
+    "already_used": "ALREADY USED",
+    "trips": "Trips"
   },
   "mail": {
     "title": "My Mails",
@@ -317,7 +306,9 @@
     "more_info": "More information",
     "client_profile_required": "To view your mails, you must have a client profile associated with your account",
     "mail_count": "Mail",
-    "mails_count": "Mails"
+    "mails_count": "Mails",
+    "ago_days": "{{days}} days ago",
+    "send_date": "Send date"
   },
   "feedback": {
     "title": "Suggestions & Concerns",
@@ -331,7 +322,6 @@
     "name": "Name",
     "phone": "Phone",
     "email": "Email",
-    "subject": "Subject",
     "message": "Message",
     "station": "Station",
     "route": "Route",
@@ -358,7 +348,6 @@
     "optional": "optional",
     "contact_info": "Contact information",
     "your_message": "Your message",
-    "subject": "Subject",
     "detailed_message": "Detailed message",
     "message_summary": "Summary of your message",
     "describe_suggestion": "Describe your suggestion or concern...",
@@ -369,7 +358,6 @@
     "message_too_short": "Message too short (min 20 characters)",
     "seat_number_required": "Seat number required",
     "departure_station": "Departure station",
-    "route": "Route",
     "seat_number": "Seat number",
     "example_seat": "Ex: 12",
     "must_be_number": "Must be a number",
@@ -385,11 +373,9 @@
     "contact": "Contact",
     "address": "Address",
     "phone": "Phone",
-    "email": "Email",
     "website": "Website",
     "your_comfort_priority": "Your comfort, our priority",
     "call": "Call",
-    "email": "Email",
     "website_button": "Website",
     "our_services": "Our Services",
     "opening_hours": "Opening Hours",
@@ -496,35 +482,6 @@
     "phone": "Phone",
     "update_success": "Profile updated successfully",
     "update_error": "Error updating profile"
-  },
-  "security": {
-    "title": "Security",
-    "change_password": "Change password",
-    "current_password": "Current password",
-    "new_password": "New password",
-    "confirm_password": "Confirm password",
-    "save": "Save",
-    "password_changed": "Password changed successfully",
-    "password_error": "Error changing password",
-    "edit_profile": "Edit profile",
-    "choose_photo": "Choose a photo",
-    "gallery": "Gallery",
-    "camera": "Camera",
-    "selection_error": "Error during selection",
-    "photo_updated": "Profile photo updated",
-    "upload_error": "Upload error",
-    "update_error": "Update error",
-    "profile_updated": "Profile updated successfully",
-    "save_changes": "Save changes",
-    "invalid_email": "Invalid email",
-    "name_required": "Name is required",
-    "name_min_length": "Name must contain at least 3 characters",
-    "email_required": "Email is required",
-    "email_address": "Email address",
-    "upload_in_progress": "Upload in progress...",
-    "tap_to_change": "Tap icon to change",
-    "change_password": "Change password",
-    "feature_coming": "Feature coming soon"
   },
   "client_info": {
     "title": "Client information",
@@ -1008,6 +965,8 @@
     "welcome_description": "Discover all Art Luxury Bus services. Book your trips, manage your loyalty points and much more.",
     "feature_transport": "Online trip booking",
     "feature_loyalty": "Loyalty program with points",
+    "feature_mail": "Mail management (send and receive)",
+    "feature_feedback": "Send suggestions and concerns",
     "feature_notifications": "Real-time notifications",
     "get_started": "Get Started"
   }

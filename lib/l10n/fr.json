@@ -1010,6 +1010,8 @@
     "welcome_description": "Découvrez tous les services Art Luxury Bus. Réservez vos trajets, gérez vos points de fidélité et bien plus encore.",
     "feature_transport": "Réservation de trajets en ligne",
     "feature_loyalty": "Programme de fidélité avec points",
+    "feature_mail": "Gestion de courriers (envoi et réception)",
+    "feature_feedback": "Envoi de suggestions et préoccupations",
     "feature_notifications": "Notifications en temps réel",
     "get_started": "Commencer"
   }
