@@ -43,14 +43,31 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   Future<void> _loadCities() async {
     try {
+      debugPrint('🔄 [ReservationScreen] Chargement des villes...');
       final embarquements = await DepartService.getEmbarquements();
       final destinations = await DepartService.getDestinations();
+
+      debugPrint('📊 [ReservationScreen] Embarquements: ${embarquements.length} villes');
+      debugPrint('📊 [ReservationScreen] Destinations: ${destinations.length} villes');
 
       setState(() {
         _embarquements = embarquements;
         _destinations = destinations;
       });
+      
+      if (embarquements.isEmpty || destinations.isEmpty) {
+        debugPrint('⚠️ [ReservationScreen] Listes de villes vides ou incomplètes');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Aucune ville disponible. Veuillez réessayer plus tard.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
     } catch (e) {
+      debugPrint('❌ [ReservationScreen] Erreur chargement villes: $e');
       if (mounted) {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'charger',
@@ -232,14 +249,18 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         : Colors.white,
                     style: const TextStyle(color: Colors.white),
                     selectedItemBuilder: (BuildContext context) {
-                      return _embarquements.map<Widget>((String ville) {
+                      return _embarquements
+                          .where((ville) => ville != _selectedDestination)
+                          .map<Widget>((String ville) {
                         return Text(
                           ville,
                           style: const TextStyle(color: Colors.white),
                         );
                       }).toList();
                     },
-                    items: _embarquements.map((ville) {
+                    items: _embarquements
+                        .where((ville) => ville != _selectedDestination) // Exclure la destination sélectionnée
+                        .map((ville) {
                       return DropdownMenuItem(
                         value: ville,
                         child: Text(
@@ -255,6 +276,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     onChanged: (value) {
                       setState(() {
                         _selectedEmbarquement = value;
+                        // Si la destination est la même que l'embarquement, la réinitialiser
+                        if (_selectedDestination == value) {
+                          _selectedDestination = null;
+                        }
                       });
                     },
                   ),
@@ -279,14 +304,18 @@ class _ReservationScreenState extends State<ReservationScreen> {
                         : Colors.white,
                     style: const TextStyle(color: Colors.white),
                     selectedItemBuilder: (BuildContext context) {
-                      return _destinations.map<Widget>((String ville) {
+                      return _destinations
+                          .where((ville) => ville != _selectedEmbarquement)
+                          .map<Widget>((String ville) {
                         return Text(
                           ville,
                           style: const TextStyle(color: Colors.white),
                         );
                       }).toList();
                     },
-                    items: _destinations.map((ville) {
+                    items: _destinations
+                        .where((ville) => ville != _selectedEmbarquement) // Exclure l'embarquement sélectionné
+                        .map((ville) {
                       return DropdownMenuItem(
                         value: ville,
                         child: Text(
@@ -302,6 +331,10 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     onChanged: (value) {
                       setState(() {
                         _selectedDestination = value;
+                        // Si l'embarquement est la même que la destination, le réinitialiser
+                        if (_selectedEmbarquement == value) {
+                          _selectedEmbarquement = null;
+                        }
                       });
                     },
                   ),

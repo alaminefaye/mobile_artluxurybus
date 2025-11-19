@@ -16,7 +16,7 @@
     "balance": "Solde : ",
     "no_slides": "Aucun slide disponible",
     "book": "Réserver",
-    "my_trips": "Mes trajets",
+    "my_trips": "Mes tickets",
     "info": "Info",
     "our_services": "Nos Services",
     "all_our_services": "Tous nos services",
@@ -52,7 +52,7 @@
   "services": {
     "reservation": "Réservation",
     "book_trip": "Réserver un trajet",
-    "my_trips": "Mes Trajets",
+    "my_trips": "Mes Tickets",
     "view_trips": "Voir mes réservations",
     "loyalty": "Fidélité",
     "loyalty_program": "Programme Fidélité",
@@ -241,7 +241,7 @@
     "send_date": "Date d'envoi"
   },
   "trips": {
-    "title": "Mes Trajets",
+    "title": "Mes Tickets",
     "no_trips": "Aucun trajet",
     "no_trips_message": "Vous n'avez pas encore de trajets réservés",
     "refresh": "Actualiser",
@@ -758,7 +758,7 @@
     "view_ticket": "Voir le ticket",
     "view_points": "Voir mes points",
     "view_mail": "Voir le courrier",
-    "view_trips": "Voir mes trajets",
+    "view_trips": "Voir mes tickets",
     "timing_info": "Informations temporelles",
     "received_on": "Reçue le",
     "read_on": "Lue le",

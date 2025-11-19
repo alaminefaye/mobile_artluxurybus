@@ -3795,6 +3795,103 @@ class _HomePageState extends ConsumerState<HomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Section Dashboard (Super Admin, Admin et PDG uniquement)
+                      if (_isSuperAdminOrAdmin(user) || _isPDG(user)) ...[
+                        _buildProfileSection(
+                          title: 'Tableau de bord',
+                          icon: Icons.dashboard_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.dashboard_outlined,
+                              title: 'Dashboard Administrateur',
+                              subtitle:
+                                  'Statistiques et rapports en temps réel',
+                              color: AppTheme.primaryBlue,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AdminDashboardScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Section Laisser-passer (Super Admin et Admin uniquement)
+                      if (_isSuperAdminOrAdmin(user)) ...[
+                        _buildProfileSection(
+                          title: 'Laisser-passer',
+                          icon: Icons.local_offer_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.local_offer_outlined,
+                              title: 'Gérer les codes promotionnels',
+                              subtitle: 'Créer et gérer les laisser-passer',
+                              color: AppTheme.primaryOrange,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PromoCodeManagementScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Section Gestion des dépenses (Super Admin et Admin uniquement)
+                      if (_isSuperAdminOrAdmin(user)) ...[
+                        _buildProfileSection(
+                          title: 'Gestion des dépenses',
+                          icon: Icons.receipt_long_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.receipt_long_outlined,
+                              title: 'Liste des dépenses',
+                              subtitle:
+                                  'Voir toutes les dépenses et valider/rejeter',
+                              color: Colors.blue,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ExpenseManagementScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildModernProfileOption(
+                              icon: Icons.pending_actions,
+                              title: 'Dépenses en attente',
+                              subtitle:
+                                  'Valider ou rejeter les dépenses en attente',
+                              color: Colors.orange,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ExpenseManagementScreen(
+                                            showPendingOnly: true),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
                       // Section Compte
                       _buildProfileSection(
                         title:
@@ -3916,104 +4013,6 @@ class _HomePageState extends ConsumerState<HomePage>
                         ),
                         const SizedBox(height: 20),
                       ],
-
-                      // Section Dashboard (Super Admin, Admin et PDG uniquement)
-                      if (_isSuperAdminOrAdmin(user) || _isPDG(user)) ...[
-                        _buildProfileSection(
-                          title: 'Tableau de bord',
-                          icon: Icons.dashboard_rounded,
-                          options: [
-                            _buildModernProfileOption(
-                              icon: Icons.dashboard_outlined,
-                              title: 'Dashboard Administrateur',
-                              subtitle:
-                                  'Statistiques et rapports en temps réel',
-                              color: AppTheme.primaryBlue,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const AdminDashboardScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-
-                      // Section Laisser-passer (Super Admin et Admin uniquement)
-                      if (_isSuperAdminOrAdmin(user)) ...[
-                        _buildProfileSection(
-                          title: 'Laisser-passer',
-                          icon: Icons.local_offer_rounded,
-                          options: [
-                            _buildModernProfileOption(
-                              icon: Icons.local_offer_outlined,
-                              title: 'Gérer les codes promotionnels',
-                              subtitle: 'Créer et gérer les laisser-passer',
-                              color: AppTheme.primaryOrange,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const PromoCodeManagementScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-
-                      // Section Gestion des dépenses (Super Admin et Admin uniquement)
-                      if (_isSuperAdminOrAdmin(user)) ...[
-                        _buildProfileSection(
-                          title: 'Gestion des dépenses',
-                          icon: Icons.receipt_long_rounded,
-                          options: [
-                            _buildModernProfileOption(
-                              icon: Icons.receipt_long_outlined,
-                              title: 'Liste des dépenses',
-                              subtitle:
-                                  'Voir toutes les dépenses et valider/rejeter',
-                              color: Colors.blue,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ExpenseManagementScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _buildModernProfileOption(
-                              icon: Icons.pending_actions,
-                              title: 'Dépenses en attente',
-                              subtitle:
-                                  'Valider ou rejeter les dépenses en attente',
-                              color: Colors.orange,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ExpenseManagementScreen(
-                                            showPendingOnly: true),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-
 
                       // Section Support
                       _buildProfileSection(

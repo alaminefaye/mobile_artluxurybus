@@ -501,34 +501,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 16),
-
-              // Bouton Changer le mot de passe
-              Builder(
-                builder: (context) {
-                  final primaryColor = _getPrimaryColor();
-                  return OutlinedButton.icon(
-                    onPressed: () {
-                      // Feature à implémenter: écran de changement de mot de passe
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(t('security.feature_coming')),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.lock_outline),
-                    label: Text(t('security.change_password')),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: primaryColor,
-                      side: BorderSide(color: primaryColor),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
-                },
-              ),
             ],
           ),
         ),

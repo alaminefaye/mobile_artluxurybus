@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../utils/api_config.dart';
 
@@ -78,12 +79,36 @@ class DepartService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          return List<String>.from(data['data']);
+        debugPrint('📋 [DepartService] Réponse embarquements: ${response.body}');
+        
+        // Gérer différents formats de réponse
+        List<String> villes = [];
+        if (data is Map<String, dynamic>) {
+          if (data['success'] == true && data['data'] != null) {
+            villes = List<String>.from(data['data']);
+          } else if (data['data'] != null) {
+            // Format sans champ 'success'
+            villes = List<String>.from(data['data']);
+          } else if (data['embarquements'] != null) {
+            villes = List<String>.from(data['embarquements']);
+          }
+        } else if (data is List) {
+          // Réponse directe sous forme de liste
+          villes = List<String>.from(data);
         }
+        
+        if (villes.isNotEmpty) {
+          debugPrint('✅ [DepartService] ${villes.length} villes d\'embarquement récupérées: $villes');
+          return villes;
+        } else {
+          debugPrint('⚠️ [DepartService] Aucune ville trouvée dans la réponse pour embarquements: $data');
+        }
+      } else {
+        debugPrint('❌ [DepartService] Erreur HTTP ${response.statusCode} pour embarquements: ${response.body}');
       }
       return [];
     } catch (e) {
+      debugPrint('❌ [DepartService] Exception getEmbarquements: $e');
       return [];
     }
   }
@@ -102,12 +127,36 @@ class DepartService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          return List<String>.from(data['data']);
+        debugPrint('📋 [DepartService] Réponse destinations: ${response.body}');
+        
+        // Gérer différents formats de réponse
+        List<String> villes = [];
+        if (data is Map<String, dynamic>) {
+          if (data['success'] == true && data['data'] != null) {
+            villes = List<String>.from(data['data']);
+          } else if (data['data'] != null) {
+            // Format sans champ 'success'
+            villes = List<String>.from(data['data']);
+          } else if (data['destinations'] != null) {
+            villes = List<String>.from(data['destinations']);
+          }
+        } else if (data is List) {
+          // Réponse directe sous forme de liste
+          villes = List<String>.from(data);
         }
+        
+        if (villes.isNotEmpty) {
+          debugPrint('✅ [DepartService] ${villes.length} destinations récupérées: $villes');
+          return villes;
+        } else {
+          debugPrint('⚠️ [DepartService] Aucune ville trouvée dans la réponse pour destinations: $data');
+        }
+      } else {
+        debugPrint('❌ [DepartService] Erreur HTTP ${response.statusCode} pour destinations: ${response.body}');
       }
       return [];
     } catch (e) {
+      debugPrint('❌ [DepartService] Exception getDestinations: $e');
       return [];
     }
   }
