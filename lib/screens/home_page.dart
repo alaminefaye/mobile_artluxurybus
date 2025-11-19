@@ -51,6 +51,7 @@ import '../providers/loyalty_provider.dart';
 import 'promo_code_management_screen.dart';
 import 'expense_management_screen.dart';
 import 'admin_dashboard_screen.dart';
+import 'message_management_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -572,6 +573,62 @@ class _HomePageState extends ConsumerState<HomePage>
             roleStr.contains('super_admin') ||
             roleStr == 'admin' ||
             roleStr.contains('administrateur');
+      });
+    }
+
+    return false;
+  }
+
+  // Vérifier si l'utilisateur est Super Admin, Admin, Chef agence ou Accueil
+  bool _canManageMessages(User user) {
+    if (user.role != null) {
+      final roleLower = user.role!.toLowerCase();
+      return roleLower.contains('super admin') ||
+          roleLower.contains('super_admin') ||
+          roleLower == 'admin' ||
+          roleLower.contains('administrateur') ||
+          roleLower.contains('chef agence') ||
+          roleLower.contains('chef_agence') ||
+          roleLower.contains('accueil');
+    }
+
+    // Vérifier via displayRole si présent
+    if (user.displayRole != null) {
+      final displayRoleLower = user.displayRole!.toLowerCase();
+      return displayRoleLower.contains('super admin') ||
+          displayRoleLower.contains('super_admin') ||
+          displayRoleLower == 'admin' ||
+          displayRoleLower.contains('administrateur') ||
+          displayRoleLower.contains('chef agence') ||
+          displayRoleLower.contains('chef_agence') ||
+          displayRoleLower.contains('accueil');
+    }
+
+    // Vérifier via roles list si présent
+    if (user.rolesList != null && user.rolesList!.isNotEmpty) {
+      return user.rolesList!.any((r) {
+        final roleStr = r.toString().toLowerCase();
+        return roleStr.contains('super admin') ||
+            roleStr.contains('super_admin') ||
+            roleStr == 'admin' ||
+            roleStr.contains('administrateur') ||
+            roleStr.contains('chef agence') ||
+            roleStr.contains('chef_agence') ||
+            roleStr.contains('accueil');
+      });
+    }
+
+    // Vérifier aussi dans roles (ancien format)
+    if (user.roles != null && user.roles!.isNotEmpty) {
+      return user.roles!.any((r) {
+        final roleStr = r.toString().toLowerCase();
+        return roleStr.contains('super admin') ||
+            roleStr.contains('super_admin') ||
+            roleStr == 'admin' ||
+            roleStr.contains('administrateur') ||
+            roleStr.contains('chef agence') ||
+            roleStr.contains('chef_agence') ||
+            roleStr.contains('accueil');
       });
     }
 
@@ -3343,6 +3400,24 @@ class _HomePageState extends ConsumerState<HomePage>
         },
       });
 
+      // Messages & Annonces (Super Admin, Admin, Chef agence et Accueil)
+      if (_canManageMessages(user)) {
+        services.add({
+          'icon': Icons.message_rounded,
+          'title': 'Messages & Annonces',
+          'subtitle': 'Créer et gérer les notifications et annonces',
+          'color': AppTheme.primaryOrange,
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MessageManagementScreen(),
+              ),
+            );
+          },
+        });
+      }
+
       // Courrier
       if (isFeatureEnabled(FeatureCodes.mail)) {
         services.add({
@@ -3938,6 +4013,7 @@ class _HomePageState extends ConsumerState<HomePage>
                         ),
                         const SizedBox(height: 20),
                       ],
+
 
                       // Section Support
                       _buildProfileSection(

@@ -124,11 +124,13 @@ class Gare {
   final int id;
   final String nom;
   final String? appareil;
+  final String? uuid;
 
   Gare({
     required this.id,
     required this.nom,
     this.appareil,
+    this.uuid,
   });
 
   factory Gare.fromJson(Map<String, dynamic> json) {
@@ -136,6 +138,7 @@ class Gare {
       id: json['id'],
       nom: json['nom'],
       appareil: json['appareil'],
+      uuid: json['uuid'],
     );
   }
   
