@@ -14,12 +14,12 @@ class ReservationScreen extends StatefulWidget {
 
 class _ReservationScreenState extends State<ReservationScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   String? _selectedEmbarquement;
   String? _selectedDestination;
   DateTime? _selectedDate;
   final _nombreSiegesController = TextEditingController();
-  
+
   List<String> _embarquements = [];
   List<String> _destinations = [];
   bool _isLoading = false;
@@ -47,20 +47,24 @@ class _ReservationScreenState extends State<ReservationScreen> {
       final embarquements = await DepartService.getEmbarquements();
       final destinations = await DepartService.getDestinations();
 
-      debugPrint('📊 [ReservationScreen] Embarquements: ${embarquements.length} villes');
-      debugPrint('📊 [ReservationScreen] Destinations: ${destinations.length} villes');
+      debugPrint(
+          '📊 [ReservationScreen] Embarquements: ${embarquements.length} villes');
+      debugPrint(
+          '📊 [ReservationScreen] Destinations: ${destinations.length} villes');
 
       setState(() {
         _embarquements = embarquements;
         _destinations = destinations;
       });
-      
+
       if (embarquements.isEmpty || destinations.isEmpty) {
-        debugPrint('⚠️ [ReservationScreen] Listes de villes vides ou incomplètes');
+        debugPrint(
+            '⚠️ [ReservationScreen] Listes de villes vides ou incomplètes');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Aucune ville disponible. Veuillez réessayer plus tard.'),
+            const SnackBar(
+              content: Text(
+                  'Aucune ville disponible. Veuillez réessayer plus tard.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -72,7 +76,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'charger',
           error: e,
-          customMessage: 'Impossible de charger les villes. Veuillez réessayer.',
+          customMessage:
+              'Impossible de charger les villes. Veuillez réessayer.',
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
@@ -161,7 +166,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'rechercher',
           error: e,
-          customMessage: 'Impossible de rechercher les départs. Veuillez réessayer.',
+          customMessage:
+              'Impossible de rechercher les départs. Veuillez réessayer.',
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -189,7 +195,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     primary: Colors.orange,
                     onPrimary: Colors.white,
                     surface: Theme.of(context).cardColor,
-                    onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.white,
+                    onSurface: Theme.of(context).textTheme.bodyLarge?.color ??
+                        Colors.white,
                   )
                 : Theme.of(context).colorScheme,
           ),
@@ -218,258 +225,273 @@ class _ReservationScreenState extends State<ReservationScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-            // Formulaire de recherche
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: AppTheme.primaryBlue,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
+              // Formulaire de recherche
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: AppTheme.primaryBlue,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  // Embarquement
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedEmbarquement,
-                    decoration: InputDecoration(
-                      labelText: t('reservation.embarquement'),
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      prefixIcon: const Icon(Icons.location_on, color: Colors.white70),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    dropdownColor: Theme.of(context).brightness == Brightness.dark
-                        ? Theme.of(context).cardColor
-                        : Colors.white,
-                    style: const TextStyle(color: Colors.white),
-                    selectedItemBuilder: (BuildContext context) {
-                      return _embarquements
-                          .where((ville) => ville != _selectedDestination)
-                          .map<Widget>((String ville) {
-                        return Text(
-                          ville,
-                          style: const TextStyle(color: Colors.white),
-                        );
-                      }).toList();
-                    },
-                    items: _embarquements
-                        .where((ville) => ville != _selectedDestination) // Exclure la destination sélectionnée
-                        .map((ville) {
-                      return DropdownMenuItem(
-                        value: ville,
-                        child: Text(
-                          ville,
-                          style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedEmbarquement = value;
-                        // Si la destination est la même que l'embarquement, la réinitialiser
-                        if (_selectedDestination == value) {
-                          _selectedDestination = null;
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Destination
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedDestination,
-                    decoration: InputDecoration(
-                      labelText: t('reservation.destination'),
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      prefixIcon: const Icon(Icons.place, color: Colors.white70),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    dropdownColor: Theme.of(context).brightness == Brightness.dark
-                        ? Theme.of(context).cardColor
-                        : Colors.white,
-                    style: const TextStyle(color: Colors.white),
-                    selectedItemBuilder: (BuildContext context) {
-                      return _destinations
-                          .where((ville) => ville != _selectedEmbarquement)
-                          .map<Widget>((String ville) {
-                        return Text(
-                          ville,
-                          style: const TextStyle(color: Colors.white),
-                        );
-                      }).toList();
-                    },
-                    items: _destinations
-                        .where((ville) => ville != _selectedEmbarquement) // Exclure l'embarquement sélectionné
-                        .map((ville) {
-                      return DropdownMenuItem(
-                        value: ville,
-                        child: Text(
-                          ville,
-                          style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.black87,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedDestination = value;
-                        // Si l'embarquement est la même que la destination, le réinitialiser
-                        if (_selectedEmbarquement == value) {
-                          _selectedEmbarquement = null;
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Date
-                  GestureDetector(
-                    onTap: _selectDate,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_today, color: Colors.white70),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _selectedDate != null
-                                  ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
-                                  : t('reservation.select_date'),
-                              style: TextStyle(
-                                color: _selectedDate != null ? Colors.white : Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Nombre de sièges (optionnel)
-                  TextFormField(
-                    controller: _nombreSiegesController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: t('reservation.number_seats'),
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      hintText: t('reservation.limit_results'),
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-                      prefixIcon: const Icon(Icons.event_seat, color: Colors.white70),
-                      filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.2),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                    validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        final num = int.tryParse(value);
-                        if (num == null || num <= 0) {
-                          return t('reservation.invalid_number');
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Bouton de recherche
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _searchDeparts,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryOrange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : Text(
-                              t('reservation.search'),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Espace vide - les résultats seront affichés sur une page séparée
-            Container(
-              padding: const EdgeInsets.all(32),
-              child: Center(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.search,
-                      size: 64,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white54
-                          : Colors.grey[400],
+                    // Embarquement
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedEmbarquement,
+                      decoration: InputDecoration(
+                        labelText: t('reservation.embarquement'),
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        prefixIcon: const Icon(Icons.location_on,
+                            color: Colors.white70),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      dropdownColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Theme.of(context).cardColor
+                              : Colors.white,
+                      style: const TextStyle(color: Colors.white),
+                      selectedItemBuilder: (BuildContext context) {
+                        return _embarquements
+                            .where((ville) => ville != _selectedDestination)
+                            .map<Widget>((String ville) {
+                          return Text(
+                            ville,
+                            style: const TextStyle(color: Colors.white),
+                          );
+                        }).toList();
+                      },
+                      items: _embarquements
+                          .where((ville) =>
+                              ville !=
+                              _selectedDestination) // Exclure la destination sélectionnée
+                          .map((ville) {
+                        return DropdownMenuItem(
+                          value: ville,
+                          child: Text(
+                            ville,
+                            style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedEmbarquement = value;
+                          // Si la destination est la même que l'embarquement, la réinitialiser
+                          if (_selectedDestination == value) {
+                            _selectedDestination = null;
+                          }
+                        });
+                      },
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      t('reservation.fill_form'),
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white70
-                            : Colors.grey[600],
+
+                    // Destination
+                    DropdownButtonFormField<String>(
+                      initialValue: _selectedDestination,
+                      decoration: InputDecoration(
+                        labelText: t('reservation.destination'),
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        prefixIcon:
+                            const Icon(Icons.place, color: Colors.white70),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
+                      dropdownColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Theme.of(context).cardColor
+                              : Colors.white,
+                      style: const TextStyle(color: Colors.white),
+                      selectedItemBuilder: (BuildContext context) {
+                        return _destinations
+                            .where((ville) => ville != _selectedEmbarquement)
+                            .map<Widget>((String ville) {
+                          return Text(
+                            ville,
+                            style: const TextStyle(color: Colors.white),
+                          );
+                        }).toList();
+                      },
+                      items: _destinations
+                          .where((ville) =>
+                              ville !=
+                              _selectedEmbarquement) // Exclure l'embarquement sélectionné
+                          .map((ville) {
+                        return DropdownMenuItem(
+                          value: ville,
+                          child: Text(
+                            ville,
+                            style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedDestination = value;
+                          // Si l'embarquement est la même que la destination, le réinitialiser
+                          if (_selectedEmbarquement == value) {
+                            _selectedEmbarquement = null;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Date
+                    GestureDetector(
+                      onTap: _selectDate,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today,
+                                color: Colors.white70),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _selectedDate != null
+                                    ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                                    : t('reservation.select_date'),
+                                style: TextStyle(
+                                  color: _selectedDate != null
+                                      ? Colors.white
+                                      : Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Nombre de sièges (optionnel)
+                    TextFormField(
+                      controller: _nombreSiegesController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: t('reservation.number_seats'),
+                        labelStyle: const TextStyle(color: Colors.white70),
+                        hintText: t('reservation.limit_results'),
+                        hintStyle: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5)),
+                        prefixIcon:
+                            const Icon(Icons.event_seat, color: Colors.white70),
+                        filled: true,
+                        fillColor: Colors.white.withValues(alpha: 0.2),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final num = int.tryParse(value);
+                          if (num == null || num <= 0) {
+                            return t('reservation.invalid_number');
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Bouton de recherche
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _searchDeparts,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryOrange,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                              )
+                            : Text(
+                                t('reservation.search'),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+
+              // Espace vide - les résultats seront affichés sur une page séparée
+              Container(
+                padding: const EdgeInsets.all(32),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.search,
+                        size: 64,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white54
+                            : Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        t('reservation.fill_form'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : Colors.grey[600],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-
 }
-

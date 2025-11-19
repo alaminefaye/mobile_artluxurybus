@@ -246,7 +246,7 @@ class _MessageManagementScreenState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.lock_outline, size: 80, color: Colors.red),
+              const Icon(Icons.lock_outline, size: 80, color: Colors.red),
               const SizedBox(height: 16),
               Text(
                 'Vous n\'avez pas les permissions nécessaires',
@@ -297,7 +297,7 @@ class _MessageManagementScreenState
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _filterType,
+                    initialValue: _filterType,
                     decoration: const InputDecoration(
                       labelText: 'Type',
                       border: OutlineInputBorder(),
@@ -330,7 +330,7 @@ class _MessageManagementScreenState
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _filterActive,
+                    initialValue: _filterActive,
                     decoration: const InputDecoration(
                       labelText: 'Statut',
                       border: OutlineInputBorder(),
@@ -709,7 +709,7 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
   String? _uuid;
   bool _uuidAutoFilled =
       false; // Indique si l'UUID a été rempli automatiquement
-  Set<String> _customAppareils =
+  final Set<String> _customAppareils =
       {}; // Appareils personnalisés à ajouter au dropdown
   DateTime? _dateDebut;
   DateTime? _dateFin;
@@ -842,9 +842,10 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
   }
 
   Future<void> _selectDate(
-    BuildContext context,
     bool isStartDate,
   ) async {
+    if (!mounted) return;
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: isStartDate
@@ -854,13 +855,13 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
       final TimeOfDay? time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
 
-      if (time != null) {
+      if (time != null && mounted) {
         final DateTime dateTime = DateTime(
           picked.year,
           picked.month,
@@ -1032,7 +1033,7 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
             children: [
               // Type
               DropdownButtonFormField<String>(
-                value: _selectedType,
+                initialValue: _selectedType,
                 decoration: const InputDecoration(
                   labelText: 'Type *',
                   border: OutlineInputBorder(),
@@ -1259,7 +1260,7 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
               if (_selectedType == 'annonce') ...[
                 // Gare (optionnel)
                 DropdownButtonFormField<int>(
-                  value: _selectedGareId != null &&
+                  initialValue: _selectedGareId != null &&
                           _gares.any((g) => g.id == _selectedGareId)
                       ? _selectedGareId
                       : null, // Ne pas utiliser la valeur si elle n'existe pas dans la liste
@@ -1326,7 +1327,7 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
 
                 // Appareil (peut être une valeur personnalisée depuis la gare)
                 DropdownButtonFormField<String>(
-                  value: _selectedAppareil,
+                  initialValue: _selectedAppareil,
                   decoration: const InputDecoration(
                     labelText: 'Appareil (optionnel)',
                     border: OutlineInputBorder(),
@@ -1418,7 +1419,7 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
 
                 // Date de début (obligatoire pour annonces)
                 InkWell(
-                  onTap: () => _selectDate(context, true),
+                  onTap: () => _selectDate(true),
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Date de début *',
@@ -1444,7 +1445,7 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
 
                 // Date de fin (obligatoire pour annonces)
                 InkWell(
-                  onTap: () => _selectDate(context, false),
+                  onTap: () => _selectDate(false),
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Date de fin *',
@@ -1484,7 +1485,7 @@ class _MessageFormScreenState extends State<MessageFormScreen> {
                     _active = value;
                   });
                 },
-                activeColor: AppTheme.primaryOrange,
+                activeThumbColor: AppTheme.primaryOrange,
               ),
               const SizedBox(height: 24),
 

@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import Firebase
+import FirebaseMessaging
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -10,6 +11,9 @@ import Firebase
   ) -> Bool {
     // Configurer Firebase
     FirebaseApp.configure()
+    
+    // Définir le délégué Firebase Messaging
+    Messaging.messaging().delegate = self
     
     // Demander les permissions pour les notifications
     UNUserNotificationCenter.current().delegate = self
@@ -38,6 +42,10 @@ import Firebase
     let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
     let token = tokenParts.joined()
     print("✅ Token APNs reçu: \(token)")
+    
+    // ⚠️ IMPORTANT: Transmettre le token APNs à Firebase
+    Messaging.messaging().apnsToken = deviceToken
+    print("✅ Token APNs transmis à Firebase")
   }
   
   // Callback en cas d'erreur
@@ -56,5 +64,18 @@ import Firebase
   ) {
     print("📬 Notification reçue: \(userInfo)")
     super.application(application, didReceiveRemoteNotification: userInfo, fetchCompletionHandler: completionHandler)
+  }
+}
+
+// Extension pour implémenter le délégué Firebase Messaging
+extension AppDelegate: MessagingDelegate {
+  // Appelé quand Firebase génère un nouveau token FCM
+  func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+    if let token = fcmToken {
+      print("🔥 Token FCM généré: \(token)")
+      print("💾 Token FCM disponible pour l'enregistrement")
+    } else {
+      print("⚠️ Token FCM est nil")
+    }
   }
 }

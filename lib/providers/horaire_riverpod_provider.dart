@@ -66,10 +66,13 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
       }
       
       // Vérifier le rôle ou les permissions directement
-      final isAdmin = user.role == 'Super Admin' || 
-                     user.role == 'Admin' || 
-                     user.role == 'chef agence' || 
-                     (user.permissions?.contains('manage_horaires') ?? false);
+      final roleLower = (user.role ?? '').trim().toLowerCase();
+      final roles = user.roles ?? [];
+      final rolesLower = roles.map((r) => r.trim().toLowerCase()).toList();
+      final matchesChefAgence = roleLower.contains('chef agence') || roleLower.contains('chef_agence') || roleLower.contains('chef d agence') || roleLower.contains("chef d'agence") || rolesLower.any((r) => r.contains('chef agence') || r.contains('chef_agence') || r.contains('chef d agence') || r.contains("chef d'agence"));
+      final matchesAdmin = roleLower.contains('super admin') || roleLower.contains('admin') || rolesLower.any((r) => r.contains('super admin') || r.contains('admin'));
+      final hasPermission = user.permissions?.any((p) => p.toLowerCase() == 'manage_horaires') ?? false;
+      final isAdmin = matchesAdmin || matchesChefAgence || hasPermission;
       
       debugPrint('🔐 [HoraireProvider] Résultat isUserAdmin(): $isAdmin');
       
