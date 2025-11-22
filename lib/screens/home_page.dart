@@ -52,6 +52,8 @@ import 'promo_code_management_screen.dart';
 import 'expense_management_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'message_management_screen.dart';
+import 'job_application_form_screen.dart';
+import 'admin/job_applications_list_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -155,10 +157,12 @@ class _HomePageState extends ConsumerState<HomePage>
           debugPrint(
               '✅ [HomePage] Contexte mis à jour pour les annonces vocales (Navigator OK)');
         } else {
-          debugPrint('⚠️ [HomePage] Navigator non disponible - contexte non défini');
+          debugPrint(
+              '⚠️ [HomePage] Navigator non disponible - contexte non défini');
         }
       } else {
-        debugPrint('⚠️ [HomePage] Widget ou contexte non monté - contexte non défini');
+        debugPrint(
+            '⚠️ [HomePage] Widget ou contexte non monté - contexte non défini');
       }
     } catch (e) {
       debugPrint(
@@ -577,6 +581,25 @@ class _HomePageState extends ConsumerState<HomePage>
     }
 
     return false;
+  }
+
+  bool _isSuperAdminAdminOrRH(User user) {
+    final roles = <String>[];
+    if (user.role != null) roles.add(user.role!.toLowerCase());
+    if (user.displayRole != null) roles.add(user.displayRole!.toLowerCase());
+    if (user.rolesList != null) {
+      roles.addAll(user.rolesList!.map((r) => r.toString().toLowerCase()));
+    }
+    if (user.roles != null) {
+      roles.addAll(user.roles!.map((r) => r.toString().toLowerCase()));
+    }
+    return roles.any((r) =>
+        r.contains('super admin') ||
+        r.contains('super_admin') ||
+        r == 'admin' ||
+        r.contains('administrateur') ||
+        r == 'rh' ||
+        r.contains('ressources humaines'));
   }
 
   // Vérifier si l'utilisateur est Super Admin, Admin, Chef agence ou Accueil
@@ -2354,16 +2377,6 @@ class _HomePageState extends ConsumerState<HomePage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          t('common.slides'),
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).textTheme.titleLarge?.color,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
         SizedBox(
           height: 200,
           child: PageView.builder(
@@ -2452,36 +2465,6 @@ class _HomePageState extends ConsumerState<HomePage>
                   ),
                 );
               },
-            ),
-            // Dégradé pour le texte
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.7),
-                      Colors.black.withValues(alpha: 0.3),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  slide.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
             ),
           ],
         ),
@@ -2640,6 +2623,20 @@ class _HomePageState extends ConsumerState<HomePage>
                     },
                     tooltip: t('notifications.delete_all'),
                   ),
+                  if (_isSuperAdminAdminOrRH(user))
+                    IconButton(
+                      icon: const Icon(Icons.work_outline),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const JobApplicationsListScreen(),
+                          ),
+                        );
+                      },
+                      tooltip: 'Voir demandes d\'emploi',
+                    ),
                 ],
               );
             },
@@ -2655,7 +2652,7 @@ class _HomePageState extends ConsumerState<HomePage>
               (_isClient(user) || _hasAttendanceRole(user))
                   ? notificationState.notifications.where((notif) {
                       // Exclure UNIQUEMENT les notifications de type feedback/suggestion
-                      // NE PAS filtrer les notifications de type 'notification' ou 'message_notification'
+                      // NE PAS filtrer les notifications de type 'notification', 'message_notification' ou 'new_job_application'
                       final shouldInclude = notif.type != 'feedback' &&
                           notif.type != 'suggestion' &&
                           notif.type != 'new_feedback' &&
@@ -2665,6 +2662,9 @@ class _HomePageState extends ConsumerState<HomePage>
                       if (!shouldInclude) {
                         debugPrint(
                             '🔔 [FILTRE] Notification exclue: type=${notif.type}, titre=${notif.title}');
+                      } else {
+                        debugPrint(
+                            '✅ [FILTRE] Notification incluse: type=${notif.type}, titre=${notif.title}');
                       }
 
                       return shouldInclude;
@@ -3311,7 +3311,7 @@ class _HomePageState extends ConsumerState<HomePage>
     List<Map<String, dynamic>> services = [];
 
     // Récupérer les permissions actuelles
-    final permissionsAsync = ref.read(featurePermissionsProvider);
+    final permissionsAsync = ref.watch(featurePermissionsProvider);
     final permissions = permissionsAsync.value?.permissions ?? [];
 
     // Helper pour vérifier si une fonctionnalité est activée
@@ -3328,6 +3328,22 @@ class _HomePageState extends ConsumerState<HomePage>
       );
       return permission.isEnabled;
     }
+
+    // Soumettre ma candidature (visible pour tous)
+    services.add({
+      'icon': Icons.work_outline,
+      'title': 'Soumettre ma candidature',
+      'subtitle': 'Lettre de motivation et CV (PDF)',
+      'color': AppTheme.primaryBlue,
+      'onTap': () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const JobApplicationFormScreen(),
+          ),
+        );
+      },
+    });
 
     // Programme de Fidélité
     if (isFeatureEnabled(FeatureCodes.loyalty)) {
@@ -3436,6 +3452,7 @@ class _HomePageState extends ConsumerState<HomePage>
       }
 
       // Vidéos (toujours disponible pour admin)
+
       services.add({
         'icon': Icons.video_library_rounded,
         'title': t('services.videos'),
@@ -3449,8 +3466,7 @@ class _HomePageState extends ConsumerState<HomePage>
           );
         },
       });
-    } else if (_isClient(user)) {
-      // Services pour les clients
+
       // Réservation
       if (isFeatureEnabled(FeatureCodes.reservation)) {
         services.add({
@@ -3505,17 +3521,54 @@ class _HomePageState extends ConsumerState<HomePage>
       }
     }
 
-    // Service d'aide toujours disponible
-    services.add({
-      'icon': Icons.help_center_rounded,
-      'title': t('services.help'),
-      'subtitle': t('services.help_center'),
-      'color': const Color(0xFF8B5CF6),
-      'onTap': () {
-        // Feature à implémenter: navigation vers centre d'aide
-      },
-    });
-
+    // Pour les utilisateurs clients (pas Accueil/Admin)
+    if (!_hasAttendanceRole(user) && !_isAdminOrChefAgence(user)) {
+      if (isFeatureEnabled(FeatureCodes.reservation)) {
+        services.add({
+          'icon': Icons.confirmation_number_rounded,
+          'title': t('services.reservation'),
+          'subtitle': t('services.book_trip'),
+          'color': AppTheme.primaryBlue,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const ReservationScreen())),
+        });
+      }
+      if (isFeatureEnabled(FeatureCodes.myTrips)) {
+        services.add({
+          'icon': Icons.history_rounded,
+          'title': t('services.my_trips'),
+          'subtitle': t('services.view_trips'),
+          'color': AppTheme.primaryOrange,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const MyTripsScreen())),
+        });
+      }
+      if (isFeatureEnabled(FeatureCodes.mail)) {
+        services.add({
+          'icon': Icons.local_shipping_rounded,
+          'title': t('services.mail'),
+          'subtitle': t('services.my_mails'),
+          'color': AppTheme.primaryOrange,
+          'onTap': () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const MyMailsScreen(),
+              ),
+            );
+          },
+        });
+      }
+      if (isFeatureEnabled(FeatureCodes.recharge)) {
+        services.add({
+          'icon': Icons.account_balance_wallet_rounded,
+          'title': t('services.recharge'),
+          'subtitle': t('services.recharge_subtitle'),
+          'color': const Color(0xFF10B981),
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const RechargeScreen())),
+        });
+      }
+    }
     return services;
   }
 
@@ -3892,6 +3945,31 @@ class _HomePageState extends ConsumerState<HomePage>
                         const SizedBox(height: 20),
                       ],
 
+                      // Section Recrutement
+                      _buildProfileSection(
+                        title: 'Recrutement',
+                        icon: Icons.work_outline,
+                        options: [
+                          if (_isSuperAdminAdminOrRH(user))
+                            _buildModernProfileOption(
+                              icon: Icons.list_alt,
+                              title: 'Liste des candidatures',
+                              subtitle: 'Voir toutes les demandes d\'emploi',
+                              color: AppTheme.primaryOrange,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const JobApplicationsListScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
                       // Section Compte
                       _buildProfileSection(
                         title:
@@ -3931,6 +4009,187 @@ class _HomePageState extends ConsumerState<HomePage>
                               );
                             },
                           ),
+                          _buildModernProfileOption(
+                            icon: Icons.delete_forever,
+                            title: 'Supprimer mon compte',
+                            subtitle: 'Cette action est irréversible',
+                            color: Colors.red,
+                            onTap: () async {
+                              final passwordController =
+                                  TextEditingController();
+                              final confirmController = TextEditingController();
+                              final isDark = Theme.of(context).brightness ==
+                                  Brightness.dark;
+
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('Supprimer mon compte'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Veuillez saisir votre mot de passe et taper "DELETE" pour confirmer.',
+                                        style: TextStyle(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      TextField(
+                                        controller: passwordController,
+                                        obscureText: true,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Mot de passe',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      TextField(
+                                        controller: confirmController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Confirmation',
+                                          hintText: 'Tapez DELETE',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(dialogContext, false),
+                                      child: const Text('Annuler'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        if (passwordController.text
+                                                .trim()
+                                                .isEmpty ||
+                                            confirmController.text
+                                                .trim()
+                                                .isEmpty) {
+                                          ScaffoldMessenger.of(dialogContext)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Veuillez remplir tous les champs.'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        if (confirmController.text.trim() !=
+                                            'DELETE') {
+                                          ScaffoldMessenger.of(dialogContext)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Veuillez taper "DELETE" pour confirmer la suppression.'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        Navigator.pop(dialogContext, true);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: const Text('Supprimer'),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirmed == true && context.mounted) {
+                                // Afficher le loader
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (dialogContext) => const PopScope(
+                                    canPop: false,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                );
+
+                                try {
+                                  debugPrint('📡 [DELETE] Appel API...');
+                                  final authService = AuthService();
+                                  final result =
+                                      await authService.deleteAccount(
+                                    password: passwordController.text.trim(),
+                                    confirmation: confirmController.text.trim(),
+                                  );
+
+                                  debugPrint('📥 [DELETE] Result: $result');
+                                  debugPrint(
+                                      '🔍 [DELETE] success=${result['success']}');
+
+                                  if (context.mounted) {
+                                    Navigator.pop(context); // fermer le loader
+                                  }
+
+                                  // Vérifier si la suppression a réussi
+                                  if (result['success'] == true) {
+                                    debugPrint(
+                                        '✅ [DELETE] Suppression réussie - Déconnexion...');
+                                    await ref
+                                        .read(authProvider.notifier)
+                                        .logout();
+                                    debugPrint('🚪 [DELETE] Logout terminé');
+
+                                    debugPrint(
+                                        '🧑 [DELETE] Navigation vers Login');
+                                    if (context.mounted) {
+                                      Navigator.of(context).pushAndRemoveUntil(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const LoginScreen(),
+                                        ),
+                                        (route) => false,
+                                      );
+                                    }
+                                  } else {
+                                    // Afficher l'erreur sans déconnecter
+                                    debugPrint(
+                                        '❌ [DELETE] Échec: ${result['message']}');
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(result['message'] ??
+                                              'Erreur lors de la suppression du compte'),
+                                          backgroundColor: Colors.red,
+                                          duration: const Duration(seconds: 5),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                } catch (e, stackTrace) {
+                                  debugPrint('🔥 [DELETE] Exception: $e');
+                                  debugPrint('🔥 [DELETE] Stack: $stackTrace');
+
+                                  if (context.mounted) {
+                                    Navigator.pop(context); // fermer le loader
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Erreur: ${e.toString()}'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                          ),
                         ],
                       ),
 
@@ -3943,15 +4202,6 @@ class _HomePageState extends ConsumerState<HomePage>
                               .translate('profile.preferences'),
                           icon: Icons.settings_rounded,
                           options: [
-                            _buildModernProfileOption(
-                              icon: Icons.notifications_outlined,
-                              title: translationService
-                                  .translate('profile.notifications'),
-                              subtitle: translationService
-                                  .translate('profile.manage_alerts'),
-                              color: AppTheme.primaryOrange,
-                              onTap: () {},
-                            ),
                             _buildModernProfileOption(
                               icon: Icons.campaign_rounded,
                               title: translationService
@@ -4026,7 +4276,13 @@ class _HomePageState extends ConsumerState<HomePage>
                             subtitle: translationService
                                 .translate('profile.contact_team'),
                             color: Colors.teal,
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => const FeedbackScreen(),
+                                ),
+                              );
+                            },
                           ),
                           _buildModernProfileOption(
                             icon: Icons.info_outline,
@@ -4069,6 +4325,9 @@ class _HomePageState extends ConsumerState<HomePage>
     required IconData icon,
     required List<Widget> options,
   }) {
+    if (options.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final iconColor = isDark ? Colors.orange : AppTheme.primaryBlue;
     final backgroundColor = isDark

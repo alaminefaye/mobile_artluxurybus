@@ -12,7 +12,7 @@ class NotificationDebugger {
     try {
       final messaging = FirebaseMessaging.instance;
       debugPrint('✅ Firebase Messaging instance créée');
-      
+
       // Vérifier les permissions
       final settings = await messaging.getNotificationSettings();
       debugPrint('📱 Permissions de notification:');
@@ -20,9 +20,10 @@ class NotificationDebugger {
       debugPrint('   - Badge: ${settings.badge}');
       debugPrint('   - Sound: ${settings.sound}');
       debugPrint('   - Authorization status: ${settings.authorizationStatus}');
-      
+
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        debugPrint('✅ Permissions accordées - Les notifications push devraient fonctionner');
+        debugPrint(
+            '✅ Permissions accordées - Les notifications push devraient fonctionner');
       } else {
         debugPrint('❌ Permissions refusées - Demander les permissions');
         final newSettings = await messaging.requestPermission(
@@ -30,7 +31,8 @@ class NotificationDebugger {
           badge: true,
           sound: true,
         );
-        debugPrint('📱 Nouvelles permissions: ${newSettings.authorizationStatus}');
+        debugPrint(
+            '📱 Nouvelles permissions: ${newSettings.authorizationStatus}');
       }
     } catch (e) {
       debugPrint('❌ Erreur Firebase Messaging: $e');
@@ -53,23 +55,24 @@ class NotificationDebugger {
     debugPrint('\n3️⃣ Vérification des notifications locales...');
     try {
       final localNotifications = FlutterLocalNotificationsPlugin();
-      
+
       // Configuration Android
-      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
         requestSoundPermission: true,
       );
-      
+
       const initSettings = InitializationSettings(
         android: androidSettings,
         iOS: iosSettings,
       );
-      
+
       await localNotifications.initialize(initSettings);
       debugPrint('✅ Notifications locales initialisées');
-      
+
       // Créer le canal Android
       const channel = AndroidNotificationChannel(
         'art_luxury_bus_channel',
@@ -80,15 +83,16 @@ class NotificationDebugger {
         enableVibration: true,
         showBadge: true,
       );
-      
-      final androidPlugin = localNotifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      
+
+      final androidPlugin =
+          localNotifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
       if (androidPlugin != null) {
         await androidPlugin.createNotificationChannel(channel);
         debugPrint('✅ Canal Android créé: ${channel.id}');
       }
-      
+
       // Tester une notification locale
       debugPrint('\n4️⃣ Test d\'une notification locale...');
       await localNotifications.show(
@@ -99,12 +103,15 @@ class NotificationDebugger {
           android: AndroidNotificationDetails(
             'art_luxury_bus_channel',
             'Art Luxury Bus Notifications',
-            channelDescription: 'Notifications de l\'application Art Luxury Bus',
+            channelDescription:
+                'Notifications de l\'application Art Luxury Bus',
             importance: Importance.max,
             priority: Priority.high,
             showWhen: true,
             icon: '@mipmap/ic_launcher',
             playSound: true,
+            sound: RawResourceAndroidNotificationSound(
+                'notification'), // Son personnalisé
             enableVibration: true,
             enableLights: true,
           ),
@@ -112,11 +119,12 @@ class NotificationDebugger {
             presentAlert: true,
             presentBadge: true,
             presentSound: true,
+            sound: 'notification.mp3', // Son personnalisé iOS
           ),
         ),
       );
-      debugPrint('✅ Notification locale envoyée - Vérifiez votre écran de notification');
-      
+      debugPrint(
+          '✅ Notification locale envoyée - Vérifiez votre écran de notification');
     } catch (e) {
       debugPrint('❌ Erreur notifications locales: $e');
     }
@@ -147,8 +155,11 @@ class NotificationDebugger {
 
     debugPrint('\n🎯 [DEBUG] Diagnostic terminé !');
     debugPrint('📋 Résumé:');
-    debugPrint('   - Si vous voyez une notification locale → Les notifications locales fonctionnent');
-    debugPrint('   - Si vous ne voyez pas de notification → Vérifiez les paramètres de notification de votre téléphone');
-    debugPrint('   - Pour tester les notifications push → Envoyez une notification depuis le serveur');
+    debugPrint(
+        '   - Si vous voyez une notification locale → Les notifications locales fonctionnent');
+    debugPrint(
+        '   - Si vous ne voyez pas de notification → Vérifiez les paramètres de notification de votre téléphone');
+    debugPrint(
+        '   - Pour tester les notifications push → Envoyez une notification depuis le serveur');
   }
 }

@@ -10,7 +10,8 @@ class PromoCodeManagementScreen extends StatefulWidget {
   const PromoCodeManagementScreen({super.key});
 
   @override
-  State<PromoCodeManagementScreen> createState() => _PromoCodeManagementScreenState();
+  State<PromoCodeManagementScreen> createState() =>
+      _PromoCodeManagementScreenState();
 }
 
 class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
@@ -22,6 +23,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   int _currentPage = 1;
   int _totalPages = 1;
   bool _hasMore = true;
+  final ScrollController _scrollController = ScrollController();
 
   // Helper pour les traductions
   String t(String key) {
@@ -31,7 +33,14 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadPromoCodes();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPromoCodes({bool refresh = false}) async {
@@ -76,7 +85,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           });
         } else {
           setState(() {
-            _errorMessage = result['message'] ?? 'Erreur lors du chargement des codes promo.';
+            _errorMessage = result['message'] ??
+                'Erreur lors du chargement des codes promo.';
             _isLoading = false;
           });
         }
@@ -84,9 +94,19 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = ErrorMessageHelper.getOperationError('charger', error: e);
+          _errorMessage =
+              ErrorMessageHelper.getOperationError('charger', error: e);
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && _hasMore) {
+        _loadPromoCodes();
       }
     }
   }
@@ -97,7 +117,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
     DateTime? selectedDate;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -116,17 +136,24 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     labelText: 'Nom du client *',
-                    labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                    labelStyle: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
                     hintText: 'Entrez le nom du client',
-                    hintStyle: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[500]),
+                    hintStyle: TextStyle(
+                        color: isDark ? Colors.grey[600] : Colors.grey[500]),
                     border: OutlineInputBorder(
-                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                      borderSide: BorderSide(
+                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                              : Colors.grey),
                     ),
                     focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                      borderSide:
+                          BorderSide(color: AppTheme.primaryOrange, width: 2),
                     ),
                     filled: true,
                     fillColor: isDark ? Colors.grey[800] : Colors.white,
@@ -138,17 +165,24 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     labelText: 'Description (optionnel)',
-                    labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                    labelStyle: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
                     hintText: 'Description du code promo',
-                    hintStyle: TextStyle(color: isDark ? Colors.grey[600] : Colors.grey[500]),
+                    hintStyle: TextStyle(
+                        color: isDark ? Colors.grey[600] : Colors.grey[500]),
                     border: OutlineInputBorder(
-                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                      borderSide: BorderSide(
+                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                              : Colors.grey),
                     ),
                     focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                      borderSide:
+                          BorderSide(color: AppTheme.primaryOrange, width: 2),
                     ),
                     filled: true,
                     fillColor: isDark ? Colors.grey[800] : Colors.white,
@@ -190,17 +224,19 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                               dividerColor: Colors.grey[700]!,
                               primaryColor: AppTheme.primaryOrange,
                               textTheme: ThemeData.dark().textTheme.apply(
-                                bodyColor: Colors.white,
-                                displayColor: Colors.white,
-                              ),
+                                    bodyColor: Colors.white,
+                                    displayColor: Colors.white,
+                                  ),
                               datePickerTheme: DatePickerThemeData(
                                 backgroundColor: Colors.grey[900]!,
                                 headerBackgroundColor: AppTheme.primaryOrange,
                                 headerForegroundColor: Colors.white,
                                 dayStyle: const TextStyle(color: Colors.white),
-                                weekdayStyle: const TextStyle(color: Colors.white),
+                                weekdayStyle:
+                                    const TextStyle(color: Colors.white),
                                 yearStyle: const TextStyle(color: Colors.white),
-                                todayBorder: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                                todayBorder: const BorderSide(
+                                    color: AppTheme.primaryOrange, width: 2),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -231,9 +267,11 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                 headerBackgroundColor: AppTheme.primaryOrange,
                                 headerForegroundColor: Colors.white,
                                 dayStyle: const TextStyle(color: Colors.black),
-                                weekdayStyle: const TextStyle(color: Colors.black),
+                                weekdayStyle:
+                                    const TextStyle(color: Colors.black),
                                 yearStyle: const TextStyle(color: Colors.black),
-                                todayBorder: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                                todayBorder: const BorderSide(
+                                    color: AppTheme.primaryOrange, width: 2),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -253,28 +291,37 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       labelText: 'Date d\'expiration (optionnel)',
-                      labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                      labelStyle: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[700]),
                       border: OutlineInputBorder(
-                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                        borderSide: BorderSide(
+                            color:
+                                isDark ? AppTheme.primaryOrange : Colors.grey),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                                : Colors.grey),
                       ),
                       focusedBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(color: AppTheme.primaryOrange, width: 2),
+                        borderSide:
+                            BorderSide(color: AppTheme.primaryOrange, width: 2),
                       ),
                       filled: true,
                       fillColor: isDark ? Colors.grey[800] : Colors.white,
                       suffixIcon: Icon(
                         Icons.calendar_today,
-                        color: isDark ? AppTheme.primaryOrange : Colors.grey[700],
+                        color:
+                            isDark ? AppTheme.primaryOrange : Colors.grey[700],
                       ),
                     ),
                     child: Text(
                       selectedDate != null
                           ? DateFormat('dd/MM/yyyy').format(selectedDate!)
                           : 'Aucune date',
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black),
                     ),
                   ),
                 ),
@@ -286,7 +333,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'Annuler',
-                style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                style: TextStyle(
+                    color: isDark ? Colors.grey[400] : Colors.grey[700]),
               ),
             ),
             ElevatedButton(
@@ -342,7 +390,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           if (createResult['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(createResult['message'] ?? 'Code promotionnel créé avec succès.'),
+                content: Text(createResult['message'] ??
+                    'Code promotionnel créé avec succès.'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -350,7 +399,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(createResult['message'] ?? 'Erreur lors de la création du code promo.'),
+                content: Text(createResult['message'] ??
+                    'Erreur lors de la création du code promo.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -363,7 +413,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(ErrorMessageHelper.getOperationError('créer', error: e)),
+              content:
+                  Text(ErrorMessageHelper.getOperationError('créer', error: e)),
               backgroundColor: Colors.red,
             ),
           );
@@ -372,22 +423,23 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
     }
   }
 
-  Future<void> _sharePromoCode(String code, String customerName, BuildContext shareContext) async {
+  Future<void> _sharePromoCode(
+      String code, String customerName, BuildContext shareContext) async {
     try {
       final message = 'Code promotionnel Art Luxury Bus\n\n'
           'Code: $code\n'
           'Client: $customerName\n\n'
           'Utilisez ce code lors de votre réservation pour bénéficier d\'un ticket gratuit !';
-      
+
       // Obtenir la position pour le partage (nécessaire pour iPad)
       final RenderBox? box = shareContext.findRenderObject() as RenderBox?;
       Rect? sharePositionOrigin;
-      
+
       if (box != null) {
         try {
           final Offset position = box.localToGlobal(Offset.zero);
           final Size size = box.size;
-          
+
           // Vérifier que la position et la taille sont valides
           if (size.width > 0 && size.height > 0) {
             sharePositionOrigin = Rect.fromLTWH(
@@ -399,10 +451,11 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           }
         } catch (e) {
           // Si l'obtention de la position échoue, on continue sans sharePositionOrigin
-          debugPrint('Erreur lors de l\'obtention de la position pour le partage: $e');
+          debugPrint(
+              'Erreur lors de l\'obtention de la position pour le partage: $e');
         }
       }
-      
+
       await Share.share(
         message,
         subject: 'Code promotionnel Art Luxury Bus',
@@ -424,7 +477,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
 
   Future<void> _deletePromoCode(int id, String code) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -442,7 +495,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
             onPressed: () => Navigator.pop(context, false),
             child: Text(
               'Annuler',
-              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+              style: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[700]),
             ),
           ),
           ElevatedButton(
@@ -470,7 +524,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           if (result['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(result['message'] ?? 'Code promotionnel supprimé avec succès.'),
+                content: Text(result['message'] ??
+                    'Code promotionnel supprimé avec succès.'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -478,7 +533,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(result['message'] ?? 'Erreur lors de la suppression du code promo.'),
+                content: Text(result['message'] ??
+                    'Erreur lors de la suppression du code promo.'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -491,7 +547,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(ErrorMessageHelper.getOperationError('supprimer', error: e)),
+              content: Text(
+                  ErrorMessageHelper.getOperationError('supprimer', error: e)),
               backgroundColor: Colors.red,
             ),
           );
@@ -540,22 +597,30 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   decoration: InputDecoration(
                     hintText: 'Rechercher par code ou nom...',
-                    hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[500]),
+                    hintStyle: TextStyle(
+                        color: isDark ? Colors.grey[500] : Colors.grey[500]),
                     prefixIcon: Icon(
                       Icons.search,
                       color: isDark ? AppTheme.primaryOrange : Colors.grey[700],
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                              : Colors.grey),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                              : Colors.grey),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                      borderSide: const BorderSide(
+                          color: AppTheme.primaryOrange, width: 2),
                     ),
                     filled: true,
                     fillColor: isDark ? Colors.grey[800] : Colors.white,
@@ -579,21 +644,33 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                       child: DropdownButtonFormField<String>(
                         initialValue: _statusFilter,
                         dropdownColor: isDark ? Colors.grey[800] : Colors.white,
-                        style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                        style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black),
                         decoration: InputDecoration(
                           labelText: 'Statut',
-                          labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                          labelStyle: TextStyle(
+                              color:
+                                  isDark ? Colors.grey[400] : Colors.grey[700]),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? AppTheme.primaryOrange
+                                        .withValues(alpha: 0.5)
+                                    : Colors.grey),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: isDark ? AppTheme.primaryOrange.withValues(alpha: 0.5) : Colors.grey),
+                            borderSide: BorderSide(
+                                color: isDark
+                                    ? AppTheme.primaryOrange
+                                        .withValues(alpha: 0.5)
+                                    : Colors.grey),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
+                            borderSide: const BorderSide(
+                                color: AppTheme.primaryOrange, width: 2),
                           ),
                           filled: true,
                           fillColor: isDark ? Colors.grey[800] : Colors.white,
@@ -603,21 +680,24 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                             value: null,
                             child: Text(
                               'Tous',
-                              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                              style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black),
                             ),
                           ),
                           DropdownMenuItem(
                             value: 'unused',
                             child: Text(
                               'Disponible',
-                              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                              style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black),
                             ),
                           ),
                           DropdownMenuItem(
                             value: 'used',
                             child: Text(
                               'Utilisé',
-                              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                              style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black),
                             ),
                           ),
                         ],
@@ -691,11 +771,11 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                         : RefreshIndicator(
                             onRefresh: () => _loadPromoCodes(refresh: true),
                             child: ListView.builder(
-                              itemCount: _promoCodes.length + (_hasMore ? 1 : 0),
+                              controller: _scrollController,
+                              itemCount: _promoCodes.length +
+                                  ((_hasMore && _isLoading) ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (index == _promoCodes.length) {
-                                  // Charger plus
-                                  _loadPromoCodes();
                                   return const Center(
                                     child: Padding(
                                       padding: EdgeInsets.all(16.0),
@@ -707,11 +787,14 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                 final promoCode = _promoCodes[index];
                                 final isUsed = promoCode['is_used'] == true;
                                 final code = promoCode['code'] ?? '';
-                                final customerName = promoCode['customer_name'] ?? '';
-                                final createdAt = promoCode['created_at'] != null
+                                final customerName =
+                                    promoCode['customer_name'] ?? '';
+                                final createdAt = promoCode['created_at'] !=
+                                        null
                                     ? DateTime.parse(promoCode['created_at'])
                                     : null;
-                                final expiresAt = promoCode['expires_at'] != null
+                                final expiresAt = promoCode['expires_at'] !=
+                                        null
                                     ? DateTime.parse(promoCode['expires_at'])
                                     : null;
                                 final usedAt = promoCode['used_at'] != null
@@ -723,14 +806,17 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                     horizontal: 16,
                                     vertical: 8,
                                   ),
-                                  color: isDark ? Colors.grey[850] : Colors.white,
+                                  color:
+                                      isDark ? Colors.grey[850] : Colors.white,
                                   child: ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: isUsed
                                           ? Colors.grey
                                           : AppTheme.primaryOrange,
                                       child: Icon(
-                                        isUsed ? Icons.check_circle : Icons.local_offer,
+                                        isUsed
+                                            ? Icons.check_circle
+                                            : Icons.local_offer,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -738,18 +824,25 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                       code,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: isUsed 
-                                            ? (isDark ? Colors.grey[500] : Colors.grey)
-                                            : (isDark ? Colors.white : Colors.black),
+                                        color: isUsed
+                                            ? (isDark
+                                                ? Colors.grey[500]
+                                                : Colors.grey)
+                                            : (isDark
+                                                ? Colors.white
+                                                : Colors.black),
                                       ),
                                     ),
                                     subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Client: $customerName',
                                           style: TextStyle(
-                                            color: isDark ? Colors.grey[400] : Colors.grey[700],
+                                            color: isDark
+                                                ? Colors.grey[400]
+                                                : Colors.grey[700],
                                           ),
                                         ),
                                         if (createdAt != null)
@@ -757,7 +850,9 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                             'Créé: ${DateFormat('dd/MM/yyyy').format(createdAt)}',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                              color: isDark
+                                                  ? Colors.grey[500]
+                                                  : Colors.grey[600],
                                             ),
                                           ),
                                         if (expiresAt != null)
@@ -765,7 +860,9 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                             'Expire: ${DateFormat('dd/MM/yyyy').format(expiresAt)}',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                              color: isDark
+                                                  ? Colors.grey[500]
+                                                  : Colors.grey[600],
                                             ),
                                           ),
                                         if (isUsed && usedAt != null)
@@ -773,7 +870,9 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                             'Utilisé: ${DateFormat('dd/MM/yyyy').format(usedAt)}',
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: isDark ? Colors.grey[600] : Colors.grey,
+                                              color: isDark
+                                                  ? Colors.grey[600]
+                                                  : Colors.grey,
                                             ),
                                           ),
                                       ],
@@ -786,9 +885,14 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                           IconButton(
                                             icon: Icon(
                                               Icons.share,
-                                              color: isDark ? AppTheme.primaryOrange : AppTheme.primaryOrange,
+                                              color: isDark
+                                                  ? AppTheme.primaryOrange
+                                                  : AppTheme.primaryOrange,
                                             ),
-                                            onPressed: () => _sharePromoCode(code, customerName, shareContext),
+                                            onPressed: () => _sharePromoCode(
+                                                code,
+                                                customerName,
+                                                shareContext),
                                             tooltip: 'Partager le code',
                                           ),
                                           // Bouton de suppression (seulement si non utilisé)
@@ -821,4 +925,3 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
     );
   }
 }
-

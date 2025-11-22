@@ -182,6 +182,8 @@ class NotificationService {
       description: 'Notifications de l\'application Art Luxury Bus',
       importance: Importance.max,
       playSound: true,
+      sound: RawResourceAndroidNotificationSound(
+          'notification'), // Son personnalisé
       enableVibration: true,
       showBadge: true,
     );
@@ -651,6 +653,8 @@ class NotificationService {
       showWhen: true,
       icon: '@mipmap/ic_launcher',
       playSound: true,
+      sound: RawResourceAndroidNotificationSound(
+          'notification'), // Son personnalisé
       enableVibration: true,
       enableLights: true,
     );
@@ -660,6 +664,7 @@ class NotificationService {
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      sound: 'notification.mp3', // Son personnalisé iOS
     );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(

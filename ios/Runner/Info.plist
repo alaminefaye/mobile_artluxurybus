@@ -62,6 +62,10 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Art Luxury Bus souhaite accéder à votre caméra pour scanner les QR codes de pointage.</string>
 	
+	<!-- Permission pour la photothèque -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Art Luxury Bus souhaite accéder à votre photothèque pour vous permettre de sélectionner et télécharger des photos.</string>
+	
 	<!-- Configuration Firebase pour iOS -->
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>

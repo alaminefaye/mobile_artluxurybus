@@ -12,6 +12,10 @@ import 'package:url_launcher/url_launcher.dart';
 import 'my_trips_screen.dart';
 import 'loyalty_home_screen.dart';
 import 'my_mails_screen.dart';
+import 'expense_management_screen.dart';
+import '../services/expense_service.dart';
+import '../services/job_application_api_service.dart';
+import 'admin/job_application_detail_screen.dart';
 
 class NotificationDetailScreen extends ConsumerStatefulWidget {
   final NotificationModel notification;
@@ -83,7 +87,7 @@ class _NotificationDetailScreenState
                 widget.notification.data!['image'] != null &&
                 widget.notification.data!['image'].toString().isNotEmpty)
               _buildNotificationImage(),
-            
+
             // Informations supplémentaires
             if (widget.notification.data != null &&
                 widget.notification.data!.isNotEmpty)
@@ -343,7 +347,8 @@ class _NotificationDetailScreenState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.grey, size: 48),
+                    const Icon(Icons.error_outline,
+                        color: Colors.grey, size: 48),
                     const SizedBox(height: 8),
                     Text(
                       'Impossible de charger l\'image',
@@ -412,33 +417,35 @@ class _NotificationDetailScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ...data.entries
-                      .where((entry) => entry.key.toLowerCase() != 'image') // Exclure l'image de cette section
+                      .where((entry) =>
+                          entry.key.toLowerCase() !=
+                          'image') // Exclure l'image de cette section
                       .map((entry) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 100,
-                              child: Text(
-                                '${_formatDataKey(entry.key)}:',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color,
-                                  fontWeight: FontWeight.w500,
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 100,
+                                  child: Text(
+                                    '${_formatDataKey(entry.key)}:',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                Expanded(
+                                  child: _buildValueWithAction(
+                                      entry.key, entry.value.toString()),
+                                ),
+                              ],
                             ),
-                            Expanded(
-                              child: _buildValueWithAction(
-                                  entry.key, entry.value.toString()),
-                            ),
-                          ],
-                        ),
-                      )),
+                          )),
                 ],
               ),
             );
@@ -566,6 +573,90 @@ class _NotificationDetailScreenState
       );
     }
 
+    // Boutons pour les notifications de dépense
+    if (widget.notification.type == 'expense_pending' ||
+        widget.notification.type == 'new_expense') {
+      return Column(
+        children: [
+          // Bouton Valider la dépense
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _validateExpenseFromNotification(),
+              icon: const Icon(Icons.check_circle, color: Colors.white),
+              label: const Text(
+                'Valider la dépense',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Bouton Voir les dépenses en attente
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _navigateToPendingExpenses,
+              icon: const Icon(Icons.pending_actions),
+              label: const Text(
+                'Voir les dépenses en attente',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange, width: 2),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Bouton pour les notifications de candidatures
+    if (widget.notification.type == 'new_job_application') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => _viewJobApplicationDetails(),
+          icon: const Icon(Icons.folder_open, color: Colors.white),
+          label: const Text(
+            'Voir le dossier complet',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryBlue,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+      );
+    }
+
     // Pas de bouton pour les autres types
     return const SizedBox.shrink();
   }
@@ -606,6 +697,203 @@ class _NotificationDetailScreenState
         builder: (context) => const LoyaltyHomeScreen(),
       ),
     );
+  }
+
+  Future<void> _viewJobApplicationDetails() async {
+    // Récupérer l'ID de la candidature depuis les données de notification
+    final data = widget.notification.data;
+    if (data == null || !data.containsKey('job_application_id')) {
+      _showErrorMessage('ID de candidature introuvable');
+      return;
+    }
+
+    final jobApplicationId = int.tryParse(data['job_application_id'].toString());
+    if (jobApplicationId == null) {
+      _showErrorMessage('ID de candidature invalide');
+      return;
+    }
+
+    // Afficher un indicateur de chargement
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // Récupérer les détails de la candidature
+      final details = await JobApplicationApiService.details(jobApplicationId);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Fermer l'indicateur de chargement
+      
+      // Ouvrir la page de détails
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => JobApplicationDetailScreen(details: details),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Fermer l'indicateur de chargement
+      _showErrorMessage(
+        ErrorMessageHelper.getOperationError('charger', error: e),
+      );
+    }
+  }
+
+  void _navigateToPendingExpenses() {
+    // Navigation vers l'écran des dépenses en attente
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            const ExpenseManagementScreen(showPendingOnly: true),
+      ),
+    );
+  }
+
+  Future<void> _validateExpenseFromNotification() async {
+    // Récupérer l'ID de la dépense depuis les données de notification
+    final data = widget.notification.data;
+    if (data == null || !data.containsKey('expense_id')) {
+      _showErrorMessage('ID de dépense introuvable');
+      return;
+    }
+
+    final expenseId = int.tryParse(data['expense_id'].toString());
+    if (expenseId == null) {
+      _showErrorMessage('ID de dépense invalide');
+      return;
+    }
+
+    // Afficher un dialog de confirmation avec possibilité d'ajouter un commentaire
+    final commentaireController = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+        title: Text(
+          'Valider la dépense',
+          style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Voulez-vous valider cette dépense ?',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: commentaireController,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Commentaire (optionnel)',
+                labelStyle: TextStyle(
+                  color: isDark ? Colors.grey[400] : Colors.grey[700],
+                ),
+                border: const OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isDark
+                        ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                        : Colors.grey,
+                  ),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide:
+                      BorderSide(color: AppTheme.primaryOrange, width: 2),
+                ),
+                filled: true,
+                fillColor: isDark ? Colors.grey[800] : Colors.white,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Annuler',
+              style: TextStyle(
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, {
+                'commentaire': commentaireController.text.trim(),
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Valider'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      if (!mounted) return;
+      // Afficher un indicateur de chargement
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      try {
+        final validateResult = await ExpenseService.validateExpense(
+          id: expenseId,
+          commentaire: result['commentaire'],
+        );
+
+        if (mounted) {
+          if (!context.mounted) return;
+          Navigator.pop(context); // Fermer l'indicateur de chargement
+
+          if (validateResult['success'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  validateResult['message'] ?? 'Dépense validée avec succès.',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Retourner à l'écran précédent après validation
+            Navigator.pop(context);
+          } else {
+            _showErrorMessage(
+              validateResult['message'] ??
+                  'Erreur lors de la validation de la dépense.',
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          if (context.mounted) {
+            Navigator.pop(context); // Fermer l'indicateur de chargement
+          }
+          _showErrorMessage(
+            ErrorMessageHelper.getOperationError('valider', error: e),
+          );
+        }
+      }
+    }
   }
 
   Widget _buildTimingInfo() {
@@ -910,6 +1198,11 @@ class _NotificationDetailScreenState
       case 'alert':
         return Icons.warning_outlined;
       default:
+        // Vérifier si c'est une notification de dépense
+        if (widget.notification.type == 'expense_pending' ||
+            widget.notification.type == 'new_expense') {
+          return Icons.attach_money;
+        }
         return Icons.notifications_outlined;
     }
   }
@@ -934,6 +1227,11 @@ class _NotificationDetailScreenState
       case 'alert':
         return Colors.red;
       default:
+        // Vérifier si c'est une notification de dépense
+        if (widget.notification.type == 'expense_pending' ||
+            widget.notification.type == 'new_expense') {
+          return Colors.orange;
+        }
         return primaryColor;
     }
   }
@@ -984,6 +1282,9 @@ class _NotificationDetailScreenState
         return t('notification_detail.type_vidange_completed');
       case 'vidange_updated':
         return t('notification_detail.type_vidange_updated');
+      case 'expense_pending':
+      case 'new_expense':
+        return 'Nouvelle dépense';
       case 'breakdown_new':
       case 'new_breakdown':
         return t('notification_detail.type_breakdown_new');
@@ -1107,6 +1408,21 @@ class _NotificationDetailScreenState
         return t('notification_detail.data_old_time');
       case 'count':
         return t('notification_detail.data_count');
+      // Dépenses
+      case 'expense_id':
+        return 'Expense Id';
+      case 'expense_status':
+        return 'Expense Status';
+      case 'expense_montant':
+        return 'Expense Montant';
+      case 'expense_type':
+        return 'Expense Type';
+      case 'expense_motif':
+        return 'Expense Motif';
+      case 'created_by':
+        return 'Created By';
+      case 'creator_name':
+        return 'Creator Name';
       default:
         // Remplacer les underscores par des espaces et mettre en forme
         return key

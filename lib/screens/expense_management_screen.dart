@@ -27,6 +27,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen>
   bool _hasMore = true;
   late bool _showPendingOnly;
   late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -45,12 +46,14 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen>
         _loadExpenses(refresh: true);
       }
     });
+    _scrollController.addListener(_onScroll);
     _loadExpenses();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -122,6 +125,15 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen>
               ErrorMessageHelper.getOperationError('charger', error: e);
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && _hasMore) {
+        _loadExpenses();
       }
     }
   }
@@ -746,11 +758,11 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen>
                         : RefreshIndicator(
                             onRefresh: () => _loadExpenses(refresh: true),
                             child: ListView.builder(
-                              itemCount: _expenses.length + (_hasMore ? 1 : 0),
+                              controller: _scrollController,
+                              itemCount: _expenses.length +
+                                  ((_hasMore && _isLoading) ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (index == _expenses.length) {
-                                  // Charger plus
-                                  _loadExpenses();
                                   return const Center(
                                     child: Padding(
                                       padding: EdgeInsets.all(16.0),

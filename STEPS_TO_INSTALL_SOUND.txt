@@ -1,0 +1,30 @@
+🔊 INSTALLATION DU SON DE NOTIFICATION - 3 ÉTAPES SIMPLES
+==============================================================
+
+✅ Le code est déjà configuré pour utiliser le son personnalisé !
+
+📋 VOUS DEVEZ FAIRE :
+
+1️⃣ Télécharger le fichier
+   👉 Allez sur : https://pixabay.com/fr/sound-effects/new-notification-1-398650/
+   👉 Cliquez sur "Téléchargement gratuit"
+   
+2️⃣ Préparer le fichier
+   👉 Renommez-le en : notification.mp3
+   👉 Placez-le dans : /Users/mouhamadoulaminefaye/Desktop/PROJETS DEV/mobile_dev/artluxurybus/
+   
+3️⃣ Installer avec le script
+   Ouvrez un terminal et tapez :
+   
+   cd /Users/mouhamadoulaminefaye/Desktop/PROJETS\ DEV/mobile_dev/artluxurybus
+   ./install_notification_sound.sh
+   
+   Puis rebuilder l'app :
+   
+   flutter clean
+   flutter pub get
+   flutter run
+
+C'EST TOUT ! 🎉
+
+📖 Pour plus de détails, voir : INSTALLATION_SON_NOTIFICATION.md

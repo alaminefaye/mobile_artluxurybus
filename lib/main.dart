@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'providers/auth_provider.dart';
+import 'providers/notification_provider.dart';
 import 'providers/theme_provider.dart' as theme_provider;
 import 'providers/language_provider.dart';
 import 'services/translation_service.dart';
@@ -245,9 +246,13 @@ class _MyAppState extends ConsumerState<MyApp> {
   /// Écouter les clics sur les notifications quand l'app est ouverte
   void _setupNotificationListener() {
     NotificationService.notificationStream?.listen((notification) {
-      if (notification['type'] == 'tap' ||
-          notification['type'] == 'local_tap') {
+      final type = notification['type'];
+      if (type == 'tap' || type == 'local_tap') {
         _handleNotificationNavigation(notification);
+      } else if (type == 'foreground') {
+        try {
+          ref.read(notificationProvider.notifier).refresh();
+        } catch (_) {}
       }
     });
   }

@@ -98,9 +98,10 @@ class AuthService {
       // Utiliser ErrorMessageHelper pour convertir l'erreur technique en message user-friendly
       final userFriendlyError = ErrorMessageHelper.getUserFriendlyError(
         e,
-        defaultMessage: 'Impossible de se connecter. Vérifiez vos identifiants et votre connexion internet.',
+        defaultMessage:
+            'Impossible de se connecter. Vérifiez vos identifiants et votre connexion internet.',
       );
-      
+
       return AuthResponse(
         success: false,
         message: userFriendlyError,
@@ -166,16 +167,20 @@ class AuthService {
         if (data['success'] == true) {
           // L'API retourne les données directement dans 'data', pas dans 'data.user'
           final userData = data['data'];
-          debugPrint('📥 [AuthService] Données utilisateur reçues: ${userData.keys}');
-          debugPrint('📥 [AuthService] Rôle: ${userData['role']}, Roles: ${userData['roles']}, Permissions: ${userData['permissions']?.length ?? 0}');
+          debugPrint(
+              '📥 [AuthService] Données utilisateur reçues: ${userData.keys}');
+          debugPrint(
+              '📥 [AuthService] Rôle: ${userData['role']}, Roles: ${userData['roles']}, Permissions: ${userData['permissions']?.length ?? 0}');
           return User.fromJson(userData);
         }
       } else {
-        debugPrint('❌ [AuthService] Erreur HTTP ${response.statusCode}: ${response.body}');
+        debugPrint(
+            '❌ [AuthService] Erreur HTTP ${response.statusCode}: ${response.body}');
       }
       return null;
     } catch (e) {
-      debugPrint('❌ [AuthService] Exception lors de la récupération du profil: $e');
+      debugPrint(
+          '❌ [AuthService] Exception lors de la récupération du profil: $e');
       return null;
     }
   }
@@ -226,35 +231,38 @@ class AuthService {
     try {
       // Convertir les données utilisateur en User
       final user = User.fromJson(userData);
-      
+
       // Créer AuthData
       final authData = AuthData(
         user: user,
         token: token,
         tokenType: tokenType,
       );
-      
+
       // Sauvegarder les données
       await _saveAuthData(authData);
-      
+
       // Définir le token dans FeedbackApiService
       FeedbackApiService.setToken(token);
-      
+
       // Enregistrer le token FCM sur le serveur
       try {
-        debugPrint('🔔 [AuthService] Enregistrement token FCM après inscription...');
+        debugPrint(
+            '🔔 [AuthService] Enregistrement token FCM après inscription...');
         final registered = await NotificationService.registerTokenOnServer();
         if (registered) {
           debugPrint('✅ [AuthService] Token FCM enregistré avec succès');
         } else {
-          debugPrint('⚠️ [AuthService] Token FCM non enregistré (normal si pas encore généré)');
+          debugPrint(
+              '⚠️ [AuthService] Token FCM non enregistré (normal si pas encore généré)');
         }
       } catch (e) {
         debugPrint('❌ [AuthService] Erreur enregistrement FCM: $e');
         // Continuer même en cas d'erreur FCM
       }
     } catch (e) {
-      debugPrint('❌ [AuthService] Erreur lors de la sauvegarde des données d\'inscription: $e');
+      debugPrint(
+          '❌ [AuthService] Erreur lors de la sauvegarde des données d\'inscription: $e');
       rethrow;
     }
   }
@@ -462,13 +470,68 @@ class AuthService {
     }
   }
 
+  // Supprimer le compte utilisateur définitivement
+  Future<Map<String, dynamic>> deleteAccount({
+    required String password,
+    required String confirmation,
+  }) async {
+    try {
+      final headers = await _authHeaders;
+      final uri = Uri.parse('${ApiConfig.baseUrl}/auth/delete-account');
+
+      debugPrint('🗑️ [AuthService] Suppression du compte: $uri');
+      final response = await http
+          .delete(
+            uri,
+            headers: headers,
+            body: json.encode({
+              'password': password,
+              'confirmation': confirmation,
+            }),
+          )
+          .timeout(ApiConfig.requestTimeout);
+      debugPrint('📡 [AuthService] Status: ${response.statusCode}');
+      debugPrint('📄 [AuthService] Response: ${response.body}');
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && (data['success'] == true)) {
+        await _clearAuthData();
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Compte supprimé avec succès',
+        };
+      } else if (response.statusCode == 403) {
+        return {
+          'success': false,
+          'message': data['message'] ?? 'Accès non autorisé',
+        };
+      } else {
+        return {
+          'success': false,
+          'message':
+              data['message'] ?? 'Erreur lors de la suppression du compte',
+          'errors': data['errors'],
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': ErrorMessageHelper.getUserFriendlyError(
+          e,
+          defaultMessage:
+              'Impossible de supprimer le compte. Veuillez réessayer.',
+        ),
+      };
+    }
+  }
+
   // Vérifier si l'utilisateur connecté est un administrateur
   Future<bool> isUserAdmin() async {
     try {
       final user = await getSavedUser();
       if (user == null) return false;
 
-      // Vérifier le rôle ou les permissions
       return user.role == 'Super Admin' ||
           user.role == 'Admin' ||
           user.role == 'chef agence' ||

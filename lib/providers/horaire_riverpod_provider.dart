@@ -58,24 +58,38 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
   Future<bool> _isUserAdmin() async {
     try {
       final user = await _authService.getSavedUser();
-      debugPrint('👤 [HoraireProvider] Utilisateur connecté: ${user?.name} (role: ${user?.role})');
-      
+      debugPrint(
+          '👤 [HoraireProvider] Utilisateur connecté: ${user?.name} (role: ${user?.role})');
+
       if (user == null) {
         debugPrint('🔐 [HoraireProvider] Pas d\'utilisateur connecté');
         return false;
       }
-      
+
       // Vérifier le rôle ou les permissions directement
       final roleLower = (user.role ?? '').trim().toLowerCase();
       final roles = user.roles ?? [];
       final rolesLower = roles.map((r) => r.trim().toLowerCase()).toList();
-      final matchesChefAgence = roleLower.contains('chef agence') || roleLower.contains('chef_agence') || roleLower.contains('chef d agence') || roleLower.contains("chef d'agence") || rolesLower.any((r) => r.contains('chef agence') || r.contains('chef_agence') || r.contains('chef d agence') || r.contains("chef d'agence"));
-      final matchesAdmin = roleLower.contains('super admin') || roleLower.contains('admin') || rolesLower.any((r) => r.contains('super admin') || r.contains('admin'));
-      final hasPermission = user.permissions?.any((p) => p.toLowerCase() == 'manage_horaires') ?? false;
+      final matchesChefAgence = roleLower.contains('chef agence') ||
+          roleLower.contains('chef_agence') ||
+          roleLower.contains('chef d agence') ||
+          roleLower.contains("chef d'agence") ||
+          rolesLower.any((r) =>
+              r.contains('chef agence') ||
+              r.contains('chef_agence') ||
+              r.contains('chef d agence') ||
+              r.contains("chef d'agence"));
+      final matchesAdmin = roleLower.contains('super admin') ||
+          roleLower.contains('admin') ||
+          rolesLower
+              .any((r) => r.contains('super admin') || r.contains('admin'));
+      final hasPermission =
+          user.permissions?.any((p) => p.toLowerCase() == 'manage_horaires') ??
+              false;
       final isAdmin = matchesAdmin || matchesChefAgence || hasPermission;
-      
+
       debugPrint('🔐 [HoraireProvider] Résultat isUserAdmin(): $isAdmin');
-      
+
       return isAdmin;
     } catch (e) {
       debugPrint('❌ [HoraireProvider] Erreur détection admin: $e');
@@ -87,7 +101,8 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
   void startAutoRefresh() {
     _autoRefreshTimer?.cancel();
     _autoRefreshTimer = Timer.periodic(
-      const Duration(seconds: 90), // Augmenté de 30s à 90s pour éviter le rate limiting
+      const Duration(
+          seconds: 90), // Augmenté de 30s à 90s pour éviter le rate limiting
       (_) => fetchTodayHoraires(silent: true),
     );
   }
@@ -134,17 +149,19 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
 
     try {
       debugPrint('🔄 [HoraireProvider] Début récupération des horaires...');
-      
+
       // Vérifier si l'utilisateur est admin
       final isAdmin = await _isUserAdmin();
       debugPrint('👤 [HoraireProvider] Utilisateur admin: $isAdmin');
-      
+
       if (isAdmin) {
-        debugPrint('✅ [HoraireProvider] Mode ADMIN - Récupération de TOUS les horaires');
+        debugPrint(
+            '✅ [HoraireProvider] Mode ADMIN - Récupération de TOUS les horaires');
         // ✅ ADMIN: Récupérer TOUS les horaires (sans filtre par device_id)
         final allHoraires = await _service.fetchAllHoraires();
-        debugPrint('📊 [HoraireProvider] Horaires récupérés (admin): ${allHoraires.length}');
-        
+        debugPrint(
+            '📊 [HoraireProvider] Horaires récupérés (admin): ${allHoraires.length}');
+
         // Grouper par gare pour compatibilité
         Map<String, List<Horaire>> grouped = {};
         for (final horaire in allHoraires) {
@@ -162,26 +179,29 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
           error: null,
         );
       } else {
-        debugPrint('🔒 [HoraireProvider] Mode PUBLIC - Filtrage par UUID OU device_id (logique OR)');
+        debugPrint(
+            '🔒 [HoraireProvider] Mode PUBLIC - Filtrage par UUID OU device_id (logique OR)');
         // 🔒 UTILISATEUR PUBLIC: Filtrer par UUID en priorité, device_id en fallback
         final deviceInfoService = DeviceInfoService();
         final uuid = await deviceInfoService.getUuid();
-        final deviceId = await DeviceService.getDeviceId(); // Fallback si UUID pas disponible
+        final deviceId = await DeviceService
+            .getDeviceId(); // Fallback si UUID pas disponible
         debugPrint('🔑 [HoraireProvider] UUID: $uuid');
         debugPrint('📱 [HoraireProvider] Device ID (fallback): $deviceId');
-        
+
         // ✅ LOGIQUE OR: Utiliser UUID en priorité, device_id si UUID pas disponible
         final grouped = await _service.fetchTodayHoraires(
           uuid: uuid.isNotEmpty ? uuid : null,
           deviceId: uuid.isEmpty && deviceId.isNotEmpty ? deviceId : null,
         );
-        
+
         // Aplatir pour avoir aussi une liste simple
         final allHoraires = <Horaire>[];
         grouped.forEach((gare, horaires) {
           allHoraires.addAll(horaires);
         });
-        debugPrint('📊 [HoraireProvider] Horaires récupérés (public): ${allHoraires.length}');
+        debugPrint(
+            '📊 [HoraireProvider] Horaires récupérés (public): ${allHoraires.length}');
 
         state = state.copyWith(
           horairesGrouped: grouped,
@@ -224,7 +244,8 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
   }
 
   // Récupérer les horaires par appareil
-  Future<void> fetchHorairesByAppareil(String appareil, {bool silent = false}) async {
+  Future<void> fetchHorairesByAppareil(String appareil,
+      {bool silent = false}) async {
     if (!silent) {
       state = state.copyWith(isLoading: true, error: null);
     }
@@ -249,7 +270,8 @@ class HoraireNotifier extends StateNotifier<HoraireState> {
 }
 
 // Provider principal des horaires
-final horaireProvider = StateNotifierProvider<HoraireNotifier, HoraireState>((ref) {
+final horaireProvider =
+    StateNotifierProvider<HoraireNotifier, HoraireState>((ref) {
   final service = ref.watch(horaireServiceProvider);
   return HoraireNotifier(service);
 });
@@ -286,8 +308,6 @@ final horairesTerminesProvider = Provider<List<Horaire>>((ref) {
 final prochainsDepartsProvider = Provider<List<Horaire>>((ref) {
   final horaires = ref.watch(horairesListProvider);
   // Afficher TOUS les départs actifs de la journée (même terminés)
-  return horaires
-      .where((h) => h.actif)
-      .toList()
+  return horaires.where((h) => h.actif).toList()
     ..sort((a, b) => a.heure.compareTo(b.heure));
 });
