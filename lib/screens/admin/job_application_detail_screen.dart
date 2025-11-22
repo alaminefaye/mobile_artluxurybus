@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
+import '../../theme/app_theme.dart';
 
 class JobApplicationDetailScreen extends StatelessWidget {
   final Map<String, dynamic> details;
@@ -12,14 +13,22 @@ class JobApplicationDetailScreen extends StatelessWidget {
     final statusText = details['status_text'] ?? details['status'] ?? '—';
     final motivationUrl = details['motivation_letter_url'] as String?;
     final cvUrl = details['cv_url'] as String?;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Détails de la candidature"),
-          bottom: const TabBar(
-            tabs: [
+          backgroundColor:
+              isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          bottom: TabBar(
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            tabs: const [
               Tab(icon: Icon(Icons.description), text: 'Lettre de motivation'),
               Tab(icon: Icon(Icons.picture_as_pdf), text: 'CV'),
             ],

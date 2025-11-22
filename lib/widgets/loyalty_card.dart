@@ -728,7 +728,7 @@ class _DeparturesBoardCarouselState extends State<_DeparturesBoardCarousel>
   Timer? _carouselTimer;
   late AnimationController _busAnimationController;
   late Animation<double> _busAnimation;
-  static const int _itemsPerPage = 7;
+  static const int _itemsPerPage = 4;
   static const Duration _pageDuration = Duration(seconds: 15);
 
   @override

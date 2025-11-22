@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import '../models/attendance_models.dart';
+import '../models/employee_presence_today.dart';
 import '../utils/api_config.dart';
 import 'auth_service.dart';
 
@@ -68,7 +69,8 @@ class AttendanceApiService {
         throw Exception('Token d\'authentification manquant');
       }
 
-      var url = '${ApiConfig.baseUrl}/attendance/my-attendances?per_page=$perPage&page=$page';
+      var url =
+          '${ApiConfig.baseUrl}/attendance/my-attendances?per_page=$perPage&page=$page';
       if (startDate != null) {
         url += '&start_date=$startDate';
       }
@@ -189,6 +191,90 @@ class AttendanceApiService {
             .toList();
       } else {
         throw Exception('Erreur lors de la récupération des locations');
+      }
+    } catch (e) {
+      throw Exception('Erreur: $e');
+    }
+  }
+
+  /// Obtenir la présence des employés aujourd'hui (admin/RH)
+  static Future<List<EmployeePresenceToday>> getTodayEmployeesPresence(
+      {String? search,
+      String? position,
+      int page = 1,
+      int perPage = 50}) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        throw Exception('Token d\'authentification manquant');
+      }
+
+      var url =
+          '${ApiConfig.baseUrl}/attendance/admin/today?per_page=$perPage&page=$page';
+      if (search != null && search.trim().isNotEmpty) {
+        final q = Uri.encodeQueryComponent(search.trim());
+        url += '&search=$q';
+      }
+      if (position != null && position.trim().isNotEmpty) {
+        final p = Uri.encodeQueryComponent(position.trim());
+        url += '&position=$p';
+      }
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> items = (data['data'] ??
+            data['employees'] ??
+            data['list'] ??
+            []) as List<dynamic>;
+        return items
+            .map((e) =>
+                EmployeePresenceToday.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else if (response.statusCode == 403) {
+        throw Exception(
+            'Accès non autorisé. Réservé aux Super Admin, Admin et RH.');
+      } else {
+        throw Exception(
+            'Erreur lors de la récupération des présences (${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Erreur: $e');
+    }
+  }
+
+  /// Obtenir la liste des postes disponibles (admin/RH)
+  static Future<List<String>> getPositions() async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        throw Exception('Token d\'authentification manquant');
+      }
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/attendance/admin/positions'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> positions = data['data'] ?? [];
+        return positions.cast<String>().toList();
+      } else if (response.statusCode == 403) {
+        throw Exception('Accès non autorisé.');
+      } else {
+        throw Exception(
+            'Erreur lors de la récupération des postes (${response.statusCode})');
       }
     } catch (e) {
       throw Exception('Erreur: $e');

@@ -51,7 +51,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Charger les notifications
   Future<void> loadNotifications({bool refresh = false}) async {
     _log.info('🔄 [PROVIDER] Chargement notifications (refresh: $refresh)');
-    
+
     if (refresh) {
       _log.info('🗑️ [PROVIDER] Vidage du cache...');
       state = state.copyWith(
@@ -73,27 +73,33 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       );
 
       _log.info('📡 [PROVIDER] Réponse API: success=${response.success}');
-      _log.info('📋 [PROVIDER] Nombre de notifications: ${response.notifications.length}');
-      
+      _log.info(
+          '📋 [PROVIDER] Nombre de notifications: ${response.notifications.length}');
+
       // Log détaillé pour vérifier le statut is_read
       if (response.notifications.isNotEmpty) {
         final readCount = response.notifications.where((n) => n.isRead).length;
-        final unreadCount = response.notifications.where((n) => !n.isRead).length;
-        _log.info('📊 [PROVIDER] Notifications lues: $readCount, Non lues: $unreadCount');
+        final unreadCount =
+            response.notifications.where((n) => !n.isRead).length;
+        _log.info(
+            '📊 [PROVIDER] Notifications lues: $readCount, Non lues: $unreadCount');
         // Log les 3 premières notifications pour debug
         for (var i = 0; i < response.notifications.length && i < 3; i++) {
           final notif = response.notifications[i];
-          _log.info('   - Notification ${notif.id}: isRead=${notif.isRead}, readAt=${notif.readAt}');
+          _log.info(
+              '   - Notification ${notif.id}: isRead=${notif.isRead}, readAt=${notif.readAt}');
         }
       }
 
       if (response.success) {
-        final newNotifications = refresh 
-          ? response.notifications
-          : [...state.notifications, ...response.notifications];
+        final newNotifications = refresh
+            ? response.notifications
+            : [...state.notifications, ...response.notifications];
 
-        _log.info('✅ [PROVIDER] Mise à jour: ${newNotifications.length} notifications');
-        _log.info('🔢 [PROVIDER] UnreadCount depuis API: ${response.unreadCount}');
+        _log.info(
+            '✅ [PROVIDER] Mise à jour: ${newNotifications.length} notifications');
+        _log.info(
+            '🔢 [PROVIDER] UnreadCount depuis API: ${response.unreadCount}');
 
         state = state.copyWith(
           notifications: newNotifications,
@@ -109,7 +115,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'charger',
           error: response.message,
-          customMessage: 'Impossible de charger les notifications. Veuillez réessayer.',
+          customMessage:
+              'Impossible de charger les notifications. Veuillez réessayer.',
         );
         state = state.copyWith(
           isLoading: false,
@@ -117,11 +124,13 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         );
       }
     } catch (e) {
-      _log.severe('❌ [PROVIDER] Exception lors du chargement des notifications', e);
+      _log.severe(
+          '❌ [PROVIDER] Exception lors du chargement des notifications', e);
       final errorMessage = ErrorMessageHelper.getOperationError(
         'charger',
         error: e,
-        customMessage: 'Impossible de charger les notifications. Vérifiez votre connexion et réessayez.',
+        customMessage:
+            'Impossible de charger les notifications. Vérifiez votre connexion et réessayez.',
       );
       state = state.copyWith(
         isLoading: false,
@@ -139,31 +148,32 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Marquer une notification comme lue
   Future<void> markAsRead(int notificationId) async {
     try {
-      _log.info('🔔 [PROVIDER] Tentative de marquer notification $notificationId comme lue');
-      
+      _log.info(
+          '🔔 [PROVIDER] Tentative de marquer notification $notificationId comme lue');
+
       final result = await NotificationApiService.markAsRead(notificationId);
-      
+
       _log.info('📡 [PROVIDER] Résultat: ${result['success']}');
       _log.info("📄 [PROVIDER] Message: ${result['message']}");
-      
+
       if (result['success']) {
         _log.info('✅ [PROVIDER] Succès! Mise à jour locale...');
-        
+
         // Utiliser les données retournées par l'API si disponibles
         final notificationData = result['data'];
         NotificationModel? updatedNotification;
-        
+
         if (notificationData != null && notificationData is Map) {
           try {
             updatedNotification = NotificationModel.fromJson(
-              Map<String, dynamic>.from(notificationData)
-            );
-            _log.info('✅ [PROVIDER] Notification mise à jour depuis l\'API: isRead=${updatedNotification.isRead}');
+                Map<String, dynamic>.from(notificationData));
+            _log.info(
+                '✅ [PROVIDER] Notification mise à jour depuis l\'API: isRead=${updatedNotification.isRead}');
           } catch (e) {
             _log.warning('⚠️ [PROVIDER] Erreur parsing notification API: $e');
           }
         }
-        
+
         // Mettre à jour localement avec les données de l'API ou créer une mise à jour manuelle
         final updatedNotifications = state.notifications.map((notif) {
           if (notif.id == notificationId) {
@@ -188,14 +198,16 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         }).toList();
 
         // Calculer le nouveau compteur en fonction des notifications mises à jour
-        final newUnreadCount = updatedNotifications.where((n) => !n.isRead).length;
+        final newUnreadCount =
+            updatedNotifications.where((n) => !n.isRead).length;
 
         state = state.copyWith(
           notifications: updatedNotifications,
           unreadCount: newUnreadCount,
         );
-        
-        _log.info('✅ [PROVIDER] État mis à jour. Nouveau compteur: $newUnreadCount');
+
+        _log.info(
+            '✅ [PROVIDER] État mis à jour. Nouveau compteur: $newUnreadCount');
       } else {
         _log.warning("❌ [PROVIDER] Échec: ${result['message']}");
       }
@@ -210,7 +222,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> markAllAsRead() async {
     try {
       final result = await NotificationApiService.markAllAsRead();
-      
+
       if (result['success']) {
         final updatedNotifications = state.notifications.map((notif) {
           if (!notif.isRead) {
@@ -241,8 +253,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Supprimer une notification
   Future<void> deleteNotification(int notificationId) async {
     try {
-      final result = await NotificationApiService.deleteNotification(notificationId);
-      
+      final result =
+          await NotificationApiService.deleteNotification(notificationId);
+
       if (result['success']) {
         final updatedNotifications = state.notifications
             .where((notif) => notif.id != notificationId)
@@ -250,10 +263,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
         final deletedNotif = state.notifications
             .firstWhere((notif) => notif.id == notificationId);
-        
-        final newUnreadCount = deletedNotif.isRead 
-          ? state.unreadCount 
-          : (state.unreadCount > 0 ? state.unreadCount - 1 : 0);
+
+        final newUnreadCount = deletedNotif.isRead
+            ? state.unreadCount
+            : (state.unreadCount > 0 ? state.unreadCount - 1 : 0);
 
         state = state.copyWith(
           notifications: updatedNotifications,
@@ -264,7 +277,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       final errorMessage = ErrorMessageHelper.getOperationError(
         'supprimer',
         error: e,
-        customMessage: 'Impossible de supprimer la notification. Veuillez réessayer.',
+        customMessage:
+            'Impossible de supprimer la notification. Veuillez réessayer.',
       );
       state = state.copyWith(error: errorMessage);
     }
@@ -273,38 +287,43 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   /// Supprimer toutes les notifications
   Future<void> deleteAllNotifications() async {
     try {
-      _log.info('🗑️ [PROVIDER] Tentative de suppression de toutes les notifications');
-      
+      _log.info(
+          '🗑️ [PROVIDER] Tentative de suppression de toutes les notifications');
+
       final result = await NotificationApiService.deleteAllNotifications();
-      
+
       _log.info('📡 [PROVIDER] Résultat: ${result['success']}');
       _log.info("📄 [PROVIDER] Message: ${result['message']}");
-      
+
       if (result['success']) {
-        _log.info('✅ [PROVIDER] Suppression réussie! Mise à jour de l\'état...');
-        
+        _log.info(
+            '✅ [PROVIDER] Suppression réussie! Mise à jour de l\'état...');
+
         // Mettre à jour l'état localement
         state = state.copyWith(
           notifications: [],
           unreadCount: 0,
           error: null,
         );
-        
+
         _log.info('✅ [PROVIDER] État mis à jour - notifications vidées');
       } else {
         _log.warning("❌ [PROVIDER] Échec: ${result['message']}");
         final errorMessage = ErrorMessageHelper.getUserFriendlyError(
           result['message'],
-          defaultMessage: 'Impossible de supprimer toutes les notifications. Veuillez réessayer.',
+          defaultMessage:
+              'Impossible de supprimer toutes les notifications. Veuillez réessayer.',
         );
         state = state.copyWith(error: errorMessage);
       }
     } catch (e, stackTrace) {
-      _log.severe('❌ [PROVIDER] Exception lors de la suppression', e, stackTrace);
+      _log.severe(
+          '❌ [PROVIDER] Exception lors de la suppression', e, stackTrace);
       final errorMessage = ErrorMessageHelper.getOperationError(
         'supprimer',
         error: e,
-        customMessage: 'Impossible de supprimer les notifications. Veuillez réessayer.',
+        customMessage:
+            'Impossible de supprimer les notifications. Veuillez réessayer.',
       );
       state = state.copyWith(error: errorMessage);
     }
@@ -324,11 +343,11 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       // Gestion d'erreur silencieuse pour ne pas perturber l'UX
     }
   }
-
 }
 
 /// Provider pour les notifications
-final notificationProvider = StateNotifierProvider<NotificationNotifier, NotificationState>(
+final notificationProvider =
+    StateNotifierProvider<NotificationNotifier, NotificationState>(
   (ref) => NotificationNotifier(),
 );
 
@@ -337,36 +356,36 @@ final notificationProvider = StateNotifierProvider<NotificationNotifier, Notific
 final unreadNotificationCountProvider = Provider<int>((ref) {
   final notificationState = ref.watch(notificationProvider);
   final authState = ref.watch(authProvider);
-  
+
   // Si pas d'utilisateur connecté, retourner 0
   if (authState.user == null) {
     return 0;
   }
-  
+
   final user = authState.user!;
-  
+
   // Vérifier si l'utilisateur a le rôle Pointage ou Client
   bool hasAttendanceRole = false;
   bool isClient = false;
-  
+
   // 1. Vérifier d'abord le rôle (si présent)
   if (user.role != null) {
     final roleLower = user.role!.toLowerCase();
-    
+
     // Si c'est un admin, ne pas filtrer
-    if (roleLower.contains('admin') || 
+    if (roleLower.contains('admin') ||
         roleLower.contains('super') ||
         roleLower.contains('administrateur')) {
       return notificationState.unreadCount;
     }
-    
+
     // Si c'est un client, filtrer les notifications de feedback
     if (roleLower.contains('client')) {
       isClient = true;
     }
-    
+
     // Si c'est un rôle pointage
-    if (roleLower.contains('pointage') || 
+    if (roleLower.contains('pointage') ||
         roleLower.contains('attendance') ||
         roleLower.contains('employee') ||
         roleLower.contains('employé') ||
@@ -374,26 +393,26 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
       hasAttendanceRole = true;
     }
   }
-  
+
   // 2. Si pas de rôle, vérifier les permissions
   if (user.permissions != null && user.permissions!.isNotEmpty) {
     // Vérifier si l'utilisateur a des permissions admin
     for (var permission in user.permissions!) {
       final permLower = permission.toLowerCase();
-      if (permLower.contains('manage_all') || 
+      if (permLower.contains('manage_all') ||
           permLower.contains('admin') ||
           permLower.contains('super')) {
         return notificationState.unreadCount;
       }
     }
-    
+
     // Vérifier si l'utilisateur a UNIQUEMENT des permissions de pointage
     bool hasOnlyAttendancePermissions = true;
     for (var permission in user.permissions!) {
       final permLower = permission.toLowerCase();
-      
+
       // Si la permission n'est pas liée au pointage/attendance, c'est un utilisateur normal
-      if (!permLower.contains('attendance') && 
+      if (!permLower.contains('attendance') &&
           !permLower.contains('pointage') &&
           !permLower.contains('qr') &&
           !permLower.contains('scan') &&
@@ -405,25 +424,52 @@ final unreadNotificationCountProvider = Provider<int>((ref) {
         break;
       }
     }
-    
+
     if (hasOnlyAttendancePermissions) {
       hasAttendanceRole = true;
     }
   }
-  
-  // Si c'est un utilisateur Pointage OU Client, filtrer les notifications de feedback
+
+  // Si c'est un utilisateur Pointage OU Client, filtrer les notifications
   if (hasAttendanceRole || isClient) {
-    final filteredNotifications = notificationState.notifications.where((notif) {
-      return !notif.isRead && 
-             notif.type != 'feedback' && 
-             notif.type != 'suggestion' &&
-             notif.type != 'new_feedback' &&
-             notif.type != 'urgent_feedback';
+    final allowedForClient = {
+      'new_ticket',
+      'ticket_created',
+      'new_mail_sender',
+      'new_mail_recipient',
+      'mail_created',
+      'mail_received',
+      'mail_collected',
+      'loyalty_point',
+      'loyalty',
+      'points',
+      'departure_time_changed',
+      'departure_modified',
+      'departure_updated',
+      'message_notification',
+      'message'
+    };
+
+    final filteredNotifications =
+        notificationState.notifications.where((notif) {
+      final typeLower = notif.type.toLowerCase();
+      // Exclure les feedback pour pointage et client
+      if (typeLower == 'feedback' ||
+          typeLower == 'suggestion' ||
+          typeLower == 'new_feedback' ||
+          typeLower == 'urgent_feedback') {
+        return false;
+      }
+      // Pour client: n'autoriser que certains types
+      if (isClient && !allowedForClient.contains(typeLower)) {
+        return false;
+      }
+      return !notif.isRead;
     }).length;
-    
+
     return filteredNotifications;
   }
-  
+
   // Pour les autres utilisateurs (admins), retourner le compteur complet
   return notificationState.unreadCount;
 });

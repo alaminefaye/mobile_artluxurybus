@@ -132,4 +132,22 @@ class JobApplicationApiService {
       throw Exception('Erreur: $e');
     }
   }
+
+  // Supprimer une candidature
+  static Future<bool> delete(int id) async {
+    try {
+      final uri = Uri.parse('$baseUrl/job-applications/$id');
+      final response = await http.delete(
+        uri,
+        headers: await _getHeaders(withAuth: true),
+      );
+      final data = json.decode(response.body);
+      if (response.statusCode == 200 && (data['success'] == true)) {
+        return true;
+      }
+      throw Exception(data['message'] ?? 'Suppression impossible');
+    } catch (e) {
+      throw Exception('Erreur: $e');
+    }
+  }
 }

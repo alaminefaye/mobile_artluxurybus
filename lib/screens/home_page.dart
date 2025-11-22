@@ -28,6 +28,7 @@ import 'auth/login_screen.dart';
 import 'feedback_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'attendance_history_screen.dart';
+import 'attendance_today_admin_screen.dart';
 import 'bus/bus_dashboard_screen.dart';
 import 'about_screen.dart';
 import 'voice_settings_screen.dart';
@@ -3969,6 +3970,47 @@ class _HomePageState extends ConsumerState<HomePage>
                         ],
                       ),
                       const SizedBox(height: 20),
+
+                      // Section Pointage (Super Admin, Admin, RH)
+                      if (_isSuperAdminAdminOrRH(user)) ...[
+                        _buildProfileSection(
+                          title: 'Pointage',
+                          icon: Icons.how_to_reg_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.group,
+                              title: 'Présences du jour',
+                              subtitle: 'Voir entrées/sorties et rechercher',
+                              color: Colors.teal,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AttendanceTodayAdminScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildModernProfileOption(
+                              icon: Icons.history,
+                              title: 'Historique de mon pointage',
+                              subtitle: 'Mes pointages personnels',
+                              color: Colors.blueGrey,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AttendanceHistoryScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
 
                       // Section Compte
                       _buildProfileSection(

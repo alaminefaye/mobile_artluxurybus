@@ -80,7 +80,8 @@ class _JobApplicationsListScreenState extends State<JobApplicationsListScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmer la suppression'),
-        content: const Text('Êtes-vous sûr de vouloir supprimer cette candidature ?'),
+        content: const Text(
+            'Êtes-vous sûr de vouloir supprimer cette candidature ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -102,22 +103,25 @@ class _JobApplicationsListScreenState extends State<JobApplicationsListScreen> {
 
   Future<void> _deleteJobApplication(int id) async {
     try {
-      // TODO: Ajouter l'endpoint de suppression côté backend
-      // Pour l'instant, on retire juste de la liste locale
-      setState(() {
-        _items.removeWhere((item) => item['id'] == id);
-      });
-      
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Candidature supprimée avec succès'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Recharger la liste
-      _load(page: 1, refresh: true);
+      final ok = await JobApplicationApiService.delete(id);
+      if (ok) {
+        setState(() {
+          _items.removeWhere((item) => item['id'] == id);
+        });
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Candidature supprimée avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Recharger la liste
+        _load(page: 1, refresh: true);
+      } else {
+        throw Exception('Suppression impossible');
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

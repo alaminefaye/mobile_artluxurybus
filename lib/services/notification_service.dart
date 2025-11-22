@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -35,6 +36,52 @@ class NotificationService {
   static StreamController<Map<String, dynamic>>? _notificationStreamController;
   static bool _bgHandlerRegistered = false;
   static String? _deviceId;
+  static bool _isClientUser = false;
+
+  // Types autorisés pour les clients
+  static const Set<String> _clientAllowedTypes = {
+    'new_ticket',
+    'ticket_created',
+    'new_mail_sender',
+    'new_mail_recipient',
+    'mail_created',
+    'mail_received',
+    'mail_collected',
+    'loyalty_point',
+    'loyalty',
+    'points',
+    'departure_time_changed',
+    'departure_modified',
+    'departure_updated',
+    'message_notification',
+    'message'
+  };
+
+  static void _updateUserRoleFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('user_data');
+      if (userJson != null && userJson.isNotEmpty) {
+        final Map<String, dynamic> userMap = jsonDecode(userJson);
+        final role = (userMap['role'] ?? '').toString().toLowerCase().trim();
+        _isClientUser = role.contains('client');
+        // Vérifier aussi dans roles listes
+        if (!_isClientUser) {
+          final roles = userMap['roles'];
+          if (roles is List) {
+            _isClientUser =
+                roles.any((r) => r.toString().toLowerCase().contains('client'));
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  static bool _isAllowedClientType(Map<String, dynamic> data) {
+    final type = (data['type'] ?? '').toString().toLowerCase().trim();
+    if (type.isEmpty) return true; // Si pas de type, ne pas bloquer
+    return _clientAllowedTypes.contains(type);
+  }
 
   // Stream pour écouter les notifications
   static Stream<Map<String, dynamic>>? get notificationStream =>
@@ -77,6 +124,9 @@ class NotificationService {
             '💾 [NotificationService] Device ID sauvegardé localement',
           );
         }
+
+        // Mettre à jour le rôle utilisateur local pour filtrage
+        _updateUserRoleFromPrefs();
       } catch (e) {
         debugPrint(
           '⚠️ [NotificationService] Erreur récupération Device ID: $e',
@@ -372,6 +422,9 @@ class NotificationService {
         uuid: uuid,
       );
 
+      // Mettre à jour le rôle utilisateur (au cas où l'utilisateur vient juste de se connecter)
+      _updateUserRoleFromPrefs();
+
       if (result['success'] == true) {
         debugPrint('✅ Token FCM enregistré avec succès sur le serveur');
       } else {
@@ -418,6 +471,13 @@ class NotificationService {
     debugPrint('   - Données: ${message.data}');
     debugPrint('   - Message ID: ${message.messageId}');
     debugPrint('   - Type: ${message.data['type']}');
+
+    // Filtrer pour les clients: ignorer les types non autorisés
+    if (_isClientUser && !_isAllowedClientType(message.data)) {
+      debugPrint(
+          '🚫 [NotificationService] Notification ignorée pour client. Type=${message.data['type']}');
+      return;
+    }
 
     // 🔊 Vérifier si c'est une annonce vocale UNIQUEMENT
     if (message.data['msg_type'] == 'annonce') {
@@ -574,6 +634,13 @@ class NotificationService {
     debugPrint('   - Titre: ${message.notification?.title}');
     debugPrint('   - Corps: ${message.notification?.body}');
     debugPrint('   - Données: ${message.data}');
+
+    // Filtrer pour les clients: ignorer les types non autorisés
+    if (_isClientUser && !_isAllowedClientType(message.data)) {
+      debugPrint(
+          '🚫 [NotificationService] (BG) Notification ignorée pour client. Type=${message.data['type']}');
+      return;
+    }
 
     // Les notifications avec 'notification' dans le payload sont affichées automatiquement par Firebase
     // Mais on peut aussi afficher une notification locale pour garantir l'affichage
