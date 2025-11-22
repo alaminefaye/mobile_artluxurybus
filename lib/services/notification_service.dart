@@ -664,7 +664,7 @@ class NotificationService {
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
-      sound: 'notification.mp3', // Son personnalisé iOS
+      sound: 'notification.caf', // Son personnalisé iOS (format CAF requis)
     );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
