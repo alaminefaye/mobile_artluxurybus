@@ -18,15 +18,18 @@ final feedbackStatsProvider = FutureProvider<FeedbackStats?>((ref) async {
 });
 
 // État pour la liste des feedbacks (admin seulement)
-final feedbackListProvider = FutureProvider.family<List<FeedbackModel>, Map<String, dynamic>>((ref, params) async {
+final feedbackListProvider =
+    FutureProvider.family<List<FeedbackModel>, Map<String, dynamic>>(
+        (ref, params) async {
   try {
     final result = await FeedbackApiService.getFeedbacks(
       page: params['page'] ?? 1,
       perPage: params['per_page'] ?? 15,
       status: params['status'],
       search: params['search'],
+      priority: params['priority'],
     );
-    
+
     if (result['success'] == true && result['data'] != null) {
       final List<dynamic> feedbacksList = result['data'];
       return feedbacksList.map((json) => FeedbackModel.fromJson(json)).toList();
@@ -54,7 +57,7 @@ class FeedbackNotifier extends StateNotifier<AsyncValue<String?>> {
     String? photoBase64,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final result = await FeedbackApiService.createFeedback(
         name: name,
@@ -70,7 +73,8 @@ class FeedbackNotifier extends StateNotifier<AsyncValue<String?>> {
       );
 
       if (result['success'] == true) {
-        state = AsyncValue.data(result['message'] ?? 'Suggestion envoyée avec succès');
+        state = AsyncValue.data(
+            result['message'] ?? 'Suggestion envoyée avec succès');
       } else {
         // Extraire un message d'erreur clair
         String errorMsg = result['message'] ?? 'Erreur lors de l\'envoi';
@@ -91,7 +95,8 @@ class FeedbackNotifier extends StateNotifier<AsyncValue<String?>> {
   }
 }
 
-final feedbackSubmissionProvider = StateNotifierProvider<FeedbackNotifier, AsyncValue<String?>>((ref) {
+final feedbackSubmissionProvider =
+    StateNotifierProvider<FeedbackNotifier, AsyncValue<String?>>((ref) {
   return FeedbackNotifier();
 });
 
@@ -99,7 +104,8 @@ final feedbackSubmissionProvider = StateNotifierProvider<FeedbackNotifier, Async
 class NotificationTokenNotifier extends StateNotifier<String?> {
   NotificationTokenNotifier() : super(null);
 
-  Future<void> registerToken(String token, {String? deviceType, String? deviceId}) async {
+  Future<void> registerToken(String token,
+      {String? deviceType, String? deviceId}) async {
     try {
       await FeedbackApiService.registerFcmToken(
         token,
@@ -114,6 +120,7 @@ class NotificationTokenNotifier extends StateNotifier<String?> {
   }
 }
 
-final notificationTokenProvider = StateNotifierProvider<NotificationTokenNotifier, String?>((ref) {
+final notificationTokenProvider =
+    StateNotifierProvider<NotificationTokenNotifier, String?>((ref) {
   return NotificationTokenNotifier();
 });

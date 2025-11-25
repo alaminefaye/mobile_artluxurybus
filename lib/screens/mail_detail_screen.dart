@@ -50,27 +50,31 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
     try {
       // Formater le numéro de téléphone pour WhatsApp
       String phone = _mail.recipientPhone;
-      
+
       // Ajouter l'indicatif +225 (Côte d'Ivoire) si nécessaire
       if (!phone.startsWith('+')) {
         phone = '+225$phone';
       }
-      
+
       // Nettoyer le numéro (supprimer les espaces et caractères non numériques sauf +)
-      phone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-      
+      phone = phone.split('').where((c) {
+        final code = c.codeUnitAt(0);
+        return c == '+' || (code >= 48 && code <= 57);
+      }).join();
+
       // Construire l'URL de suivi
       final trackingUrl = 'https://skf-artluxurybus.com/track/mail/${_mail.id}';
-      
+
       // Créer le message
-      final message = 'Bonjour, voici le lien pour suivre votre courrier ${_mail.mailNumber}: $trackingUrl';
-      
+      final message =
+          'Bonjour, voici le lien pour suivre votre courrier ${_mail.mailNumber}: $trackingUrl';
+
       // Encoder le message pour l'URL
       final encodedMessage = Uri.encodeComponent(message);
-      
+
       // Construire l'URL WhatsApp
       final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
-      
+
       // Ouvrir WhatsApp
       final uri = Uri.parse(whatsappUrl);
       if (await canLaunchUrl(uri)) {
@@ -114,15 +118,19 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                   const SizedBox(height: 24),
                   _buildInfoSection(t('mail_detail.general_info'), [
                     _buildInfoRow(t('mail_detail.number'), _mail.mailNumber),
-                    _buildInfoRow(t('mail_detail.destination'), _mail.destination),
-                    _buildInfoRow(t('mail_detail.receiving_agency'), _mail.receivingAgency),
+                    _buildInfoRow(
+                        t('mail_detail.destination'), _mail.destination),
+                    _buildInfoRow(t('mail_detail.receiving_agency'),
+                        _mail.receivingAgency),
                     _buildInfoRow(
                       t('mail_detail.amount'),
                       NumberFormat.currency(symbol: 'FCFA ', decimalDigits: 0)
                           .format(_mail.amount),
                     ),
-                    _buildInfoRow(t('mail_detail.package_type'), _mail.packageType),
-                    _buildInfoRow(t('mail_detail.package_value'), _mail.packageValue),
+                    _buildInfoRow(
+                        t('mail_detail.package_type'), _mail.packageType),
+                    _buildInfoRow(
+                        t('mail_detail.package_value'), _mail.packageValue),
                   ]),
                   const SizedBox(height: 24),
                   _buildInfoSection(t('mail_detail.sender'), [
@@ -154,7 +162,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                       DateFormat('dd/MM/yyyy à HH:mm').format(_mail.createdAt),
                     ),
                     if (_mail.createdByUser != null)
-                      _buildInfoRow(t('mail_detail.created_by'), _mail.createdByUser!.name),
+                      _buildInfoRow(t('mail_detail.created_by'),
+                          _mail.createdByUser!.name),
                     if (_mail.isCollected) ...[
                       _buildInfoRow(
                         t('mail_detail.collection_date'),
@@ -164,8 +173,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                             : 'N/A',
                       ),
                       if (_mail.collectedByUser != null)
-                        _buildInfoRow(
-                            t('mail_detail.collected_by'), _mail.collectedByUser!.name),
+                        _buildInfoRow(t('mail_detail.collected_by'),
+                            _mail.collectedByUser!.name),
                     ],
                   ]),
                   if (_mail.isCollected &&
@@ -176,12 +185,14 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                     const SizedBox(height: 24),
                     _buildInfoSection(t('mail_detail.collector_info'), [
                       if (_mail.collectorName != null)
-                        _buildInfoRow(t('mail_detail.full_name'), _mail.collectorName!),
-                      if (_mail.collectorPhone != null)
-                        _buildInfoRow(t('mail_detail.phone'), _mail.collectorPhone!),
-                      if (_mail.collectorIdCard != null)
                         _buildInfoRow(
-                            t('mail_detail.id_card_number'), _mail.collectorIdCard!),
+                            t('mail_detail.full_name'), _mail.collectorName!),
+                      if (_mail.collectorPhone != null)
+                        _buildInfoRow(
+                            t('mail_detail.phone'), _mail.collectorPhone!),
+                      if (_mail.collectorIdCard != null)
+                        _buildInfoRow(t('mail_detail.id_card_number'),
+                            _mail.collectorIdCard!),
                       if (_mail.collectorSignature != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -199,7 +210,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                   if (_mail.clientProfile != null) ...[
                     const SizedBox(height: 24),
                     _buildInfoSection(t('mail_detail.loyalty'), [
-                      _buildInfoRow(t('mail_detail.client'), _mail.clientProfile!.nom),
+                      _buildInfoRow(
+                          t('mail_detail.client'), _mail.clientProfile!.nom),
                       _buildInfoRow(
                         t('trips.loyalty_points'),
                         _mail.clientProfile!.points.toString(),
@@ -211,26 +223,29 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                     ]),
                   ],
                   const SizedBox(height: 32),
-                  
+
                   // Bouton WhatsApp pour envoyer le lien de suivi
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366), // Couleur WhatsApp
+                        backgroundColor:
+                            const Color(0xFF25D366), // Couleur WhatsApp
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 2,
                       ),
-                      onPressed: _isLoading ? null : _sendTrackingLinkViaWhatsApp,
+                      onPressed:
+                          _isLoading ? null : _sendTrackingLinkViaWhatsApp,
                       icon: const Icon(Icons.chat, size: 20),
                       label: Text(
                         t('mail_detail.send_tracking'),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
-                  
+
                   if (!_mail.isCollected) ...[
                     const SizedBox(height: 16),
                     SizedBox(
@@ -260,7 +275,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _mail.isCollected ? Colors.green.shade100 : Colors.orange.shade100,
+        color:
+            _mail.isCollected ? Colors.green.shade100 : Colors.orange.shade100,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: _mail.isCollected ? Colors.green : Colors.orange,
@@ -280,7 +296,9 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _mail.isCollected ? t('mail_detail.collected') : t('mail_detail.pending'),
+                  _mail.isCollected
+                      ? t('mail_detail.collected')
+                      : t('mail_detail.pending'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -412,7 +430,8 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                   top: 40,
                   right: 20,
                   child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                    icon:
+                        const Icon(Icons.close, color: Colors.white, size: 30),
                     onPressed: () => Navigator.pop(context),
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.black54,
@@ -451,12 +470,14 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'Photo non disponible',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                      style:
+                          TextStyle(color: Colors.grey.shade600, fontSize: 14),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       t('mail_detail.tap_to_retry'),
-                      style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                      style:
+                          TextStyle(color: Colors.grey.shade500, fontSize: 12),
                     ),
                   ],
                 ),

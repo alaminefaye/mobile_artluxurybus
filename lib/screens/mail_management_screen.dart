@@ -15,7 +15,8 @@ class MailManagementScreen extends ConsumerStatefulWidget {
   const MailManagementScreen({super.key});
 
   @override
-  ConsumerState<MailManagementScreen> createState() => _MailManagementScreenState();
+  ConsumerState<MailManagementScreen> createState() =>
+      _MailManagementScreenState();
 }
 
 class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
@@ -40,7 +41,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
 
   Future<void> _loadDashboard() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoadingDashboard = true;
       _dashboardError = null;
@@ -49,14 +50,14 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     try {
       final dashboard = await MailApiService.getDashboard();
       if (!mounted) return;
-      
+
       setState(() {
         _dashboard = dashboard;
         _isLoadingDashboard = false;
       });
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _dashboardError = e.toString();
         _isLoadingDashboard = false;
@@ -74,73 +75,74 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
       child: Scaffold(
         drawer: _buildDrawer(context),
         appBar: AppBar(
-        backgroundColor: Theme.of(context).brightness == Brightness.dark 
-            ? AppTheme.primaryOrange 
-            : AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        title: const Text(
-          'Gestion des Courriers',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? AppTheme.primaryOrange
+              : AppTheme.primaryBlue,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          title: const Text(
+            'Gestion des Courriers',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: false,
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 12,
+            ),
+            tabs: const [
+              Tab(icon: Icon(Icons.dashboard, size: 22), text: 'Stats'),
+              Tab(icon: Icon(Icons.pending_actions, size: 22), text: 'Attente'),
+              Tab(icon: Icon(Icons.check_circle, size: 22), text: 'Collectés'),
+              Tab(icon: Icon(Icons.list, size: 22), text: 'Tous'),
+            ],
           ),
         ),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          isScrollable: false,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 12,
-          ),
-          tabs: const [
-            Tab(icon: Icon(Icons.dashboard, size: 22), text: 'Stats'),
-            Tab(icon: Icon(Icons.pending_actions, size: 22), text: 'Attente'),
-            Tab(icon: Icon(Icons.check_circle, size: 22), text: 'Collectés'),
-            Tab(icon: Icon(Icons.list, size: 22), text: 'Tous'),
+          children: [
+            _buildDashboardTab(),
+            _buildMailListTab(
+                isCollected: false, tabController: _tabController),
+            _buildMailListTab(isCollected: true, tabController: _tabController),
+            _buildMailListTab(tabController: _tabController),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildDashboardTab(),
-          _buildMailListTab(isCollected: false, tabController: _tabController),
-          _buildMailListTab(isCollected: true, tabController: _tabController),
-          _buildMailListTab(tabController: _tabController),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CreateMailScreen(),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CreateMailScreen(),
+              ),
+            );
+            if (result == true) {
+              _loadDashboard();
+            }
+          },
+          backgroundColor: Colors.green.shade600,
+          foregroundColor: Colors.white,
+          elevation: 6,
+          icon: const Icon(Icons.add, size: 28),
+          label: const Text(
+            'Nouveau Courrier',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
-          );
-          if (result == true) {
-            _loadDashboard();
-          }
-        },
-        backgroundColor: Colors.green.shade600,
-        foregroundColor: Colors.white,
-        elevation: 6,
-        icon: const Icon(Icons.add, size: 28),
-        label: const Text(
-          'Nouveau Courrier',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
           ),
         ),
-      ),
       ),
     );
   }
@@ -159,8 +161,14 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark
-                    ? [AppTheme.primaryOrange, AppTheme.primaryOrange.withValues(alpha: 0.8)]
-                    : [AppTheme.primaryBlue, AppTheme.primaryBlue.withValues(alpha: 0.8)],
+                    ? [
+                        AppTheme.primaryOrange,
+                        AppTheme.primaryOrange.withValues(alpha: 0.8)
+                      ]
+                    : [
+                        AppTheme.primaryBlue,
+                        AppTheme.primaryBlue.withValues(alpha: 0.8)
+                      ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -248,7 +256,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
   void _showProfileDialog(BuildContext context) {
     final user = ref.read(authProvider).user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -296,7 +304,12 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey.shade600,
+            color: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.color
+                    ?.withValues(alpha: 0.6) ??
+                Colors.grey.shade600,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -340,10 +353,12 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Mot de passe actuel',
-                  labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  labelStyle: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600]),
                   prefixIcon: Icon(
                     Icons.lock_outline,
-                    color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                    color:
+                        isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                   ),
                 ),
                 obscureText: true,
@@ -354,10 +369,12 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Nouveau mot de passe',
-                  labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  labelStyle: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600]),
                   prefixIcon: Icon(
                     Icons.lock,
-                    color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                    color:
+                        isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                   ),
                 ),
                 obscureText: true,
@@ -368,10 +385,12 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Confirmer le mot de passe',
-                  labelStyle: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                  labelStyle: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[600]),
                   prefixIcon: Icon(
                     Icons.lock,
-                    color: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                    color:
+                        isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                   ),
                 ),
                 obscureText: true,
@@ -390,7 +409,8 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
+                backgroundColor:
+                    isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue,
                 foregroundColor: Colors.white,
               ),
               onPressed: isLoading
@@ -400,7 +420,8 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                           confirmPasswordController.text) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Les mots de passe ne correspondent pas'),
+                            content:
+                                Text('Les mots de passe ne correspondent pas'),
                             backgroundColor: Colors.orange,
                           ),
                         );
@@ -414,22 +435,25 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                         final result = await authService.changePassword(
                           currentPassword: currentPasswordController.text,
                           newPassword: newPasswordController.text,
-                          newPasswordConfirmation: confirmPasswordController.text,
+                          newPasswordConfirmation:
+                              confirmPasswordController.text,
                         );
-                        
+
                         if (context.mounted) {
                           if (result['success'] == true) {
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(result['message'] ?? 'Mot de passe changé avec succès'),
+                                content: Text(result['message'] ??
+                                    'Mot de passe changé avec succès'),
                                 backgroundColor: Colors.green,
                               ),
                             );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(result['message'] ?? 'Erreur lors du changement'),
+                                content: Text(result['message'] ??
+                                    'Erreur lors du changement'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -464,7 +488,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
 
   void _showLogoutDialog(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -569,7 +593,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardColor;
     final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
-    
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -579,7 +603,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: cardColor,
-          gradient: isDark 
+          gradient: isDark
               ? null
               : LinearGradient(
                   colors: [primaryColor.withValues(alpha: 0.1), cardColor],
@@ -599,7 +623,8 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                     color: primaryColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+                  child: const Icon(Icons.calendar_today,
+                      color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -643,7 +668,8 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.account_balance_wallet, color: Colors.green, size: 24),
+                const Icon(Icons.account_balance_wallet,
+                    color: Colors.green, size: 24),
                 const SizedBox(width: 8),
                 Text(
                   '${NumberFormat('#,###', 'fr_FR').format(period.revenue)} FCFA',
@@ -680,7 +706,12 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey,
+            color: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.color
+                    ?.withValues(alpha: 0.6) ??
+                Colors.grey,
           ),
         ),
       ],
@@ -694,7 +725,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = isDark ? AppTheme.primaryOrange : AppTheme.primaryBlue;
-    
+
     return Card(
       elevation: 2,
       child: Padding(
@@ -725,7 +756,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
                 ),
                 trailing: Chip(
                   label: Text('${dest.count}'),
-                  backgroundColor: isDark 
+                  backgroundColor: isDark
                       ? primaryColor.withValues(alpha: 0.3)
                       : primaryColor.withValues(alpha: 0.2),
                   labelStyle: TextStyle(
@@ -805,7 +836,7 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
 
   Widget _buildMailCard(MailModel mail) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
@@ -895,27 +926,31 @@ class _MailManagementScreenState extends ConsumerState<MailManagementScreen>
     try {
       // Formater le numéro de téléphone pour WhatsApp
       String phone = mail.recipientPhone;
-      
+
       // Ajouter l'indicatif +225 (Côte d'Ivoire) si nécessaire
       if (!phone.startsWith('+')) {
         phone = '+225$phone';
       }
-      
+
       // Nettoyer le numéro (supprimer les espaces et caractères non numériques sauf +)
-      phone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-      
+      phone = phone.split('').where((c) {
+        final code = c.codeUnitAt(0);
+        return c == '+' || (code >= 48 && code <= 57);
+      }).join();
+
       // Construire l'URL de suivi
       final trackingUrl = 'https://skf-artluxurybus.com/track/mail/${mail.id}';
-      
+
       // Créer le message
-      final message = 'Bonjour, voici le lien pour suivre votre courrier ${mail.mailNumber}: $trackingUrl';
-      
+      final message =
+          'Bonjour, voici le lien pour suivre votre courrier ${mail.mailNumber}: $trackingUrl';
+
       // Encoder le message pour l'URL
       final encodedMessage = Uri.encodeComponent(message);
-      
+
       // Construire l'URL WhatsApp
       final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
-      
+
       // Ouvrir WhatsApp
       final uri = Uri.parse(whatsappUrl);
       if (await canLaunchUrl(uri)) {
@@ -1023,7 +1058,7 @@ class _MailListViewState extends State<MailListView> {
       });
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -1060,7 +1095,7 @@ class _MailListViewState extends State<MailListView> {
       });
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
         _currentPage--;
@@ -1089,17 +1124,29 @@ class _MailListViewState extends State<MailListView> {
             decoration: InputDecoration(
               hintText: 'Rechercher un courrier...',
               hintStyle: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+                color: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.color
+                    ?.withValues(alpha: 0.5),
               ),
               prefixIcon: Icon(
                 Icons.search,
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                color: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.color
+                    ?.withValues(alpha: 0.6),
               ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
                       icon: Icon(
                         Icons.clear,
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withValues(alpha: 0.6),
                       ),
                       onPressed: () {
                         _searchController.clear();
@@ -1170,14 +1217,24 @@ class _MailListViewState extends State<MailListView> {
             Icon(
               Icons.inbox,
               size: 64,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.4) ?? Colors.grey.shade400,
+              color: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.color
+                      ?.withValues(alpha: 0.4) ??
+                  Colors.grey.shade400,
             ),
             const SizedBox(height: 16),
             Text(
               'Aucun courrier',
               style: TextStyle(
                 fontSize: 18,
-                color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey.shade600,
+                color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.6) ??
+                    Colors.grey.shade600,
               ),
             ),
           ],
@@ -1215,7 +1272,7 @@ class _MailListViewState extends State<MailListView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color;
     final subtitleColor = Theme.of(context).textTheme.bodyMedium?.color;
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       child: ListTile(
@@ -1276,7 +1333,12 @@ class _MailListViewState extends State<MailListView> {
                   DateFormat('dd/MM/yy').format(mail.createdAt),
                   style: TextStyle(
                     fontSize: 11,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6) ?? Colors.grey,
+                    color: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.color
+                            ?.withValues(alpha: 0.6) ??
+                        Colors.grey,
                   ),
                 ),
               ],
@@ -1318,27 +1380,31 @@ class _MailListViewState extends State<MailListView> {
     try {
       // Formater le numéro de téléphone pour WhatsApp
       String phone = mail.recipientPhone;
-      
+
       // Ajouter l'indicatif +225 (Côte d'Ivoire) si nécessaire
       if (!phone.startsWith('+')) {
         phone = '+225$phone';
       }
-      
+
       // Nettoyer le numéro (supprimer les espaces et caractères non numériques sauf +)
-      phone = phone.replaceAll(RegExp(r'[^0-9+]'), '');
-      
+      phone = phone.split('').where((c) {
+        final code = c.codeUnitAt(0);
+        return c == '+' || (code >= 48 && code <= 57);
+      }).join();
+
       // Construire l'URL de suivi
       final trackingUrl = 'https://skf-artluxurybus.com/track/mail/${mail.id}';
-      
+
       // Créer le message
-      final message = 'Bonjour, voici le lien pour suivre votre courrier ${mail.mailNumber}: $trackingUrl';
-      
+      final message =
+          'Bonjour, voici le lien pour suivre votre courrier ${mail.mailNumber}: $trackingUrl';
+
       // Encoder le message pour l'URL
       final encodedMessage = Uri.encodeComponent(message);
-      
+
       // Construire l'URL WhatsApp
       final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
-      
+
       // Ouvrir WhatsApp
       final uri = Uri.parse(whatsappUrl);
       if (await canLaunchUrl(uri)) {

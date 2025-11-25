@@ -277,7 +277,11 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                   t('client_search.phone_number_hint'),
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.7),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -333,7 +337,8 @@ class _ClientSearchScreenState extends State<ClientSearchScreen> {
                       return t('client_search.phone_required');
                     }
                     // Vérifier que ce sont bien des chiffres
-                    if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                    if (value.length != 10 ||
+                        value.codeUnits.any((c) => c < 48 || c > 57)) {
                       return t('client_search.phone_required');
                     }
                     return null;

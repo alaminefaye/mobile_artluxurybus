@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../services/translation_service.dart';
 import '../providers/feedback_provider.dart';
+import '../providers/auth_provider.dart';
 import '../utils/error_message_helper.dart';
 
 class FeedbackScreen extends ConsumerStatefulWidget {
@@ -79,6 +80,39 @@ class _FeedbackScreenState extends ConsumerState<FeedbackScreen> {
     'Abidjan - Yamoussoukro',
     'Bouaké - Yamoussoukro',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Pré-remplir les informations depuis le profil utilisateur
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefillUserInfo();
+    });
+  }
+
+  void _prefillUserInfo() {
+    final authState = ref.read(authProvider);
+    final user = authState.user;
+
+    if (user != null) {
+      // Pré-remplir le nom
+      if (user.name.isNotEmpty && _nameController.text.isEmpty) {
+        _nameController.text = user.name;
+      }
+
+      // Pré-remplir le téléphone
+      if (user.phoneNumber != null &&
+          user.phoneNumber!.isNotEmpty &&
+          _phoneController.text.isEmpty) {
+        _phoneController.text = user.phoneNumber!;
+      }
+
+      // Pré-remplir l'email
+      if (user.email.isNotEmpty && _emailController.text.isEmpty) {
+        _emailController.text = user.email;
+      }
+    }
+  }
 
   @override
   void dispose() {

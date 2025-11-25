@@ -17,7 +17,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _heureController = TextEditingController();
   final _horaireService = HoraireService();
-  
+
   bool _isLoading = false;
   bool _isLoadingData = true;
   bool get _isEditing => widget.horaire != null;
@@ -47,17 +47,17 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
     setState(() => _isLoadingData = true);
     try {
       debugPrint('📥 Chargement des données...');
-      
+
       // Charger les gares
       debugPrint('📍 Chargement des gares...');
       final gares = await _horaireService.fetchGares();
       debugPrint('✅ ${gares.length} gares chargées');
-      
+
       // Charger les trajets
       debugPrint('🛣️ Chargement des trajets...');
       final trajets = await _horaireService.fetchTrajets();
       debugPrint('✅ ${trajets.length} trajets chargés');
-      
+
       // Charger les bus
       debugPrint('🚌 Chargement des bus...');
       final buses = await _horaireService.fetchBuses();
@@ -67,13 +67,15 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
         _gares = gares;
         _trajets = trajets;
         _buses = buses;
-        
+
         // En mode édition, sélectionner les valeurs existantes
         if (_isEditing) {
           debugPrint('📝 Mode édition - Sélection des valeurs existantes');
-          debugPrint('   Gare recherchée: ${widget.horaire!.gare.id} - ${widget.horaire!.gare.nom}');
-          debugPrint('   Trajet recherché: ${widget.horaire!.trajet.id} - ${widget.horaire!.trajet.embarquement} → ${widget.horaire!.trajet.destination}');
-          
+          debugPrint(
+              '   Gare recherchée: ${widget.horaire!.gare.id} - ${widget.horaire!.gare.nom}');
+          debugPrint(
+              '   Trajet recherché: ${widget.horaire!.trajet.id} - ${widget.horaire!.trajet.embarquement} → ${widget.horaire!.trajet.destination}');
+
           // Trouver la gare correspondante
           try {
             _selectedGare = _gares.firstWhere(
@@ -84,18 +86,19 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
             debugPrint('   ⚠️ Gare non trouvée, utilisation de la première');
             _selectedGare = _gares.isNotEmpty ? _gares.first : null;
           }
-          
+
           // Trouver le trajet correspondant
           try {
             _selectedTrajet = _trajets.firstWhere(
               (t) => t.id == widget.horaire!.trajet.id,
             );
-            debugPrint('   ✅ Trajet trouvé: ${_selectedTrajet!.embarquement} → ${_selectedTrajet!.destination}');
+            debugPrint(
+                '   ✅ Trajet trouvé: ${_selectedTrajet!.embarquement} → ${_selectedTrajet!.destination}');
           } catch (e) {
             debugPrint('   ⚠️ Trajet non trouvé, utilisation du premier');
             _selectedTrajet = _trajets.isNotEmpty ? _trajets.first : null;
           }
-          
+
           // Trouver le bus correspondant si présent
           if (widget.horaire!.busNumber != null) {
             debugPrint('   Bus recherché: ${widget.horaire!.busNumber}');
@@ -103,13 +106,14 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
               _selectedBus = _buses.firstWhere(
                 (b) => b.registrationNumber == widget.horaire!.busNumber,
               );
-              debugPrint('   ✅ Bus trouvé: ${_selectedBus!.registrationNumber}');
+              debugPrint(
+                  '   ✅ Bus trouvé: ${_selectedBus!.registrationNumber}');
             } catch (e) {
               debugPrint('   ⚠️ Bus non trouvé');
             }
           }
         }
-        
+
         _isLoadingData = false;
         debugPrint('✅ Chargement terminé avec succès');
       });
@@ -125,12 +129,11 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Erreur de chargement', 
-                    style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text('Erreur de chargement',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text(e.toString(), 
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 3),
+                  Text(e.toString(),
+                      overflow: TextOverflow.ellipsis, maxLines: 3),
                 ],
               ),
             ),
@@ -200,7 +203,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
 
               // Heure
@@ -219,8 +222,18 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                     return 'Veuillez entrer une heure';
                   }
                   // Validation format HH:MM
-                  final timeRegex = RegExp(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$');
-                  if (!timeRegex.hasMatch(value)) {
+                  final parts = value.split(':');
+                  if (parts.length != 2) {
+                    return 'Format invalide (HH:MM)';
+                  }
+                  final int? h = int.tryParse(parts[0]);
+                  final int? m = int.tryParse(parts[1]);
+                  if (h == null ||
+                      m == null ||
+                      h < 0 ||
+                      h > 23 ||
+                      m < 0 ||
+                      m > 59) {
                     return 'Format invalide (HH:MM)';
                   }
                   return null;
@@ -232,7 +245,7 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                     initialTime: TimeOfDay.now(),
                   );
                   if (time != null) {
-                    _heureController.text = 
+                    _heureController.text =
                         '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
                   }
                 },
@@ -282,7 +295,8 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                 items: _trajets.map((trajet) {
                   return DropdownMenuItem(
                     value: trajet,
-                    child: Text('${trajet.embarquement} → ${trajet.destination}'),
+                    child:
+                        Text('${trajet.embarquement} → ${trajet.destination}'),
                   );
                 }).toList(),
                 onChanged: (value) {
@@ -356,7 +370,8 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                     value: 'embarquement',
                     child: Row(
                       children: [
-                        Icon(Icons.flight_takeoff, color: Colors.green, size: 20),
+                        Icon(Icons.flight_takeoff,
+                            color: Colors.green, size: 20),
                         SizedBox(width: 8),
                         Text('Embarquement'),
                       ],
@@ -366,7 +381,8 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                     value: 'termine',
                     child: Row(
                       children: [
-                        Icon(Icons.check_circle_outline, color: Colors.red, size: 20),
+                        Icon(Icons.check_circle_outline,
+                            color: Colors.red, size: 20),
                         SizedBox(width: 8),
                         Text('Terminé'),
                       ],
@@ -415,7 +431,8 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation(Colors.white),
                               ),
                             )
                           : Text(_isEditing ? 'Modifier' : 'Créer'),
@@ -470,8 +487,8 @@ class _HoraireFormScreenState extends ConsumerState<HoraireFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditing 
-                ? 'Horaire modifié avec succès' 
+            content: Text(_isEditing
+                ? 'Horaire modifié avec succès'
                 : 'Horaire créé avec succès'),
             backgroundColor: Colors.green,
           ),

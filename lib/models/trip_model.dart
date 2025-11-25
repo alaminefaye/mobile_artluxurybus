@@ -50,7 +50,8 @@ class Trip {
       } else if (json['is_passthrough'] is int) {
         isPassthrough = (json['is_passthrough'] as int) == 1;
       } else {
-        isPassthrough = json['is_passthrough'].toString() == '1' || json['is_passthrough'].toString().toLowerCase() == 'true';
+        isPassthrough = json['is_passthrough'].toString() == '1' ||
+            json['is_passthrough'].toString().toLowerCase() == 'true';
       }
     }
 
@@ -62,7 +63,8 @@ class Trip {
       } else if (json['is_loyalty_reward'] is int) {
         isLoyaltyReward = (json['is_loyalty_reward'] as int) == 1;
       } else {
-        isLoyaltyReward = json['is_loyalty_reward'].toString() == '1' || json['is_loyalty_reward'].toString().toLowerCase() == 'true';
+        isLoyaltyReward = json['is_loyalty_reward'].toString() == '1' ||
+            json['is_loyalty_reward'].toString().toLowerCase() == 'true';
       }
     }
 
@@ -74,7 +76,8 @@ class Trip {
       } else if (json['is_cancelled'] is int) {
         isCancelled = (json['is_cancelled'] as int) == 1;
       } else {
-        isCancelled = json['is_cancelled'].toString() == '1' || json['is_cancelled'].toString().toLowerCase() == 'true';
+        isCancelled = json['is_cancelled'].toString() == '1' ||
+            json['is_cancelled'].toString().toLowerCase() == 'true';
       }
     }
 
@@ -86,7 +89,8 @@ class Trip {
       } else if (json['is_used'] is int) {
         isUsed = (json['is_used'] as int) == 1;
       } else {
-        isUsed = json['is_used'].toString() == '1' || json['is_used'].toString().toLowerCase() == 'true';
+        isUsed = json['is_used'].toString() == '1' ||
+            json['is_used'].toString().toLowerCase() == 'true';
       }
     }
 
@@ -107,9 +111,14 @@ class Trip {
       isUsed: isUsed,
       scannedAt: json['scanned_at'],
       scannedAtFormatted: json['scanned_at_formatted'],
-      depart: json['depart'] != null ? DepartInfo.fromJson(json['depart']) : null,
-      embarkStop: json['embark_stop'] != null ? StopInfo.fromJson(json['embark_stop']) : null,
-      disembarkStop: json['disembark_stop'] != null ? StopInfo.fromJson(json['disembark_stop']) : null,
+      depart:
+          json['depart'] != null ? DepartInfo.fromJson(json['depart']) : null,
+      embarkStop: json['embark_stop'] != null
+          ? StopInfo.fromJson(json['embark_stop'])
+          : null,
+      disembarkStop: json['disembark_stop'] != null
+          ? StopInfo.fromJson(json['disembark_stop'])
+          : null,
     );
   }
 
@@ -139,11 +148,14 @@ class Trip {
 
   // Getter pour obtenir le texte du trajet
   String get routeText {
-    if (depart?.trajet != null) {
-      return '${depart!.trajet!.embarquement} → ${depart!.trajet!.destination}';
+    if (embarkStop != null && disembarkStop != null) {
+      return '${embarkStop!.name} → ${disembarkStop!.name}';
     }
     if (embarquement != null && destination != null) {
       return '$embarquement → $destination';
+    }
+    if (depart?.trajet != null) {
+      return '${depart!.trajet!.embarquement} → ${depart!.trajet!.destination}';
     }
     return 'Trajet non spécifié';
   }
@@ -189,7 +201,8 @@ class DepartInfo {
       } else if (json['is_direct'] is int) {
         isDirect = (json['is_direct'] as int) == 1;
       } else {
-        isDirect = json['is_direct'].toString() == '1' || json['is_direct'].toString().toLowerCase() == 'true';
+        isDirect = json['is_direct'].toString() == '1' ||
+            json['is_direct'].toString().toLowerCase() == 'true';
       }
     }
 
@@ -198,10 +211,13 @@ class DepartInfo {
       dateDepart: json['date_depart'],
       dateDepartFormatted: json['date_depart_formatted'],
       heureDepart: json['heure_depart'],
-      prixDepart: json['prix_depart'] != null ? (json['prix_depart'] as num).toDouble() : null,
+      prixDepart: json['prix_depart'] != null
+          ? (json['prix_depart'] as num).toDouble()
+          : null,
       numeroDepart: json['numero_depart'],
       isDirect: isDirect,
-      trajet: json['trajet'] != null ? TrajetInfo.fromJson(json['trajet']) : null,
+      trajet:
+          json['trajet'] != null ? TrajetInfo.fromJson(json['trajet']) : null,
       bus: json['bus'] != null ? BusInfo.fromJson(json['bus']) : null,
     );
   }
@@ -342,4 +358,3 @@ class TripsResponse {
     );
   }
 }
-

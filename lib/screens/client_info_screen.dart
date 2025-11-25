@@ -12,6 +12,7 @@ class ClientInfoScreen extends ConsumerStatefulWidget {
   final List<int> selectedSeats;
   final int? stopEmbarkId;
   final int? stopDisembarkId;
+  final double? overridePricePerSeat;
 
   const ClientInfoScreen({
     super.key,
@@ -19,6 +20,7 @@ class ClientInfoScreen extends ConsumerStatefulWidget {
     required this.selectedSeats,
     this.stopEmbarkId,
     this.stopDisembarkId,
+    this.overridePricePerSeat,
   });
 
   @override
@@ -540,14 +542,19 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
 
               // Convertir le montant en double (gère String et num)
               double amount = 0.0;
-              final amountValue =
-                  reservationData?['amount'] ?? widget.depart['prix'] ?? 0.0;
-              if (amountValue is num) {
-                amount = amountValue.toDouble();
-              } else if (amountValue is String) {
-                amount = double.tryParse(amountValue) ?? 0.0;
+              if (widget.overridePricePerSeat != null &&
+                  widget.overridePricePerSeat! > 0) {
+                amount = widget.overridePricePerSeat!;
               } else {
-                amount = 0.0;
+                final amountValue =
+                    reservationData?['amount'] ?? widget.depart['prix'] ?? 0.0;
+                if (amountValue is num) {
+                  amount = amountValue.toDouble();
+                } else if (amountValue is String) {
+                  amount = double.tryParse(amountValue) ?? 0.0;
+                } else {
+                  amount = 0.0;
+                }
               }
 
               if (reservationId != null) {
@@ -556,6 +563,7 @@ class _ClientInfoScreenState extends ConsumerState<ClientInfoScreen> {
                   'reservation_id': reservationId,
                   'seat_number': seatNumber,
                   'amount': amount,
+                  'depart': reservationData?['depart'],
                 });
 
                 // Utiliser les données de la première réservation pour sessionId, expiresAt, etc.

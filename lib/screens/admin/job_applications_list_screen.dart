@@ -132,6 +132,7 @@ class _JobApplicationsListScreenState extends State<JobApplicationsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Candidatures d\'emploi'),
@@ -171,52 +172,98 @@ class _JobApplicationsListScreenState extends State<JobApplicationsListScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () => _load(page: 1, refresh: true),
-        color: AppTheme.primaryOrange,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _items.length + (_hasMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index == _items.length) {
-              return Center(
-                child: _isLoading
-                    ? const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: CircularProgressIndicator(),
-                      )
-                    : ElevatedButton(
-                        onPressed: () => _load(page: _currentPage + 1),
-                        child: const Text('Charger plus'),
-                      ),
-              );
-            }
-            final item = _items[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                leading: const Icon(Icons.work_outline),
-                title: Text(item['full_name'] ?? '—'),
-                subtitle: Text(
-                    '${item['phone_number'] ?? '—'} • ${item['status_text'] ?? item['status'] ?? ''}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () => _confirmDelete(item['id'] as int),
+      body: (_items.isEmpty && !_isLoading)
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.work_outline,
+                    size: 80,
+                    color: isDark ? Colors.white54 : Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Aucune candidature',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.w600,
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: () => _openDetails(item['id'] as int),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Revenez plus tard ou actualisez',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : Colors.grey.shade500,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _load(page: 1, refresh: true),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Actualiser'),
+                  ),
+                ],
               ),
-            );
-          },
-        ),
-      ),
+            )
+          : RefreshIndicator(
+              onRefresh: () => _load(page: 1, refresh: true),
+              color: AppTheme.primaryOrange,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _items.length + (_hasMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == _items.length) {
+                    return Center(
+                      child: _isLoading
+                          ? const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(),
+                            )
+                          : ElevatedButton(
+                              onPressed: () => _load(page: _currentPage + 1),
+                              child: const Text('Charger plus'),
+                            ),
+                    );
+                  }
+                  final item = _items[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      leading: const Icon(Icons.work_outline),
+                      title: Text(
+                        item['full_name'] ?? '—',
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${item['phone_number'] ?? '—'} • ${item['status_text'] ?? item['status'] ?? ''}',
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
+                            onPressed: () => _confirmDelete(item['id'] as int),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () => _openDetails(item['id'] as int),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

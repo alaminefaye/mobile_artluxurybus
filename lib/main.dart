@@ -25,7 +25,9 @@ import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 import 'services/onboarding_service.dart';
 import 'services/auth_service.dart';
+import 'screens/admin/feedback_list_screen.dart';
 import 'services/feedback_api_service.dart';
+
 import 'services/notification_api_service.dart';
 import 'services/announcement_manager.dart';
 import 'services/navigator_service.dart';
@@ -639,6 +641,23 @@ class _MyAppState extends ConsumerState<MyApp> {
             debugPrint('✅ Navigation vers Mes Courriers (client)');
           }
         }
+        return;
+      }
+
+      // NOUVEAU: Gérer les notifications de suggestions/préoccupations
+      if ((notificationType == 'new_feedback' ||
+          notificationType == 'urgent_feedback')) {
+        final feedbackId = data != null
+            ? int.tryParse(data['feedback_id']?.toString() ?? '')
+            : null;
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => FeedbackListScreen(
+              initialFeedbackId: feedbackId,
+            ),
+          ),
+        );
         return;
       }
 

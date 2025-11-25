@@ -164,6 +164,7 @@ class FeedbackApiService {
     int perPage = 15,
     String? status,
     String? search,
+    String? priority,
   }) async {
     if (_token == null) {
       throw Exception('Token d\'authentification requis');
@@ -175,6 +176,7 @@ class FeedbackApiService {
         'per_page': perPage.toString(),
         if (status != null) 'status': status,
         if (search != null) 'search': search,
+        if (priority != null) 'priority': priority,
       };
 
       final uri = Uri.parse('$baseUrl/feedbacks').replace(
@@ -218,6 +220,88 @@ class FeedbackApiService {
         return data;
       } else {
         throw Exception(data['message'] ?? 'Erreur lors de la mise à jour');
+      }
+    } on SocketException {
+      throw Exception('Pas de connexion internet');
+    } catch (e) {
+      throw Exception('Erreur: ${e.toString()}');
+    }
+  }
+
+  /// Récupérer le détail d'un feedback (admin uniquement)
+  static Future<Map<String, dynamic>> getFeedbackDetails(int feedbackId) async {
+    if (_token == null) {
+      throw Exception('Token d\'authentification requis');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/feedbacks/$feedbackId'),
+        headers: _headers,
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? 'Erreur lors de la récupération');
+      }
+    } on SocketException {
+      throw Exception('Pas de connexion internet');
+    } catch (e) {
+      throw Exception('Erreur: ${e.toString()}');
+    }
+  }
+
+  /// Mettre à jour la priorité d'un feedback (admin uniquement)
+  static Future<Map<String, dynamic>> updateFeedbackPriority(
+    int feedbackId,
+    String priority,
+  ) async {
+    if (_token == null) {
+      throw Exception('Token d\'authentification requis');
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/feedbacks/$feedbackId/priority'),
+        headers: _headers,
+        body: jsonEncode({'priority': priority}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? 'Erreur lors de la mise à jour');
+      }
+    } on SocketException {
+      throw Exception('Pas de connexion internet');
+    } catch (e) {
+      throw Exception('Erreur: ${e.toString()}');
+    }
+  }
+
+  /// Supprimer un feedback (admin uniquement)
+  static Future<Map<String, dynamic>> deleteFeedback(int feedbackId) async {
+    if (_token == null) {
+      throw Exception('Token d\'authentification requis');
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/feedbacks/$feedbackId'),
+        headers: _headers,
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? 'Erreur lors de la suppression');
       }
     } on SocketException {
       throw Exception('Pas de connexion internet');

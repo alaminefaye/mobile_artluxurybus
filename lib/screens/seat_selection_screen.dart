@@ -19,7 +19,8 @@ class SeatSelectionScreen extends StatefulWidget {
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   List<int> _availableSeats = [];
-  List<int> _pendingReservationSeats = []; // Sièges en cours de réservation en ligne (bloqués 5 min)
+  List<int> _pendingReservationSeats =
+      []; // Sièges en cours de réservation en ligne (bloqués 5 min)
   List<int> _occupiedSeats = []; // Sièges vendus au guichet
   List<int> _selectedSeats = []; // Permettre plusieurs sièges (max 5)
   bool _isLoading = true;
@@ -36,6 +37,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
   List<Map<String, dynamic>> _stops = [];
   int? _selectedStopEmbark;
   int? _selectedStopDisembark;
+  double? _pricePerSeat;
 
   @override
   void initState() {
@@ -95,8 +97,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       if (result['success'] == true && result['data'] != null) {
         final data = result['data'];
         final newAvailableSeats = List<int>.from(data['available_seats'] ?? []);
-        final newPendingReservationSeats = List<int>.from(data['pending_reservation_seats'] ?? []); // Sièges en cours de réservation en ligne (bloqués 5 min)
-        final newOccupiedSeats = List<int>.from(data['occupied_seats'] ?? []); // Sièges vendus au guichet
+        final newPendingReservationSeats = List<int>.from(
+            data['pending_reservation_seats'] ??
+                []); // Sièges en cours de réservation en ligne (bloqués 5 min)
+        final newOccupiedSeats = List<int>.from(
+            data['occupied_seats'] ?? []); // Sièges vendus au guichet
 
         // Vérifier si le départ a des segments
         final hasSegments = data['has_segments'] == true;
@@ -111,25 +116,74 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           setState(() {
             // IMPORTANT: Conserver les sièges sélectionnés dans availableSeats s'ils ne sont pas occupés ni réservés par d'autres
             // Cela évite que les sièges sélectionnés disparaissent lors du rafraîchissement
-            final seatsToKeep = _selectedSeats.where((seat) => 
-              !newOccupiedSeats.contains(seat) && !newPendingReservationSeats.contains(seat) // Si le siège n'est ni occupé ni réservé par un autre utilisateur
-            ).toList();
-            
+            final seatsToKeep = _selectedSeats
+                .where((seat) =>
+                        !newOccupiedSeats.contains(seat) &&
+                        !newPendingReservationSeats.contains(
+                            seat) // Si le siège n'est ni occupé ni réservé par un autre utilisateur
+                    )
+                .toList();
+
             // Ajouter les sièges sélectionnés à la liste des disponibles si ils n'y sont pas déjà
             final updatedAvailableSeats = List<int>.from(newAvailableSeats);
             for (var seat in seatsToKeep) {
               if (!updatedAvailableSeats.contains(seat)) {
                 updatedAvailableSeats.add(seat);
-                debugPrint('🔄 [SeatSelection] Siège $seat conservé dans availableSeats (sélectionné par l\'utilisateur)');
+                debugPrint(
+                    '🔄 [SeatSelection] Siège $seat conservé dans availableSeats (sélectionné par l\'utilisateur)');
               }
             }
             updatedAvailableSeats.sort();
-            
+
             _availableSeats = updatedAvailableSeats;
-            _pendingReservationSeats = newPendingReservationSeats; // Sièges en cours de réservation en ligne (bloqués 5 min)
+            _pendingReservationSeats =
+                newPendingReservationSeats; // Sièges en cours de réservation en ligne (bloqués 5 min)
             _occupiedSeats = newOccupiedSeats; // Sièges vendus au guichet
             _lastSeatsRefresh = DateTime.now();
             _isLoading = false;
+
+            // Mettre à jour le prix par siège si l'API le fournit (prix segment en fonction des arrêts)
+            final dynamic priceCandidate = data['segment_price'] ??
+                data['price_per_seat'] ??
+                data['amount_per_seat'] ??
+                data['seat_price'] ??
+                data['price'] ??
+                data['amount'];
+            if (priceCandidate != null) {
+              if (priceCandidate is num) {
+                _pricePerSeat = priceCandidate.toDouble();
+              } else if (priceCandidate is String) {
+                _pricePerSeat = double.tryParse(priceCandidate);
+              }
+            }
+
+            // Calculer le prix du segment si non fourni par l'API
+            if ((_pricePerSeat == null || _pricePerSeat == 0) &&
+                hasSegments &&
+                _selectedStopEmbark != null &&
+                _selectedStopDisembark != null) {
+              // Utiliser en priorité les arrêts renvoyés par l'API dans cette réponse
+              final List<Map<String, dynamic>> stopsForCalc =
+                  stops.isNotEmpty ? stops : _stops;
+              if (stopsForCalc.isNotEmpty) {
+                final embarkIndex = stopsForCalc
+                    .indexWhere((s) => s['id'] == _selectedStopEmbark);
+                final disembarkIndex = stopsForCalc
+                    .indexWhere((s) => s['id'] == _selectedStopDisembark);
+                if (embarkIndex >= 0 && disembarkIndex > embarkIndex) {
+                  double sum = 0.0;
+                  for (int i = embarkIndex; i < disembarkIndex; i++) {
+                    final dynamic p = stopsForCalc[i]['price_to_next'];
+                    if (p is num) {
+                      sum += p.toDouble();
+                    } else if (p is String) {
+                      sum += double.tryParse(p) ?? 0.0;
+                    }
+                  }
+                  _pricePerSeat = sum > 0 ? sum : _pricePerSeat;
+                }
+              }
+            }
 
             // Mettre à jour les arrêts si disponibles
             if (hasSegments && stops.isNotEmpty && !_hasSegments) {
@@ -222,14 +276,17 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             // IMPORTANT: Ne retirer les sièges sélectionnés QUE s'ils sont vraiment occupés ou réservés par D'AUTRES utilisateurs
             // Si un siège est dans _selectedSeats mais pas dans newOccupiedSeats ou newPendingReservationSeats,
             // c'est qu'il est réservé par l'utilisateur actuel. Donc on ne le retire PAS - l'utilisateur peut continuer à payer
-            
+
             // Seulement retirer les sièges qui sont occupés (vendus au guichet) ou en cours de réservation par d'autres utilisateurs
-            final seatsToRemove = _selectedSeats.where((seat) => 
-              newOccupiedSeats.contains(seat) || newPendingReservationSeats.contains(seat)
-            ).toList();
-            
+            final seatsToRemove = _selectedSeats
+                .where((seat) =>
+                    newOccupiedSeats.contains(seat) ||
+                    newPendingReservationSeats.contains(seat))
+                .toList();
+
             if (seatsToRemove.isNotEmpty) {
-              _selectedSeats.removeWhere((seat) => seatsToRemove.contains(seat));
+              _selectedSeats
+                  .removeWhere((seat) => seatsToRemove.contains(seat));
               if (!silent && mounted) {
                 // Afficher un dialog explicite pour informer l'utilisateur
                 showDialog(
@@ -238,12 +295,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   builder: (context) => AlertDialog(
                     title: const Row(
                       children: [
-                        Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                        Icon(Icons.warning_amber_rounded,
+                            color: Colors.orange, size: 28),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Siège(s) réservé(s)',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -308,7 +367,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 );
               }
             }
-            
+
             // Ne pas afficher d'avertissement pour les sièges sélectionnés qui ne sont plus dans les disponibles
             // car ils sont probablement réservés par l'utilisateur lui-même (en attente de paiement)
             // L'utilisateur peut continuer à finaliser son paiement
@@ -332,8 +391,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           if (!silent && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                    result['message'] ?? t('seats.please_select_stops')),
+                content:
+                    Text(result['message'] ?? t('seats.please_select_stops')),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 4),
               ),
@@ -350,8 +409,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         if (!silent && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                  result['message'] ?? t('seats.loading_seats_error')),
+              content:
+                  Text(result['message'] ?? t('seats.loading_seats_error')),
               backgroundColor: Colors.red,
             ),
           );
@@ -402,7 +461,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       );
       return;
     }
-    
+
     // Empêcher la sélection de sièges en cours de réservation par d'autres utilisateurs
     if (_pendingReservationSeats.contains(seatNumber)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -420,8 +479,9 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     // Vérifier les différents états du siège
     final isSeatAvailable = _availableSeats.contains(seatNumber);
     final isSeatOccupied = _occupiedSeats.contains(seatNumber);
-    final isSeatPendingReservation = _pendingReservationSeats.contains(seatNumber);
-    
+    final isSeatPendingReservation =
+        _pendingReservationSeats.contains(seatNumber);
+
     // Si le siège n'est pas disponible, vérifier pourquoi
     if (!isSeatAvailable) {
       // Vérifier si le siège est dans une plage valide
@@ -429,18 +489,20 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       if (seatNumber < 1 || seatNumber > totalSeats) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(t('seats.seat_not_available').replaceAll('{{seat}}', seatNumber.toString())),
+            content: Text(t('seats.seat_not_available')
+                .replaceAll('{{seat}}', seatNumber.toString())),
             backgroundColor: Colors.orange,
             duration: const Duration(seconds: 2),
           ),
         );
         return;
       }
-      
+
       // Si le siège n'est ni occupé ni en cours de réservation mais pas disponible,
       // c'est peut-être un problème de synchronisation - permettre quand même la sélection
       if (!isSeatOccupied && !isSeatPendingReservation) {
-        debugPrint('⚠️ [SeatSelection] Siège $seatNumber pas dans availableSeats mais pas occupé/réservé - autorisation de sélection');
+        debugPrint(
+            '⚠️ [SeatSelection] Siège $seatNumber pas dans availableSeats mais pas occupé/réservé - autorisation de sélection');
       }
     }
 
@@ -506,22 +568,22 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   const SizedBox(width: 12),
                   // Occupé (guichet)
                   _buildLegendItem(
-                    Colors.red.withValues(alpha: 0.3), 
-                    Colors.red, 
+                    Colors.red.withValues(alpha: 0.3),
+                    Colors.red,
                     'Occupé (Guichet)',
                   ),
                   const SizedBox(width: 12),
                   // En cours de réservation (bloqué 5 min)
                   _buildLegendItem(
-                    Colors.orange.withValues(alpha: 0.3), 
-                    Colors.orange, 
+                    Colors.orange.withValues(alpha: 0.3),
+                    Colors.orange,
                     '⏳ En cours de réservation',
                   ),
                   const SizedBox(width: 12),
                   // Sélectionné
                   _buildLegendItem(
-                    Colors.green.withValues(alpha: 0.3), 
-                    Colors.green, 
+                    Colors.green.withValues(alpha: 0.3),
+                    Colors.green,
                     t('seats.selected_seat'),
                   ),
                 ],
@@ -584,12 +646,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          t('seats.last_update').replaceAll('{{time}}', _formatTime(_lastSeatsRefresh!)),
+                          t('seats.last_update').replaceAll(
+                              '{{time}}', _formatTime(_lastSeatsRefresh!)),
                           style: TextStyle(
                             fontSize: 11,
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey[400]
-                                : Colors.grey[600],
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                           ),
                         ),
                       ],
@@ -604,10 +668,15 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         children: [
                           if (_selectedSeats.isNotEmpty) ...[
                             Text(
-                              t('seats.seats_selected').replaceAll('{{count}}', _selectedSeats.length.toString()).replaceAll('{{plural}}', _selectedSeats.length > 1 ? 's' : ''),
+                              t('seats.seats_selected')
+                                  .replaceAll('{{count}}',
+                                      _selectedSeats.length.toString())
+                                  .replaceAll('{{plural}}',
+                                      _selectedSeats.length > 1 ? 's' : ''),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.grey[300]
                                     : Colors.grey[600],
                               ),
@@ -627,7 +696,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? Colors.grey[300]
                                     : Colors.grey[600],
                               ),
@@ -661,20 +731,24 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                         : () {
                             // Vérifier que les sièges sélectionnés sont toujours disponibles
                             // Un siège est valide s'il n'est ni occupé ni en cours de réservation par d'autres
-                            final validSeats = _selectedSeats.where((seat) => 
-                              !_occupiedSeats.contains(seat) && !_pendingReservationSeats.contains(seat)
-                            ).toList();
-                            
+                            final validSeats = _selectedSeats
+                                .where((seat) =>
+                                    !_occupiedSeats.contains(seat) &&
+                                    !_pendingReservationSeats.contains(seat))
+                                .toList();
+
                             if (validSeats.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         t('seats.no_valid_seats'),
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -694,51 +768,62 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                               );
                               return;
                             }
-                            
+
                             if (validSeats.length != _selectedSeats.length) {
                               // Certains sièges ne sont plus valides - proposer de continuer avec les valides
-                              final removedSeats = _selectedSeats.where((seat) => 
-                                !validSeats.contains(seat)
-                              ).toList();
-                              
+                              final removedSeats = _selectedSeats
+                                  .where((seat) => !validSeats.contains(seat))
+                                  .toList();
+
                               // Afficher un dialog pour confirmer
                               showDialog(
                                 context: context,
                                 builder: (context) => AlertDialog(
                                   title: Row(
                                     children: [
-                                      const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                                      const Icon(Icons.warning_amber_rounded,
+                                          color: Colors.orange),
                                       const SizedBox(width: 8),
                                       Text(t('seats.unavailable_seats')),
                                     ],
                                   ),
                                   content: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         t('seats.following_seats_unavailable'),
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold),
                                       ),
                                       const SizedBox(height: 8),
                                       ...removedSeats.map((seat) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 4),
-                                        child: Text('• ${t("seats.seat").replaceAll("{{number}}", seat.toString())}'),
-                                      )),
+                                            padding: const EdgeInsets.only(
+                                                bottom: 4),
+                                            child: Text(
+                                                '• ${t("seats.seat").replaceAll("{{number}}", seat.toString())}'),
+                                          )),
                                       const SizedBox(height: 12),
                                       Text(
-                                        t('seats.continue_with_available').replaceAll('{{count}}', validSeats.length.toString()),
+                                        t('seats.continue_with_available')
+                                            .replaceAll('{{count}}',
+                                                validSeats.length.toString()),
                                         style: const TextStyle(fontSize: 14),
                                       ),
                                       const SizedBox(height: 8),
                                       Container(
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Colors.green.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(4),
+                                          color: Colors.green
+                                              .withValues(alpha: 0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
                                         ),
                                         child: Text(
-                                          t('seats.available_seats').replaceAll('{{seats}}', validSeats.join(", ")),
+                                          t('seats.available_seats').replaceAll(
+                                              '{{seats}}',
+                                              validSeats.join(", ")),
                                           style: const TextStyle(
                                             color: Colors.green,
                                             fontWeight: FontWeight.bold,
@@ -759,16 +844,21 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                         setState(() {
                                           _selectedSeats = validSeats;
                                         });
-                                        
-                                        debugPrint('🎫 [SeatSelection] Navigation vers ClientInfoScreen avec ${validSeats.length} siège(s): ${validSeats.join(", ")}');
+
+                                        debugPrint(
+                                            '🎫 [SeatSelection] Navigation vers ClientInfoScreen avec ${validSeats.length} siège(s): ${validSeats.join(", ")}');
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => ClientInfoScreen(
+                                            builder: (context) =>
+                                                ClientInfoScreen(
                                               depart: widget.depart,
                                               selectedSeats: validSeats,
                                               stopEmbarkId: _selectedStopEmbark,
-                                              stopDisembarkId: _selectedStopDisembark,
+                                              stopDisembarkId:
+                                                  _selectedStopDisembark,
+                                              overridePricePerSeat:
+                                                  _pricePerSeat,
                                             ),
                                           ),
                                         );
@@ -784,7 +874,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                               );
                             } else {
                               // Tous les sièges sont valides, naviguer directement
-                              debugPrint('🎫 [SeatSelection] Navigation vers ClientInfoScreen avec ${_selectedSeats.length} siège(s): ${_selectedSeats.join(", ")}');
+                              debugPrint(
+                                  '🎫 [SeatSelection] Navigation vers ClientInfoScreen avec ${_selectedSeats.length} siège(s): ${_selectedSeats.join(", ")}');
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -793,6 +884,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                                     selectedSeats: _selectedSeats,
                                     stopEmbarkId: _selectedStopEmbark,
                                     stopDisembarkId: _selectedStopDisembark,
+                                    overridePricePerSeat: _pricePerSeat,
                                   ),
                                 ),
                               );
@@ -998,11 +1090,35 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       ),
                     );
                   }).toList(),
-                  onChanged: null,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedStopDisembark = value;
+                    });
+                    _loadAvailableSeats();
+                  },
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          if (_pricePerSeat != null && _pricePerSeat! > 0)
+            Row(
+              children: [
+                const Icon(Icons.attach_money,
+                    size: 16, color: AppTheme.primaryOrange),
+                const SizedBox(width: 6),
+                Text(
+                  'Tarif par siège: ${_pricePerSeat!.toStringAsFixed(0)} FCFA',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -1039,7 +1155,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           final seatNumber = index + 1;
           final isAvailable = _availableSeats.contains(seatNumber);
           final isOccupied = _occupiedSeats.contains(seatNumber);
-          final isPendingReservation = _pendingReservationSeats.contains(seatNumber);
+          final isPendingReservation =
+              _pendingReservationSeats.contains(seatNumber);
           final isSelected = _selectedSeats.contains(seatNumber);
 
           // Logique des couleurs avec priorités
@@ -1047,7 +1164,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           // PRIORITÉ 2: Siège occupé/vendu au guichet (rouge)
           // PRIORITÉ 3: Siège en cours de réservation en ligne (orange avec icône horloge)
           // PRIORITÉ 4: Siège disponible (gris/blanc selon thème)
-          
+
           Color seatColor;
           Color backgroundColor;
           Color borderColor;
@@ -1064,14 +1181,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           } else if (isOccupied) {
             // Occupé/vendu au guichet : rouge
             seatColor = Colors.white;
-            backgroundColor = isDark ? Colors.red.shade900 : Colors.red.shade600;
+            backgroundColor =
+                isDark ? Colors.red.shade900 : Colors.red.shade600;
             borderColor = Colors.red.shade700;
             seatIcon = Icons.block;
             borderWidth = 2;
           } else if (isPendingReservation) {
             // En cours de réservation en ligne (bloqué 5 min) : orange avec icône horloge
             seatColor = Colors.white;
-            backgroundColor = isDark ? Colors.orange.shade900 : Colors.orange.shade600;
+            backgroundColor =
+                isDark ? Colors.orange.shade900 : Colors.orange.shade600;
             borderColor = Colors.orange.shade700;
             seatIcon = Icons.access_time;
             borderWidth = 2;
@@ -1139,7 +1258,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       '$seatNumber',
                       style: TextStyle(
                         color: seatColor,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.w600,
                         fontSize: isSelected ? 13 : 11,
                       ),
                     ),
@@ -1158,9 +1278,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     final diff = now.difference(dateTime);
 
     if (diff.inSeconds < 60) {
-      return t('seats.ago_seconds').replaceAll('{{seconds}}', diff.inSeconds.toString());
+      return t('seats.ago_seconds')
+          .replaceAll('{{seconds}}', diff.inSeconds.toString());
     } else if (diff.inMinutes < 60) {
-      return t('seats.ago_minutes').replaceAll('{{minutes}}', diff.inMinutes.toString());
+      return t('seats.ago_minutes')
+          .replaceAll('{{minutes}}', diff.inMinutes.toString());
     } else {
       return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     }
@@ -1168,9 +1290,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
   String _calculateTotalAmount() {
     if (_selectedSeats.isEmpty) return '0';
-    final prixStr = widget.depart['prix']?.toString() ?? '0';
-    final prix = double.tryParse(prixStr) ?? 0.0;
-    final total = prix * _selectedSeats.length;
+    double unitPrice = 0.0;
+
+    if (_pricePerSeat != null && _pricePerSeat! > 0) {
+      unitPrice = _pricePerSeat!;
+    } else {
+      final prixStr = widget.depart['prix']?.toString() ?? '0';
+      unitPrice = double.tryParse(prixStr) ?? 0.0;
+    }
+
+    final total = unitPrice * _selectedSeats.length;
     return total.toStringAsFixed(0);
   }
 }

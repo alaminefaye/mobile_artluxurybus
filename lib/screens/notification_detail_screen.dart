@@ -12,7 +12,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'my_trips_screen.dart';
 import 'loyalty_home_screen.dart';
 import 'my_mails_screen.dart';
+import 'admin/feedback_list_screen.dart';
 import 'expense_management_screen.dart';
+
 import '../services/expense_service.dart';
 import '../services/job_application_api_service.dart';
 import 'admin/job_application_detail_screen.dart';
@@ -199,11 +201,11 @@ class _NotificationDetailScreenState
         }
         if (route.isEmpty) {
           final message = notification.message;
-          final routeMatch =
-              RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false)
-                  .firstMatch(message);
-          if (routeMatch != null) {
-            route = routeMatch.group(1)?.trim() ?? '';
+          final lowerMsg = message.toLowerCase();
+          final idxPour = lowerMsg.indexOf('pour ');
+          final idxAEte = lowerMsg.indexOf('a été', idxPour + 5);
+          if (idxPour != -1 && idxAEte != -1) {
+            route = message.substring(idxPour + 5, idxAEte).trim();
           }
         }
         translatedMessage = t('notifications.new_ticket_message')
@@ -573,6 +575,45 @@ class _NotificationDetailScreenState
       );
     }
 
+    // Bouton pour les notifications de suggestions/préoccupations
+    if (widget.notification.type == 'new_feedback' ||
+        widget.notification.type == 'urgent_feedback') {
+      final feedbackId = int.tryParse(
+          widget.notification.data?['feedback_id']?.toString() ?? '');
+      final primaryColor = _getNotificationPrimaryColor();
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => FeedbackListScreen(
+                  initialFeedbackId: feedbackId,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.feedback, color: Colors.white),
+          label: const Text(
+            'Ouvrir la suggestion',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primaryColor,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+      );
+    }
+
     // Boutons pour les notifications de dépense
     if (widget.notification.type == 'expense_pending' ||
         widget.notification.type == 'new_expense') {
@@ -707,7 +748,8 @@ class _NotificationDetailScreenState
       return;
     }
 
-    final jobApplicationId = int.tryParse(data['job_application_id'].toString());
+    final jobApplicationId =
+        int.tryParse(data['job_application_id'].toString());
     if (jobApplicationId == null) {
       _showErrorMessage('ID de candidature invalide');
       return;
@@ -726,10 +768,10 @@ class _NotificationDetailScreenState
     try {
       // Récupérer les détails de la candidature
       final details = await JobApplicationApiService.details(jobApplicationId);
-      
+
       if (!mounted) return;
       Navigator.pop(context); // Fermer l'indicateur de chargement
-      
+
       // Ouvrir la page de détails
       Navigator.push(
         context,
@@ -1092,7 +1134,10 @@ class _NotificationDetailScreenState
   Future<void> _makePhoneCall(String phoneNumber) async {
     try {
       // Nettoyer le numéro de téléphone (garder seulement les chiffres et le +)
-      final cleanNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+      final cleanNumber = phoneNumber.split('').where((c) {
+        final code = c.codeUnitAt(0);
+        return c == '+' || (code >= 48 && code <= 57);
+      }).join();
 
       // Vérifier que le numéro n'est pas vide après nettoyage
       if (cleanNumber.isEmpty) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../services/recharge_service.dart';
+import '../models/recharge_transaction.dart';
 
 class RechargeScreen extends StatefulWidget {
   const RechargeScreen({super.key});
@@ -17,6 +18,8 @@ class _RechargeScreenState extends State<RechargeScreen> {
   String? _selectedModePaiement;
   bool _isLoading = false;
   double _currentSolde = 0.0;
+  List<RechargeTransaction> _historique = [];
+  bool _isLoadingHistorique = false;
 
   // Mode de paiement Wave
   final List<Map<String, dynamic>> _modesPaiement = [
@@ -33,6 +36,7 @@ class _RechargeScreenState extends State<RechargeScreen> {
     // Sélectionner Wave par défaut puisqu'il est le seul mode de paiement
     _selectedModePaiement = 'wave_money';
     _loadSolde();
+    _loadHistorique();
   }
 
   void _moveCursorToEnd() {
@@ -86,6 +90,36 @@ class _RechargeScreenState extends State<RechargeScreen> {
       if (mounted) {
         setState(() {
           _currentSolde = 0.0;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadHistorique() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingHistorique = true;
+    });
+
+    try {
+      final result = await RechargeService.getHistorique(perPage: 10);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingHistorique = false;
+        if (result['success'] == true) {
+          _historique = result['data'] as List<RechargeTransaction>;
+        } else {
+          _historique = [];
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingHistorique = false;
+          _historique = [];
         });
       }
     }
@@ -238,7 +272,19 @@ class _RechargeScreenState extends State<RechargeScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${_currentSolde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
+                        (() {
+                          final s = _currentSolde.toStringAsFixed(0);
+                          String formatted = '';
+                          int digitCount = 0;
+                          for (int i = s.length - 1; i >= 0; i--) {
+                            if (digitCount > 0 && digitCount % 3 == 0) {
+                              formatted = ' $formatted';
+                            }
+                            formatted = '${s[i]}$formatted';
+                            digitCount++;
+                          }
+                          return '$formatted FCFA';
+                        })(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 32,
@@ -493,11 +539,209 @@ class _RechargeScreenState extends State<RechargeScreen> {
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 32),
+
+                // 📦 BOX HISTORIQUE DES PAIEMENTS
+                Text(
+                  'Historique des paiements',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Box avec la liste des transactions
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade800 : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color:
+                          isDark ? Colors.grey.shade700 : Colors.grey.shade200,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _isLoadingHistorique
+                      ? const Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : _historique.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.all(40),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.receipt_long,
+                                    size: 48,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Aucune recharge effectuée',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _historique.length > 5
+                                  ? 5
+                                  : _historique.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: 24),
+                              itemBuilder: (context, index) {
+                                final transaction = _historique[index];
+                                return _buildTransactionItem(
+                                    transaction, isDark);
+                              },
+                            ),
+                ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTransactionItem(RechargeTransaction transaction, bool isDark) {
+    // Couleur et icône selon le statut
+    Color statusColor;
+    IconData statusIcon;
+
+    switch (transaction.status) {
+      case 'completed':
+        statusColor = Colors.green;
+        statusIcon = Icons.check_circle;
+        break;
+      case 'pending':
+        statusColor = Colors.orange;
+        statusIcon = Icons.pending;
+        break;
+      case 'failed':
+        statusColor = Colors.red;
+        statusIcon = Icons.error;
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusIcon = Icons.cancel;
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusIcon = Icons.help;
+    }
+
+    return Row(
+      children: [
+        // Icône de statut
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            statusIcon,
+            color: statusColor,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // Informations de la transaction
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                (() {
+                  final s = transaction.montant.toStringAsFixed(0);
+                  String formatted = '';
+                  int digitCount = 0;
+                  for (int i = s.length - 1; i >= 0; i--) {
+                    if (digitCount > 0 && digitCount % 3 == 0) {
+                      formatted = ' $formatted';
+                    }
+                    formatted = '${s[i]}$formatted';
+                    digitCount++;
+                  }
+                  return '$formatted FCFA';
+                })(),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    transaction.date,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      transaction.statusLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    transaction.modePaiementLabel,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

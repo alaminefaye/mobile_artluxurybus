@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'auth_service.dart';
+import '../models/recharge_transaction.dart';
 
 class RechargeService {
   static const String baseUrl = 'https://skf-artluxurybus.com/api';
@@ -21,7 +22,8 @@ class RechargeService {
       _token = token;
       debugPrint('🔑 RechargeService - Token récupéré depuis AuthService: ✅');
     } else {
-      debugPrint('🔑 RechargeService - Token récupéré depuis AuthService: ❌ (null)');
+      debugPrint(
+          '🔑 RechargeService - Token récupéré depuis AuthService: ❌ (null)');
     }
     return token ?? _token;
   }
@@ -43,7 +45,7 @@ class RechargeService {
     try {
       final headers = await _getHeaders();
       final uri = Uri.parse('$baseUrl/recharge');
-      
+
       final body = jsonEncode({
         'montant': montant,
         'mode_paiement': modePaiement,
@@ -53,13 +55,16 @@ class RechargeService {
       debugPrint('💰 Montant: $montant FCFA');
       debugPrint('💰 Mode de paiement: $modePaiement');
 
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: body,
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: body,
+          )
+          .timeout(const Duration(seconds: 30));
 
-      debugPrint('📡 [RechargeService] Réponse API - Status: ${response.statusCode}');
+      debugPrint(
+          '📡 [RechargeService] Réponse API - Status: ${response.statusCode}');
       debugPrint('📡 [RechargeService] Réponse API - Body: ${response.body}');
 
       final data = jsonDecode(response.body);
@@ -67,7 +72,7 @@ class RechargeService {
       if (response.statusCode == 200 && data['success'] == true) {
         debugPrint('✅ [RechargeService] Paiement Wave initié');
         final paymentUrl = data['data']?['payment_url'];
-        
+
         if (paymentUrl != null && paymentUrl.isNotEmpty) {
           // Ouvrir l'URL de paiement Wave
           final uri = Uri.parse(paymentUrl);
@@ -78,27 +83,28 @@ class RechargeService {
             );
             debugPrint('✅ [RechargeService] URL de paiement Wave ouverte');
           } else {
-            debugPrint('❌ [RechargeService] Impossible d\'ouvrir l\'URL de paiement');
+            debugPrint(
+                '❌ [RechargeService] Impossible d\'ouvrir l\'URL de paiement');
             return {
               'success': false,
               'message': 'Impossible d\'ouvrir la page de paiement Wave',
             };
           }
         }
-        
+
         return {
           'success': true,
           'message': data['message'] ?? 'Paiement Wave initié avec succès',
           'data': data['data'],
         };
       } else {
-        final errorMessage = data['message'] ?? 
-            data['error'] ?? 
+        final errorMessage = data['message'] ??
+            data['error'] ??
             'Erreur lors de l\'initiation du paiement';
         debugPrint('❌ [RechargeService] Erreur d\'initiation: $errorMessage');
         debugPrint('❌ [RechargeService] Code status: ${response.statusCode}');
         debugPrint('❌ [RechargeService] Données complètes: $data');
-        
+
         return {
           'success': false,
           'message': errorMessage.toString(),
@@ -127,12 +133,15 @@ class RechargeService {
       debugPrint('💰 [RechargeService] URL: $uri');
       debugPrint('💰 [RechargeService] Headers: ${headers.keys.toList()}');
 
-      final response = await http.get(
-        uri,
-        headers: headers,
-      ).timeout(const Duration(seconds: 30));
+      final response = await http
+          .get(
+            uri,
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 30));
 
-      debugPrint('📡 [RechargeService] Réponse - Status: ${response.statusCode}');
+      debugPrint(
+          '📡 [RechargeService] Réponse - Status: ${response.statusCode}');
       debugPrint('📡 [RechargeService] Réponse - Body: ${response.body}');
 
       // Vérifier si la réponse est vide
@@ -161,21 +170,22 @@ class RechargeService {
 
       if (response.statusCode == 200 && data['success'] == true) {
         final solde = data['solde'];
-        debugPrint('✅ [RechargeService] Solde récupéré: $solde FCFA (type: ${solde.runtimeType})');
+        debugPrint(
+            '✅ [RechargeService] Solde récupéré: $solde FCFA (type: ${solde.runtimeType})');
         return {
           'success': true,
           'solde': solde ?? 0.0,
           'client': data['client'],
         };
       } else {
-        final errorMessage = data['message'] ?? 
-            data['error'] ?? 
+        final errorMessage = data['message'] ??
+            data['error'] ??
             'Erreur lors de la récupération du solde';
         debugPrint('❌ [RechargeService] Erreur de récupération du solde');
         debugPrint('❌ [RechargeService] Code status: ${response.statusCode}');
         debugPrint('❌ [RechargeService] Message: $errorMessage');
         debugPrint('❌ [RechargeService] Données complètes: $data');
-        
+
         return {
           'success': false,
           'solde': 0.0,
@@ -185,7 +195,8 @@ class RechargeService {
         };
       }
     } catch (e, stackTrace) {
-      debugPrint('❌ [RechargeService] Exception lors de la récupération du solde: $e');
+      debugPrint(
+          '❌ [RechargeService] Exception lors de la récupération du solde: $e');
       debugPrint('❌ [RechargeService] Stack trace: $stackTrace');
       return {
         'success': false,
@@ -195,5 +206,89 @@ class RechargeService {
       };
     }
   }
-}
 
+  /// Récupérer l'historique des recharges
+  static Future<Map<String, dynamic>> getHistorique({
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      final uri = Uri.parse(
+          '$baseUrl/recharge/historique?page=$page&per_page=$perPage');
+
+      debugPrint('💰 [RechargeService] Récupération de l\'historique...');
+      debugPrint('💰 [RechargeService] URL: $uri');
+
+      final response = await http
+          .get(
+            uri,
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 30));
+
+      debugPrint(
+          '📡 [RechargeService] Réponse - Status: ${response.statusCode}');
+      debugPrint('📡 [RechargeService] Réponse - Body: ${response.body}');
+
+      // Vérifier si la réponse est vide
+      if (response.body.isEmpty) {
+        debugPrint('❌ [RechargeService] Réponse vide');
+        return {
+          'success': false,
+          'data': <RechargeTransaction>[],
+          'message': 'Réponse serveur vide',
+        };
+      }
+
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (e) {
+        debugPrint('❌ [RechargeService] Erreur de parsing JSON: $e');
+        return {
+          'success': false,
+          'data': <RechargeTransaction>[],
+          'message': 'Erreur de format de réponse',
+        };
+      }
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        final List<dynamic> transactionsJson = data['data'] ?? [];
+        final transactions = transactionsJson
+            .map((json) =>
+                RechargeTransaction.fromJson(json as Map<String, dynamic>))
+            .toList();
+
+        debugPrint(
+            '✅ [RechargeService] ${transactions.length} transactions récupérées');
+
+        return {
+          'success': true,
+          'data': transactions,
+          'pagination': data['pagination'] ?? {},
+        };
+      } else {
+        final errorMessage = data['message'] ??
+            data['error'] ??
+            'Erreur lors de la récupération de l\'historique';
+        debugPrint('❌ [RechargeService] Erreur: $errorMessage');
+
+        return {
+          'success': false,
+          'data': <RechargeTransaction>[],
+          'message': errorMessage.toString(),
+        };
+      }
+    } catch (e, stackTrace) {
+      debugPrint(
+          '❌ [RechargeService] Exception lors de la récupération de l\'historique: $e');
+      debugPrint('❌ [RechargeService] Stack trace: $stackTrace');
+      return {
+        'success': false,
+        'data': <RechargeTransaction>[],
+        'message': 'Erreur de connexion. Vérifiez votre connexion internet.',
+      };
+    }
+  }
+}

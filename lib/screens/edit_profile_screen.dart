@@ -77,7 +77,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'sélectionner',
           error: e,
-          customMessage: 'Impossible de sélectionner la photo. Veuillez réessayer.',
+          customMessage:
+              'Impossible de sélectionner la photo. Veuillez réessayer.',
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -222,7 +223,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'sauvegarder',
           error: e,
-          customMessage: 'Impossible de sauvegarder les modifications. Veuillez réessayer.',
+          customMessage:
+              'Impossible de sauvegarder les modifications. Veuillez réessayer.',
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -260,14 +262,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (result['success'] == true) {
         // Recharger l'utilisateur depuis SharedPreferences
         await ref.read(authProvider.notifier).reloadUserFromStorage();
-        
+
         // Petit délai pour laisser le temps au provider de se mettre à jour
         await Future.delayed(const Duration(milliseconds: 200));
 
         if (mounted) {
           // Retour à l'écran précédent
           Navigator.pop(context);
-          
+
           // Afficher le message de succès après le retour
           Future.delayed(const Duration(milliseconds: 300), () {
             if (mounted) {
@@ -311,7 +313,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         final errorMessage = ErrorMessageHelper.getOperationError(
           'sauvegarder',
           error: e,
-          customMessage: 'Impossible de sauvegarder les modifications. Veuillez réessayer.',
+          customMessage:
+              'Impossible de sauvegarder les modifications. Veuillez réessayer.',
         );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -368,13 +371,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               final primaryColor = _getPrimaryColor();
                               return CircleAvatar(
                                 radius: 50,
-                                backgroundColor: primaryColor.withValues(alpha: 0.2),
+                                backgroundColor:
+                                    primaryColor.withValues(alpha: 0.2),
                                 backgroundImage: _selectedImage != null
                                     ? FileImage(_selectedImage!)
                                     : (user?.profilePhotoUrl != null
                                         ? NetworkImage(user!.profilePhotoUrl!)
                                         : null) as ImageProvider?,
-                                child: _selectedImage == null && user?.profilePhotoUrl == null
+                                child: _selectedImage == null &&
+                                        user?.profilePhotoUrl == null
                                     ? Text(
                                         user?.name.isNotEmpty == true
                                             ? user!.name[0].toUpperCase()
@@ -384,7 +389,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                           fontWeight: FontWeight.bold,
                                           color: primaryColor,
                                         ),
-                                      ) : null,
+                                      )
+                                    : null,
                               );
                             },
                           ),
@@ -395,13 +401,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         builder: (context) {
                           final primaryColor = _getPrimaryColor();
                           return GestureDetector(
-                            onTap: _isUploadingPhoto ? null : _showImageSourceDialog,
+                            onTap: _isUploadingPhoto
+                                ? null
+                                : _showImageSourceDialog,
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: primaryColor,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
                               ),
                               child: const Icon(
                                 Icons.camera_alt,
@@ -419,12 +428,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               const SizedBox(height: 8),
               Center(
                 child: Text(
-                  _isUploadingPhoto 
+                  _isUploadingPhoto
                       ? t('security.upload_in_progress')
                       : t('security.tap_to_change'),
                   style: TextStyle(
                     fontSize: 12,
-                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.color
+                        ?.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -457,8 +470,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   if (value == null || value.trim().isEmpty) {
                     return t('security.email_required');
                   }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                      .hasMatch(value)) {
+                  final String v = value.trim();
+                  final int at = v.indexOf('@');
+                  final int dot = at != -1 ? v.indexOf('.', at + 1) : -1;
+                  if (at <= 0 ||
+                      dot <= at + 1 ||
+                      dot == v.length - 1 ||
+                      v.contains(' ')) {
                     return t('security.invalid_email');
                   }
                   return null;
@@ -481,23 +499,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ),
                       elevation: 2,
                     ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : Text(
-                        t('security.save_changes'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            t('security.save_changes'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   );
                 },
               ),
@@ -525,7 +543,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
-          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+          color: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.color
+              ?.withValues(alpha: 0.7),
         ),
         prefixIcon: Builder(
           builder: (context) => Icon(icon, color: _getPrimaryColor()),

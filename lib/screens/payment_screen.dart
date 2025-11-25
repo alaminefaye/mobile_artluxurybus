@@ -498,6 +498,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   }
 
   String _getEmbarkDestination() {
+    // Priorité: utiliser les arrêts choisis renvoyés par l'API dans les réservations
+    if (widget.reservations != null && widget.reservations!.isNotEmpty) {
+      final first = widget.reservations!.first;
+      final depart = first['depart'];
+      if (depart is Map && depart.isNotEmpty) {
+        final emb = depart['embarquement'];
+        final dest = depart['destination'];
+        if (emb != null &&
+            dest != null &&
+            emb.toString().isNotEmpty &&
+            dest.toString().isNotEmpty) {
+          return '$emb → $dest';
+        }
+      }
+    }
     if (widget.depart == null || widget.depart!.isEmpty) {
       return 'Trajet non disponible';
     }
@@ -515,6 +530,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   }
 
   String _getDepartDateTime() {
+    // Priorité: utiliser la date/heure renvoyées par l'API dans les réservations
+    if (widget.reservations != null && widget.reservations!.isNotEmpty) {
+      final first = widget.reservations!.first;
+      final depart = first['depart'];
+      if (depart is Map && depart.isNotEmpty) {
+        final dynamic dateValue = depart['date'] ?? depart['date_depart'] ?? '';
+        final dynamic heureValue =
+            depart['heure'] ?? depart['heure_depart'] ?? '';
+        final String dateStr = dateValue?.toString() ?? '';
+        final String heureStr = heureValue?.toString() ?? '';
+        if (dateStr.isNotEmpty && heureStr.isNotEmpty) {
+          return '${t('payment.date_prefix')} $dateStr à $heureStr';
+        }
+      }
+    }
     if (widget.depart == null || widget.depart!.isEmpty) {
       return 'Date non disponible';
     }
@@ -1768,17 +1798,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 useLoyaltyPoints: false,
                 useBalance: true);
 
-            debugPrint('💳 [PaymentScreen] Résultat confirmation avec solde: ${confirmResult['success']}');
-            debugPrint('💳 [PaymentScreen] Message: ${confirmResult['message']}');
-            
+            debugPrint(
+                '💳 [PaymentScreen] Résultat confirmation avec solde: ${confirmResult['success']}');
+            debugPrint(
+                '💳 [PaymentScreen] Message: ${confirmResult['message']}');
+
             if (confirmResult['success'] == true) {
               confirmedSeats
                   .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
-              debugPrint('💳 [PaymentScreen] ✅ Réservation confirmée avec succès (paiement par solde)');
+              debugPrint(
+                  '💳 [PaymentScreen] ✅ Réservation confirmée avec succès (paiement par solde)');
             } else {
               failedSeats
                   .add(reservation['seat_number'] ?? widget.seatNumber ?? 0);
-              debugPrint('💳 [PaymentScreen] ❌ Échec confirmation: ${confirmResult['message']}');
+              debugPrint(
+                  '💳 [PaymentScreen] ❌ Échec confirmation: ${confirmResult['message']}');
             }
 
             // Délai entre chaque confirmation pour éviter le rate limit

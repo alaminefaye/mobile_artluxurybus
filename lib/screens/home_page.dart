@@ -55,6 +55,8 @@ import 'admin_dashboard_screen.dart';
 import 'message_management_screen.dart';
 import 'job_application_form_screen.dart';
 import 'admin/job_applications_list_screen.dart';
+import 'admin/feedback_list_screen.dart';
+import 'voting/voting_sessions_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -732,29 +734,39 @@ class _HomePageState extends ConsumerState<HomePage>
           final message = notification.message;
           // Pattern pour "pour Abidjan → Bouaké" ou "pour Abidjan -> Bouaké" ou "pour Abidjan → Yamoussoukro"
           // Rechercher "pour" suivi du texte jusqu'à "a été"
-          final routeMatch1 =
-              RegExp(r'pour\s+([^a]+?)\s+a été', caseSensitive: false)
-                  .firstMatch(message);
-          if (routeMatch1 != null) {
-            route = routeMatch1.group(1)?.trim() ?? '';
+          final String lower = message.toLowerCase();
+          final int idxPour = lower.indexOf('pour ');
+          final int idxAEte =
+              idxPour >= 0 ? lower.indexOf('a été', idxPour + 5) : -1;
+          final bool foundRoute1 = idxPour >= 0 && idxAEte > idxPour;
+          if (foundRoute1) {
+            route = message.substring(idxPour + 5, idxAEte).trim();
             // Nettoyer la route (retirer les éventuels caractères indésirables)
-            route = route.replaceAll(RegExp(r'\s+'), ' ').trim();
+            route =
+                route.split(' ').where((s) => s.isNotEmpty).join(' ').trim();
           } else {
             // Essayer de trouver directement "Ville1 → Ville2" dans le message
-            final routeMatch2 = RegExp(
-                    r'([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)\s*→\s*([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+)')
-                .firstMatch(message);
-            if (routeMatch2 != null) {
-              route =
-                  '${routeMatch2.group(1)?.trim()} → ${routeMatch2.group(2)?.trim()}';
+            final int arrowIdx = message.indexOf('→');
+
+            if (arrowIdx != -1) {
+              final String left = message.substring(0, arrowIdx).trim();
+              final String right = message.substring(arrowIdx + 1).trim();
+              route = '$left → $right';
             } else {
               // Essayer un pattern plus large pour trouver deux villes
-              final routeMatch3 = RegExp(
-                      r'([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)\s*(?:→|->|-)\s*([A-Z][a-zÀ-ÿéèêëïîôùûüç]+)')
-                  .firstMatch(message);
-              if (routeMatch3 != null) {
-                route =
-                    '${routeMatch3.group(1)?.trim()} → ${routeMatch3.group(2)?.trim()}';
+              final int idxArrow = message.indexOf('→');
+              final int idxAlt = idxArrow == -1 ? message.indexOf('->') : -1;
+              final int idxDash = (idxArrow == -1 && idxAlt == -1)
+                  ? message.indexOf(' - ')
+                  : -1;
+              final int sepIdx =
+                  idxArrow != -1 ? idxArrow : (idxAlt != -1 ? idxAlt : idxDash);
+              if (sepIdx != -1) {
+                final int sepLen =
+                    (idxArrow != -1) ? 1 : (idxAlt != -1 ? 2 : 3);
+                final String left2 = message.substring(0, sepIdx).trim();
+                final String right2 = message.substring(sepIdx + sepLen).trim();
+                route = '$left2 → $right2';
               } else {
                 // Si on ne trouve rien, utiliser les données ou le message complet
                 route = data['route']?.toString() ??
@@ -783,14 +795,29 @@ class _HomePageState extends ConsumerState<HomePage>
           // Essayer d'extraire depuis le message original
           final message = notification.message;
           // Patterns pour "1 point" ou "gagné 1 point" ou "1 point de fidélité"
-          final pointsMatch = RegExp(r'(\d+)\s+point').firstMatch(message);
-          if (pointsMatch != null) {
-            points = int.tryParse(pointsMatch.group(1) ?? '1') ?? 1;
+          int idxPoint = message.toLowerCase().indexOf('point');
+          if (idxPoint != -1) {
+            int i = idxPoint - 1;
+            String digits = '';
+            while (i >= 0 && '0123456789'.contains(message[i])) {
+              digits = message[i] + digits;
+              i--;
+            }
+            if (digits.isNotEmpty) {
+              points = int.tryParse(digits) ?? 1;
+            }
           } else {
-            // Essayer "Vous avez gagné 1 point"
-            final pointsMatch2 = RegExp(r'gagné\s+(\d+)').firstMatch(message);
-            if (pointsMatch2 != null) {
-              points = int.tryParse(pointsMatch2.group(1) ?? '1') ?? 1;
+            final int idxGagne = message.toLowerCase().indexOf('gagné ');
+            if (idxGagne != -1) {
+              int i = idxGagne + 6;
+              String digits = '';
+              while (i < message.length && '0123456789'.contains(message[i])) {
+                digits += message[i];
+                i++;
+              }
+              if (digits.isNotEmpty) {
+                points = int.tryParse(digits) ?? 1;
+              }
             }
           }
         }
@@ -837,9 +864,12 @@ class _HomePageState extends ConsumerState<HomePage>
         if (destination.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final destMatch = RegExp(r'vers\s+(.+?)(?:\.|$)').firstMatch(message);
-          if (destMatch != null) {
-            destination = destMatch.group(1) ?? '';
+          final String lowerMsg = message.toLowerCase();
+          final int idxVers = lowerMsg.indexOf('vers ');
+          if (idxVers != -1) {
+            int end = message.indexOf('.', idxVers + 5);
+            if (end == -1) end = message.length;
+            destination = message.substring(idxVers + 5, end).trim();
           }
         }
         translatedMessage = t('notifications.travel_reminder_message')
@@ -864,29 +894,50 @@ class _HomePageState extends ConsumerState<HomePage>
         if (destination.isEmpty || number.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          // Pattern pour destination: "pour Abidjan" ou "destination: Abidjan"
-          final destMatch1 =
-              RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
-                  .firstMatch(message);
-          final destMatch2 = RegExp(
-                  r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
-              .firstMatch(message);
-          if (destMatch1 != null) {
-            destination = destMatch1.group(1)?.trim() ?? '';
+          final String lowerMsg2 = message.toLowerCase();
+          final int idxPour2 = lowerMsg2.indexOf('pour ');
+          final int idxDest2 = lowerMsg2.indexOf('destination');
+          if (idxPour2 != -1) {
+            int endPour = message.indexOf('.', idxPour2 + 5);
+            if (endPour == -1) endPour = message.length;
+            destination = message.substring(idxPour2 + 5, endPour).trim();
           }
-          if (destination.isEmpty && destMatch2 != null) {
-            destination = destMatch2.group(1)?.trim() ?? '';
+          if (destination.isEmpty && idxDest2 != -1) {
+            int colon = message.indexOf(':', idxDest2);
+            int start =
+                colon != -1 ? colon + 1 : idxDest2 + 'destination'.length;
+            int end = message.indexOf('.', start);
+            if (end == -1) end = message.length;
+            destination = message.substring(start, end).trim();
           }
 
           // Pattern pour numéro: "Numéro: MAIL001" ou "Numéro MAIL001" ou simplement un code alphanumérique
-          final numMatch1 =
-              RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
-          final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
-          if (numMatch1 != null) {
-            number = numMatch1.group(1)?.trim() ?? '';
+          final int idxNumero = message.indexOf('Numéro');
+          if (idxNumero != -1) {
+            int startNum = message.indexOf(':', idxNumero);
+            if (startNum == -1) {
+              startNum = idxNumero + 'Numéro'.length;
+            } else {
+              startNum += 1;
+            }
+            int endNum = startNum;
+            while (
+                endNum < message.length && message[endNum].trim().isNotEmpty) {
+              endNum++;
+            }
+            number = message.substring(startNum, endNum).trim();
           }
-          if (number.isEmpty && numMatch2 != null) {
-            number = numMatch2.group(1)?.trim() ?? '';
+          if (number.isEmpty) {
+            final parts = message.split(' ');
+            for (final p in parts) {
+              final hasLetters = p.runes
+                  .any((c) => (c >= 65 && c <= 90) || (c >= 97 && c <= 122));
+              final hasDigits = p.runes.any((c) => (c >= 48 && c <= 57));
+              if (hasLetters && hasDigits) {
+                number = p.trim();
+                break;
+              }
+            }
           }
         }
         translatedMessage = t('notifications.mail_created_message')
@@ -906,42 +957,77 @@ class _HomePageState extends ConsumerState<HomePage>
           // Essayer d'extraire depuis le message
           final message = notification.message;
           // Pattern pour expéditeur: "de Jean" ou "expéditeur: Jean" ou "Vous avez reçu un courrier de Jean"
-          final senderMatch1 =
-              RegExp(r'de\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)')
-                  .firstMatch(message);
-          final senderMatch2 = RegExp(
-                  r'expéditeur[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s+pour|\s|\.)')
-              .firstMatch(message);
-          if (senderMatch1 != null) {
-            sender = senderMatch1.group(1)?.trim() ?? '';
+          final String lowerS = message.toLowerCase();
+          final int idxDe = lowerS.indexOf('de ');
+          int endDe = -1;
+          if (idxDe != -1) {
+            final int idxPourKw = lowerS.indexOf(' pour', idxDe + 3);
+            final int idxDot = message.indexOf('.', idxDe + 3);
+            endDe = [idxPourKw, idxDot]
+                .where((v) => v != -1)
+                .fold(message.length, (prev, v) => v < prev ? v : prev);
           }
-          if (sender.isEmpty && senderMatch2 != null) {
-            sender = senderMatch2.group(1)?.trim() ?? '';
+          final int idxExp = lowerS.indexOf('expéditeur');
+          int startExp = -1;
+          int endExp = -1;
+          if (idxExp != -1) {
+            final int colonExp = message.indexOf(':', idxExp);
+            startExp =
+                colonExp != -1 ? colonExp + 1 : idxExp + 'expéditeur'.length;
+            endExp = message.indexOf('.', startExp);
+            if (endExp == -1) endExp = message.length;
+          }
+          if (idxDe != -1 && endDe != -1) {
+            sender = message.substring(idxDe + 3, endDe).trim();
+          }
+          if (sender.isEmpty && idxExp != -1) {
+            sender = message.substring(startExp, endExp).trim();
           }
 
           // Pattern pour destination
-          final destMatch1 =
-              RegExp(r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
-                  .firstMatch(message);
-          final destMatch2 = RegExp(
-                  r'destination[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.|$)')
-              .firstMatch(message);
-          if (destMatch1 != null) {
-            destination = destMatch1.group(1)?.trim() ?? '';
+          final int idxPour3 = lowerS.indexOf('pour ');
+          final int idxDest3 = lowerS.indexOf('destination');
+          if (idxPour3 != -1) {
+            int endPour3 = message.indexOf('.', idxPour3 + 5);
+            if (endPour3 == -1) endPour3 = message.length;
+            destination = message.substring(idxPour3 + 5, endPour3).trim();
           }
-          if (destination.isEmpty && destMatch2 != null) {
-            destination = destMatch2.group(1)?.trim() ?? '';
+          if (destination.isEmpty && idxDest3 != -1) {
+            int colon3 = message.indexOf(':', idxDest3);
+            int start3 =
+                colon3 != -1 ? colon3 + 1 : idxDest3 + 'destination'.length;
+            int end3 = message.indexOf('.', start3);
+            if (end3 == -1) end3 = message.length;
+            destination = message.substring(start3, end3).trim();
           }
 
           // Pattern pour numéro
-          final numMatch1 =
-              RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
-          final numMatch2 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
-          if (numMatch1 != null) {
-            number = numMatch1.group(1)?.trim() ?? '';
+          final int idxNumero2 = message.indexOf('Numéro');
+          if (idxNumero2 != -1) {
+            int startNum2 = message.indexOf(':', idxNumero2);
+            if (startNum2 == -1) {
+              startNum2 = idxNumero2 + 'Numéro'.length;
+            } else {
+              startNum2 += 1;
+            }
+            int endNum2 = startNum2;
+            while (endNum2 < message.length &&
+                message[endNum2].trim().isNotEmpty) {
+              endNum2++;
+            }
+            number = message.substring(startNum2, endNum2).trim();
           }
-          if (number.isEmpty && numMatch2 != null) {
-            number = numMatch2.group(1)?.trim() ?? '';
+          if (number.isEmpty) {
+            final parts2 = message.split(' ');
+            for (final p in parts2) {
+              final hasLetters2 = p.runes
+                  .any((c) => (c >= 65 && c <= 90) || (c >= 97 && c <= 122));
+              final hasDigits2 = p.runes.any((c) => (c >= 48 && c <= 57));
+              if (hasLetters2 && hasDigits2) {
+                number = p.trim();
+                break;
+              }
+            }
           }
         }
         translatedMessage = t('notifications.mail_received_message')
@@ -958,20 +1044,45 @@ class _HomePageState extends ConsumerState<HomePage>
           // Essayer d'extraire depuis le message
           final message = notification.message;
           // Pattern pour numéro de courrier: "MAIL001" ou "Numéro: MAIL001" ou "courrier MAIL001"
-          final numMatch1 =
-              RegExp(r'Numéro[:\s]+([A-Z0-9-]+)').firstMatch(message);
-          final numMatch2 =
-              RegExp(r'courrier\s+([A-Z0-9-]+)').firstMatch(message);
-          final numMatch3 = RegExp(r'([A-Z]{2,}[0-9-]+)').firstMatch(message);
-          if (numMatch1 != null) {
-            number = numMatch1.group(1)?.trim() ?? '';
+          final int idxNumero3 = message.indexOf('Numéro');
+          if (idxNumero3 != -1) {
+            int startNum3 = message.indexOf(':', idxNumero3);
+            if (startNum3 == -1) {
+              startNum3 = idxNumero3 + 'Numéro'.length;
+            } else {
+              startNum3 += 1;
+            }
+            int endNum3 = startNum3;
+            while (endNum3 < message.length &&
+                message[endNum3].trim().isNotEmpty) {
+              endNum3++;
+            }
+            number = message.substring(startNum3, endNum3).trim();
           }
-          if (number.isEmpty && numMatch2 != null) {
-            number = numMatch2.group(1)?.trim() ?? '';
+          if (number.isEmpty) {
+            final int idxCourrier = message.toLowerCase().indexOf('courrier ');
+            if (idxCourrier != -1) {
+              int startC = idxCourrier + 'courrier '.length;
+              int endC = startC;
+              while (endC < message.length && message[endC].trim().isNotEmpty) {
+                endC++;
+              }
+              number = message.substring(startC, endC).trim();
+            }
           }
-          if (number.isEmpty && numMatch3 != null) {
-            number = numMatch3.group(1)?.trim() ?? '';
+          if (number.isEmpty) {
+            final parts3 = message.split(' ');
+            for (final p in parts3) {
+              final hasLetters3 = p.runes
+                  .any((c) => (c >= 65 && c <= 90) || (c >= 97 && c <= 122));
+              final hasDigits3 = p.runes.any((c) => (c >= 48 && c <= 57));
+              if (hasLetters3 && hasDigits3) {
+                number = p.trim();
+                break;
+              }
+            }
           }
+          // extraction faite ci-dessus
         }
         translatedMessage = t('notifications.mail_collected_message')
             .replaceAll('{{number}}', number);
@@ -997,15 +1108,34 @@ class _HomePageState extends ConsumerState<HomePage>
         if (route.isEmpty || time.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(
-                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
-              .firstMatch(message);
-          final timeMatch = RegExp(r'(\d{1,2}:\d{2})').firstMatch(message);
-          if (routeMatch != null) {
-            route = routeMatch.group(1)?.trim() ?? '';
+          final String lowerMsgX = message.toLowerCase();
+          final int idxPourX = lowerMsgX.indexOf('pour ');
+          final int idxAEteX =
+              idxPourX >= 0 ? lowerMsgX.indexOf('a été', idxPourX + 5) : -1;
+          if (idxPourX != -1 && idxAEteX != -1) {
+            route = message.substring(idxPourX + 5, idxAEteX).trim();
           }
-          if (timeMatch != null) {
-            time = timeMatch.group(1)?.trim() ?? '';
+          final int colonIdx = message.indexOf(':');
+          if (colonIdx > 0 && colonIdx < message.length - 1) {
+            int start = colonIdx - 2;
+            if (start < 0) start = 0;
+            int end = colonIdx + 3;
+            if (end > message.length) end = message.length;
+            final candidate = message.substring(start, end);
+            final parts = candidate.split(':');
+            if (parts.length == 2) {
+              final int? h = int.tryParse(parts[0].trim());
+              final int? m = int.tryParse(parts[1].trim());
+              if (h != null &&
+                  m != null &&
+                  h >= 0 &&
+                  h <= 23 &&
+                  m >= 0 &&
+                  m <= 59) {
+                time =
+                    '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+              }
+            }
           }
         }
         translatedMessage = t('notifications.departure_changed_message')
@@ -1024,11 +1154,12 @@ class _HomePageState extends ConsumerState<HomePage>
         if (route.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(
-                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
-              .firstMatch(message);
-          if (routeMatch != null) {
-            route = routeMatch.group(1)?.trim() ?? '';
+          final String lowerMsgX = message.toLowerCase();
+          final int idxPourX = lowerMsgX.indexOf('pour ');
+          final int idxAEteX =
+              idxPourX >= 0 ? lowerMsgX.indexOf('a été', idxPourX + 5) : -1;
+          if (idxPourX != -1 && idxAEteX != -1) {
+            route = message.substring(idxPourX + 5, idxAEteX).trim();
           }
         }
         translatedMessage = t('notifications.departure_cancelled_message')
@@ -1046,11 +1177,12 @@ class _HomePageState extends ConsumerState<HomePage>
         if (route.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(
-                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
-              .firstMatch(message);
-          if (routeMatch != null) {
-            route = routeMatch.group(1)?.trim() ?? '';
+          final String lowerMsgX = message.toLowerCase();
+          final int idxPourX = lowerMsgX.indexOf('pour ');
+          final int idxAEteX =
+              idxPourX >= 0 ? lowerMsgX.indexOf('a été', idxPourX + 5) : -1;
+          if (idxPourX != -1 && idxAEteX != -1) {
+            route = message.substring(idxPourX + 5, idxAEteX).trim();
           }
         }
         translatedMessage = t('notifications.reservation_confirmed_message')
@@ -1068,11 +1200,12 @@ class _HomePageState extends ConsumerState<HomePage>
         if (route.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final routeMatch = RegExp(
-                  r'pour\s+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s→-]+?)(?:\s+a été|\s|\.)')
-              .firstMatch(message);
-          if (routeMatch != null) {
-            route = routeMatch.group(1)?.trim() ?? '';
+          final String lowerMsgX = message.toLowerCase();
+          final int idxPourX = lowerMsgX.indexOf('pour ');
+          final int idxAEteX =
+              idxPourX >= 0 ? lowerMsgX.indexOf('a été', idxPourX + 5) : -1;
+          if (idxPourX != -1 && idxAEteX != -1) {
+            route = message.substring(idxPourX + 5, idxAEteX).trim();
           }
         }
         translatedMessage = t('notifications.reservation_cancelled_message')
@@ -1097,10 +1230,15 @@ class _HomePageState extends ConsumerState<HomePage>
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)')
-              .firstMatch(message);
-          if (busMatch != null) {
-            bus = busMatch.group(1)?.trim() ?? '';
+          final String lowerBus = message.toLowerCase();
+          final int idxBus = lowerBus.indexOf('bus ');
+          if (idxBus != -1) {
+            final int idxAEteB = lowerBus.indexOf('a été', idxBus + 4);
+            final int idxDotB = message.indexOf('.', idxBus + 4);
+            int endBus = [idxAEteB, idxDotB]
+                .where((v) => v != -1)
+                .fold(message.length, (prev, v) => v < prev ? v : prev);
+            bus = message.substring(idxBus + 4, endBus).trim();
           }
         }
         translatedMessage = t('notifications.vidange_completed_message')
@@ -1115,10 +1253,15 @@ class _HomePageState extends ConsumerState<HomePage>
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch = RegExp(r'bus\s+([A-Z0-9\s-]+?)(?:\s+a été|\s|\.)')
-              .firstMatch(message);
-          if (busMatch != null) {
-            bus = busMatch.group(1)?.trim() ?? '';
+          final String lowerBus = message.toLowerCase();
+          final int idxBus = lowerBus.indexOf('bus ');
+          if (idxBus != -1) {
+            final int idxAEteB = lowerBus.indexOf('a été', idxBus + 4);
+            final int idxDotB = message.indexOf('.', idxBus + 4);
+            int endBus = [idxAEteB, idxDotB]
+                .where((v) => v != -1)
+                .fold(message.length, (prev, v) => v < prev ? v : prev);
+            bus = message.substring(idxBus + 4, endBus).trim();
           }
         }
         translatedMessage = t('notifications.vidange_updated_message')
@@ -1134,10 +1277,11 @@ class _HomePageState extends ConsumerState<HomePage>
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch =
-              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.| $)').firstMatch(message);
-          if (busMatch != null) {
-            bus = busMatch.group(1)?.trim() ?? '';
+          final int idxBusU = message.indexOf('Bus ');
+          if (idxBusU != -1) {
+            int endBusU = message.indexOf('.', idxBusU + 4);
+            if (endBusU == -1) endBusU = message.length;
+            bus = message.substring(idxBusU + 4, endBusU).trim();
           }
         }
         translatedMessage =
@@ -1153,10 +1297,11 @@ class _HomePageState extends ConsumerState<HomePage>
         if (bus.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch =
-              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.| $)').firstMatch(message);
-          if (busMatch != null) {
-            bus = busMatch.group(1)?.trim() ?? '';
+          final int idxBusU = message.indexOf('Bus ');
+          if (idxBusU != -1) {
+            int endBusU = message.indexOf('.', idxBusU + 4);
+            if (endBusU == -1) endBusU = message.length;
+            bus = message.substring(idxBusU + 4, endBusU).trim();
           }
         }
         translatedMessage = t('notifications.breakdown_updated_message')
@@ -1173,18 +1318,22 @@ class _HomePageState extends ConsumerState<HomePage>
         if (bus.isEmpty || status.isEmpty) {
           // Essayer d'extraire depuis le message
           final message = notification.message;
-          final busMatch =
-              RegExp(r'Bus\s+([A-Z0-9\s-]+?)(?:\s|\.| $)').firstMatch(message);
-          if (busMatch != null) {
-            bus = busMatch.group(1)?.trim() ?? '';
+          final int idxBusU = message.indexOf('Bus ');
+          if (idxBusU != -1) {
+            int endBusU = message.indexOf('.', idxBusU + 4);
+            if (endBusU == -1) endBusU = message.length;
+            bus = message.substring(idxBusU + 4, endBusU).trim();
           }
-          // Le statut peut être dans le message
           if (status.isEmpty) {
-            final statusMatch = RegExp(
-                    r'statut[:\s]+([A-Za-zÀ-ÿÉéèêëïîôùûüç\s-]+?)(?:\s|\.| $)')
-                .firstMatch(message);
-            if (statusMatch != null) {
-              status = statusMatch.group(1)?.trim() ?? '';
+            final String lowerM = message.toLowerCase();
+            final int idxStatut = lowerM.indexOf('statut');
+            if (idxStatut != -1) {
+              int colonS = message.indexOf(':', idxStatut);
+              int startS =
+                  colonS != -1 ? colonS + 1 : idxStatut + 'statut'.length;
+              int endS = message.indexOf('.', startS);
+              if (endS == -1) endS = message.length;
+              status = message.substring(startS, endS).trim();
             }
           }
         }
@@ -1529,7 +1678,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                                         ),
                                                       )
                                                     : Text(
-                                                        '${_solde.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
+                                                        '${_solde.toStringAsFixed(0)} FCFA',
                                                         style: const TextStyle(
                                                           fontSize: 13,
                                                           fontWeight:
@@ -1989,16 +2138,23 @@ class _HomePageState extends ConsumerState<HomePage>
             isFeatureEnabledProvider(FeatureCodes.reservation),
           );
           if (isReservationEnabled) {
+            // Deleted: reservation tile shown in top quick actions
+          }
+
+          // Courrier (placé en premier)
+          final isMailEnabled2 = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.mail),
+          );
+          if (isMailEnabled2) {
             services.add(
               _buildServiceIcon(
-                icon: Icons.confirmation_number_rounded,
-                label: t('home.book'),
-                color: AppTheme.primaryBlue,
+                icon: Icons.local_shipping_rounded,
+                label: t('services.mail'),
+                color: AppTheme.primaryOrange,
                 onTap: () {
-                  Navigator.push(
-                    context,
+                  Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (context) => const ReservationScreen(),
+                      builder: (context) => const MyMailsScreen(),
                     ),
                   );
                 },
@@ -2027,26 +2183,7 @@ class _HomePageState extends ConsumerState<HomePage>
             );
           }
 
-          // Courrier
-          final isMailEnabled = ref.watch(
-            isFeatureEnabledProvider(FeatureCodes.mail),
-          );
-          if (isMailEnabled) {
-            services.add(
-              _buildServiceIcon(
-                icon: Icons.local_shipping_rounded,
-                label: t('services.mail'),
-                color: AppTheme.primaryOrange,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const MyMailsScreen(),
-                    ),
-                  );
-                },
-              ),
-            );
-          }
+          // Courrier (déjà placé en premier plus haut)
 
           // Feedback
           final isFeedbackEnabled = ref.watch(
@@ -2062,6 +2199,27 @@ class _HomePageState extends ConsumerState<HomePage>
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const FeedbackScreen(),
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+
+          // Votes (selon feature)
+          final isVoteEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.vote),
+          );
+          if (isVoteEnabled) {
+            services.add(
+              _buildServiceIcon(
+                icon: Icons.how_to_vote_rounded,
+                label: 'Votes',
+                color: const Color(0xFFD4AF37),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const VotingSessionsScreen(),
                     ),
                   );
                 },
@@ -2188,26 +2346,7 @@ class _HomePageState extends ConsumerState<HomePage>
             );
           }
 
-          // Courrier
-          final isMailEnabled = ref.watch(
-            isFeatureEnabledProvider(FeatureCodes.mail),
-          );
-          if (isMailEnabled) {
-            services.add(
-              _buildServiceIcon(
-                icon: Icons.local_shipping_rounded,
-                label: t('services.mail'),
-                color: AppTheme.primaryOrange,
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const MyMailsScreen(),
-                    ),
-                  );
-                },
-              ),
-            );
-          }
+          // Courrier (déjà placé en premier plus haut)
 
           // Horaires (toujours disponible pour admin)
           services.add(
@@ -3370,6 +3509,18 @@ class _HomePageState extends ConsumerState<HomePage>
       });
     }
 
+    // Votes (selon feature)
+    if (isFeatureEnabled(FeatureCodes.vote)) {
+      services.add({
+        'icon': Icons.how_to_vote_rounded,
+        'title': 'Votes',
+        'subtitle': 'Participez aux votes en cours',
+        'color': const Color(0xFFD4AF37),
+        'onTap': () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const VotingSessionsScreen())),
+      });
+    }
+
     if (_hasAttendanceRole(user)) {
       services.add({
         'icon': Icons.qr_code_scanner_rounded,
@@ -4003,6 +4154,34 @@ class _HomePageState extends ConsumerState<HomePage>
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         const AttendanceHistoryScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // Section Suggestions et préoccupations (Super Admin, Admin, RH, Chef agence)
+                      if (_isSuperAdminAdminOrRH(user) ||
+                          _isAdminOrChefAgence(user)) ...[
+                        _buildProfileSection(
+                          title: 'Suggestions et préoccupations',
+                          icon: Icons.feedback_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.list_alt,
+                              title: 'Liste des suggestions',
+                              subtitle:
+                                  'Voir toutes les suggestions et préoccupations',
+                              color: Colors.deepPurple,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const FeedbackListScreen(),
                                   ),
                                 );
                               },
