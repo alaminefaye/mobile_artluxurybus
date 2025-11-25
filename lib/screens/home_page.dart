@@ -57,6 +57,8 @@ import 'job_application_form_screen.dart';
 import 'admin/job_applications_list_screen.dart';
 import 'admin/feedback_list_screen.dart';
 import 'voting/voting_sessions_screen.dart';
+import 'restaurant_menu_screen.dart';
+import 'lost_items_screen.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -1964,6 +1966,30 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
             );
           }
+
+          // Objets Perdus
+          final isLostItemsEnabled = ref.watch(
+            isFeatureEnabledProvider(FeatureCodes.lostItems),
+          );
+          if (isLostItemsEnabled) {
+            quickActions.add(
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LostItemsScreen(),
+                    ),
+                  );
+                },
+                child: _buildQuickActionItem(
+                  icon: Icons.search_rounded,
+                  label: 'Objets Perdus',
+                  color: const Color(0xFFF59E0B),
+                ),
+              ),
+            );
+          }
         }
 
         // Si aucune action active, ne pas afficher la section du tout
@@ -3518,6 +3544,30 @@ class _HomePageState extends ConsumerState<HomePage>
         'color': const Color(0xFFD4AF37),
         'onTap': () => Navigator.push(context,
             MaterialPageRoute(builder: (_) => const VotingSessionsScreen())),
+      });
+    }
+
+    // Menu Resto (selon feature)
+    if (isFeatureEnabled(FeatureCodes.restaurantMenu)) {
+      services.add({
+        'icon': Icons.restaurant_menu_rounded,
+        'title': 'Menu Resto',
+        'subtitle': 'Afficher le menu du jour du restaurant',
+        'color': const Color(0xFF10B981),
+        'onTap': () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const RestaurantMenuScreen())),
+      });
+    }
+
+    // Objets Perdus (selon feature)
+    if (isFeatureEnabled(FeatureCodes.lostItems)) {
+      services.add({
+        'icon': Icons.search_rounded,
+        'title': 'Objets Perdus',
+        'subtitle': 'Consulter les objets perdus trouvés',
+        'color': const Color(0xFFF59E0B),
+        'onTap': () => Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const LostItemsScreen())),
       });
     }
 

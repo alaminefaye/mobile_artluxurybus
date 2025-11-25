@@ -119,4 +119,6 @@ class FeatureCodes {
   static const String messages = 'messages';
   static const String notifications = 'notifications';
   static const String vote = 'vote';
+  static const String restaurantMenu = 'restaurant_menu';
+  static const String lostItems = 'lost_items';
 }
