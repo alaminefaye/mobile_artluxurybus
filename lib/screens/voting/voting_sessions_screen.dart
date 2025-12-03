@@ -27,11 +27,11 @@ class VotingSessionsScreen extends ConsumerWidget {
               const Color(0xFF6366F1), // Bleu violet comme les autres pages
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.white),
-          bottom: TabBar(
+          bottom: const TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
             indicatorColor: Colors.white,
-            tabs: const [
+            tabs: [
               Tab(text: 'En cours'),
               Tab(text: 'Programmées'),
               Tab(text: 'Terminées'),

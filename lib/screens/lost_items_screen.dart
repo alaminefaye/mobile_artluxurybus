@@ -128,8 +128,8 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withValues(alpha: 0.1),
+            Colors.white.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: const BorderRadius.only(
@@ -160,7 +160,7 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -203,10 +203,10 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
           // Barre de recherche
           Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(30),
               border: Border.all(
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -215,7 +215,7 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
               decoration: InputDecoration(
                 hintText: 'Rechercher un objet...',
                 hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 14,
                 ),
                 prefixIcon: const Icon(
@@ -278,7 +278,7 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -383,10 +383,10 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF59E0B).withOpacity(0.2),
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: const Color(0xFFF59E0B).withOpacity(0.3),
+                              color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(
@@ -418,13 +418,13 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
           Container(
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.search_off,
               size: 80,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 24),
@@ -450,7 +450,7 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
                 : 'Aucun résultat pour "$_searchQuery"',
             style: TextStyle(
               fontSize: 15,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 30),
@@ -511,7 +511,7 @@ class _LostItemsScreenState extends State<LostItemsScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 30),

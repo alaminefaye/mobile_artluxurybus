@@ -138,8 +138,8 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.1),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withValues(alpha: 0.1),
+            Colors.white.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: const BorderRadius.only(
@@ -172,7 +172,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -234,10 +234,10 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(isDark ? 0.05 : 0.15),
+            color: Colors.white.withValues(alpha: isDark ? 0.05 : 0.15),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -248,21 +248,21 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.restaurant,
                       color: Colors.white,
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
-                    const Expanded(
+                    SizedBox(width: 8),
+                    Expanded(
                       child: Text(
                         'NOM DU PLAT',
                         style: TextStyle(
@@ -273,13 +273,13 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                         ),
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.attach_money,
                       color: Colors.white,
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
+                    SizedBox(width: 8),
+                    Text(
                       'PRIX',
                       style: TextStyle(
                         fontSize: 14,
@@ -319,7 +319,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               width: 1,
                             ),
                           ),
@@ -350,10 +350,10 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -395,13 +395,13 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
           Container(
             padding: const EdgeInsets.all(30),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.restaurant_menu,
               size: 80,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 24),
@@ -425,7 +425,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
             'Le menu sera bientôt disponible',
             style: TextStyle(
               fontSize: 15,
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
           const SizedBox(height: 30),
@@ -486,7 +486,7 @@ class _RestaurantMenuScreenState extends State<RestaurantMenuScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 30),

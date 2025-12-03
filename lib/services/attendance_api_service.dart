@@ -280,4 +280,43 @@ class AttendanceApiService {
       throw Exception('Erreur: $e');
     }
   }
+
+  /// Obtenir les statistiques de présence du jour (admin/RH)
+  static Future<Map<String, int>> getTodayAttendanceStats() async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        throw Exception('Token d\'authentification manquant');
+      }
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/attendance/admin/stats'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          final employees = data['data']['employees'] ?? {};
+          return {
+            'present_count': employees['present_count'] ?? 0,
+            'in_progress_count': employees['in_progress_count'] ?? 0,
+            'departed_count': employees['departed_count'] ?? 0,
+          };
+        } else {
+          throw Exception(data['message'] ?? 'Erreur lors de la récupération des statistiques');
+        }
+      } else if (response.statusCode == 403) {
+        throw Exception('Accès non autorisé. Réservé aux Super Admin, Admin et RH.');
+      } else {
+        throw Exception(
+            'Erreur lors de la récupération des statistiques (${response.statusCode})');
+      }
+    } catch (e) {
+      throw Exception('Erreur: $e');
+    }
+  }
 }

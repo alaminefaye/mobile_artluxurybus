@@ -51,7 +51,9 @@ import '../models/feature_permission_model.dart';
 import '../providers/loyalty_provider.dart';
 import 'promo_code_management_screen.dart';
 import 'expense_management_screen.dart';
+import 'admin_expense_screen.dart';
 import 'admin_dashboard_screen.dart';
+import 'departure_analysis_screen.dart';
 import 'message_management_screen.dart';
 import 'job_application_form_screen.dart';
 import 'admin/job_applications_list_screen.dart';
@@ -4050,24 +4052,41 @@ class _HomePageState extends ConsumerState<HomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Section Dashboard (Super Admin, Admin et PDG uniquement)
-                      if (_isSuperAdminOrAdmin(user) || _isPDG(user)) ...[
+                      // Section Dashboard (Super Admin, Admin, Chef agence et PDG uniquement)
+                      if (_isSuperAdminOrAdmin(user) || _isAdminOrChefAgence(user) || _isPDG(user)) ...[
                         _buildProfileSection(
                           title: 'Tableau de bord',
                           icon: Icons.dashboard_rounded,
                           options: [
+                            if (_isSuperAdminOrAdmin(user) || _isPDG(user))
+                              _buildModernProfileOption(
+                                icon: Icons.dashboard_outlined,
+                                title: 'Dashboard Administrateur',
+                                subtitle:
+                                    'Statistiques et rapports en temps réel',
+                                color: AppTheme.primaryBlue,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const AdminDashboardScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
                             _buildModernProfileOption(
-                              icon: Icons.dashboard_outlined,
-                              title: 'Dashboard Administrateur',
+                              icon: Icons.analytics_outlined,
+                              title: 'Analyse des Départs',
                               subtitle:
-                                  'Statistiques et rapports en temps réel',
-                              color: AppTheme.primaryBlue,
+                                  'Taux de remplissage et analyse des départs',
+                              color: Colors.teal,
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        const AdminDashboardScreen(),
+                                        const DepartureAnalysisScreen(),
                                   ),
                                 );
                               },
@@ -4138,6 +4157,22 @@ class _HomePageState extends ConsumerState<HomePage>
                                     builder: (context) =>
                                         const ExpenseManagementScreen(
                                             showPendingOnly: true),
+                                  ),
+                                );
+                              },
+                            ),
+                            _buildModernProfileOption(
+                              icon: Icons.admin_panel_settings_outlined,
+                              title: 'Dépenses Admin',
+                              subtitle:
+                                  'Gérer les dépenses administratives (eau, carburant, etc.)',
+                              color: Colors.purple,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const AdminExpenseScreen(),
                                   ),
                                 );
                               },

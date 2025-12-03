@@ -20,6 +20,7 @@ class PublicScreen extends ConsumerStatefulWidget {
 class _PublicScreenState extends ConsumerState<PublicScreen> {
   final DeviceInfoService _deviceInfoService = DeviceInfoService();
   String? _deviceId;
+  String? _uuid;
 
   // Helper pour les traductions
   String t(String key) {
@@ -29,14 +30,16 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDeviceId();
+    _loadDeviceInfo();
   }
 
-  Future<void> _loadDeviceId() async {
+  Future<void> _loadDeviceInfo() async {
     final deviceId = await _deviceInfoService.getDeviceId();
+    final uuid = await _deviceInfoService.getUuid();
     if (mounted) {
       setState(() {
         _deviceId = deviceId;
+        _uuid = uuid;
       });
     }
   }
@@ -44,6 +47,19 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
   void _copyDeviceId() {
     if (_deviceId != null) {
       Clipboard.setData(ClipboardData(text: _deviceId!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(t('public.device_id_copied')),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _copyUuid() {
+    if (_uuid != null) {
+      Clipboard.setData(ClipboardData(text: _uuid!));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(t('public.device_id_copied')),
@@ -340,7 +356,7 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                     // Affichage du Device ID
                     if (_deviceId != null)
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.only(bottom: 12),
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -397,6 +413,76 @@ class _PublicScreenState extends ConsumerState<PublicScreen> {
                               IconButton(
                                 icon: const Icon(Icons.copy, size: 16),
                                 onPressed: _copyDeviceId,
+                                color: AppTheme.primaryOrange,
+                                tooltip: t('public.copy'),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    
+                    // Affichage de l'UUID d'installation
+                    if (_uuid != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryOrange.withValues(alpha: isDark ? 0.15 : 0.05),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppTheme.primaryOrange.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryOrange.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Icon(
+                                  Icons.qr_code,
+                                  color: AppTheme.primaryOrange,
+                                  size: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'UUID Installation',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    SelectableText(
+                                      _uuid!,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primaryOrange,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.copy, size: 16),
+                                onPressed: _copyUuid,
                                 color: AppTheme.primaryOrange,
                                 tooltip: t('public.copy'),
                                 padding: EdgeInsets.zero,

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/attendance_api_service.dart';
-import '../services/dashboard_api_service.dart';
-import '../services/auth_service.dart';
 import '../models/employee_presence_today.dart';
-import '../models/dashboard_stats.dart' as dash;
 import '../theme/app_theme.dart';
 
 class AttendanceTodayAdminScreen extends ConsumerStatefulWidget {
@@ -23,8 +20,11 @@ class _AttendanceTodayAdminScreenState
   String _search = '';
   String _positionFilter = '';
   List<String> _positions = [];
-  dash.DashboardStats? _dashboardStats;
-  DashboardApiService? _dashboardService;
+  Map<String, int> _attendanceStats = {
+    'present_count': 0,
+    'in_progress_count': 0,
+    'departed_count': 0,
+  };
 
   final _searchController = TextEditingController();
   final _positionController = TextEditingController();
@@ -42,19 +42,12 @@ class _AttendanceTodayAdminScreenState
     });
 
     try {
-      final authService = AuthService();
-      final token = await authService.getToken();
-      if (token != null) {
-        _dashboardService = DashboardApiService(
-            baseUrl: 'https://skf-artluxurybus.com/api', token: token);
-      }
-
       // Charger les postes disponibles
       final positions = await AttendanceApiService.getPositions();
 
       await Future.wait([
         _loadEmployees(),
-        _loadDashboardStats(),
+        _loadAttendanceStats(),
       ]);
 
       setState(() {
@@ -87,12 +80,15 @@ class _AttendanceTodayAdminScreenState
     _employees = list;
   }
 
-  Future<void> _loadDashboardStats() async {
-    if (_dashboardService == null) return;
+  Future<void> _loadAttendanceStats() async {
     try {
-      _dashboardStats = await _dashboardService!.getDashboardStats();
-    } catch (_) {
-      // Ignorer si dashboard non accessible pour ce rôle
+      final stats = await AttendanceApiService.getTodayAttendanceStats();
+      setState(() {
+        _attendanceStats = stats;
+      });
+    } catch (e) {
+      // En cas d'erreur, garder les valeurs par défaut (0)
+      // Ne pas afficher d'erreur car les stats ne sont pas critiques
     }
   }
 
@@ -166,10 +162,9 @@ class _AttendanceTodayAdminScreenState
   }
 
   Widget _buildSummaryCards() {
-    final stats = _dashboardStats?.employees;
-    final present = stats?.presentCount ?? 0;
-    final departed = stats?.departedCount ?? 0;
-    final inProgress = stats?.inProgressCount ?? 0;
+    final present = _attendanceStats['present_count'] ?? 0;
+    final departed = _attendanceStats['departed_count'] ?? 0;
+    final inProgress = _attendanceStats['in_progress_count'] ?? 0;
 
     return Row(
       children: [
