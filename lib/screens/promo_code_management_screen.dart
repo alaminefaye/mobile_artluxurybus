@@ -5,6 +5,7 @@ import '../services/promo_code_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_message_helper.dart';
 import '../services/translation_service.dart';
+import '../services/auth_service.dart';
 
 class PromoCodeManagementScreen extends StatefulWidget {
   const PromoCodeManagementScreen({super.key});
@@ -24,6 +25,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   int _totalPages = 1;
   bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
+  bool _isAdmin = false;
 
   // Helper pour les traductions
   String t(String key) {
@@ -34,7 +36,23 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _checkAdminStatus();
     _loadPromoCodes();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final authService = AuthService();
+    final user = await authService.getSavedUser();
+    
+    // On veut que _isAdmin soit vrai UNIQUEMENT pour les rôles qui peuvent valider.
+    final canValidate = user != null && 
+        (user.role == 'Super Admin' || user.role == 'Admin' || (user.permissions?.contains('manage_promo_codes') ?? false));
+
+    if (mounted) {
+      setState(() {
+        _isAdmin = canValidate;
+      });
+    }
   }
 
   @override
@@ -114,6 +132,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   Future<void> _createPromoCode() async {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
+    final gareController = TextEditingController();
     DateTime? selectedDate;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -139,6 +158,35 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                     labelStyle: TextStyle(
                         color: isDark ? Colors.grey[400] : Colors.grey[700]),
                     hintText: 'Entrez le nom du client',
+                    hintStyle: TextStyle(
+                        color: isDark ? Colors.grey[600] : Colors.grey[500]),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                              : Colors.grey),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide:
+                          BorderSide(color: AppTheme.primaryOrange, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: isDark ? Colors.grey[800] : Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: gareController,
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  decoration: InputDecoration(
+                    labelText: 'Gare / Station',
+                    labelStyle: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                    hintText: 'Entrez la gare ou station',
                     hintStyle: TextStyle(
                         color: isDark ? Colors.grey[600] : Colors.grey[500]),
                     border: OutlineInputBorder(
@@ -354,6 +402,9 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   'description': descriptionController.text.trim().isEmpty
                       ? null
                       : descriptionController.text.trim(),
+                  'gare': gareController.text.trim().isEmpty
+                      ? null
+                      : gareController.text.trim(),
                   'expires_at': selectedDate != null
                       ? DateFormat('yyyy-MM-dd').format(selectedDate!)
                       : null,
@@ -380,6 +431,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           customerName: result['customer_name'],
           description: result['description'],
           expiresAt: result['expires_at'],
+          gare: result['gare'],
         );
 
         if (mounted) {
@@ -553,6 +605,31 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
             ),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _updateStatus(int id, String status) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final result = await PromoCodeService.updatePromoCodeStatus(id, status);
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Statut mis à jour.'),
+          backgroundColor: result['success'] == true ? Colors.green : Colors.red,
+        ),
+      );
+
+      if (result['success'] == true) {
+        _loadPromoCodes(refresh: true);
       }
     }
   }
@@ -787,6 +864,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                 final promoCode = _promoCodes[index];
                                 final isUsed = promoCode['is_used'] == true;
                                 final code = promoCode['code'] ?? '';
+                                final status = promoCode['status'] ?? 'validated';
+                                final gare = promoCode['gare'];
                                 final customerName =
                                     promoCode['customer_name'] ?? '';
                                 final createdAt = promoCode['created_at'] !=
@@ -845,6 +924,25 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                                 : Colors.grey[700],
                                           ),
                                         ),
+                                        if (gare != null && gare.isNotEmpty)
+                                          Text(
+                                            'Gare: $gare',
+                                            style: TextStyle(
+                                              color: isDark
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[700],
+                                            ),
+                                          ),
+                                        Text(
+                                          'Statut: ${status == "pending" ? "En attente" : status == "validated" ? "Validé" : "Refusé"}',
+                                          style: TextStyle(
+                                            color: status == 'pending'
+                                                ? Colors.orange
+                                                : (status == 'validated' ? Colors.green : Colors.red),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
                                         if (createdAt != null)
                                           Text(
                                             'Créé: ${DateFormat('dd/MM/yyyy').format(createdAt)}',
@@ -881,7 +979,20 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                       builder: (shareContext) => Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          if (_isAdmin && status == 'pending') ...[
+                                            IconButton(
+                                              icon: const Icon(Icons.check, color: Colors.green),
+                                              onPressed: () => _updateStatus(promoCode['id'], 'validated'),
+                                              tooltip: 'Valider',
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.close, color: Colors.red),
+                                              onPressed: () => _updateStatus(promoCode['id'], 'refused'),
+                                              tooltip: 'Refuser',
+                                            ),
+                                          ],
                                           // Bouton de partage
+                                          if (status == 'validated')
                                           IconButton(
                                             icon: Icon(
                                               Icons.share,

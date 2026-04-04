@@ -8,6 +8,8 @@
 
 // ===== VISITES TECHNIQUES =====
 
+class DummyMethods {
+
 /**
  * Créer une visite technique
  */
@@ -191,4 +193,6 @@ public function destroyVidange($busId, $vidangeId)
     $vidange->delete();
 
     return response()->json(['message' => 'Vidange supprimée avec succès'], 200);
+}
+
 }

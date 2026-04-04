@@ -5,6 +5,8 @@
 // À copier-coller dans BusApiController.php
 // ============================================
 
+class DummyBreakdowns {
+
 /**
  * Ajouter une panne
  * POST /api/buses/{busId}/breakdowns
@@ -27,7 +29,7 @@ public function storeBreakdown(Request $request, $busId)
     $validated['bus_id'] = $busId;
     $validated['created_by'] = auth()->id();
     
-    $breakdown = BusBreakdown::create($validated);
+    $breakdown = \App\Models\BusBreakdown::create($validated);
 
     return response()->json($breakdown, 201);
 }
@@ -38,7 +40,7 @@ public function storeBreakdown(Request $request, $busId)
  */
 public function updateBreakdown(Request $request, $busId, $breakdownId)
 {
-    $breakdown = BusBreakdown::where('bus_id', $busId)
+    $breakdown = \App\Models\BusBreakdown::where('bus_id', $busId)
         ->findOrFail($breakdownId);
 
     $validated = $request->validate([
@@ -65,7 +67,7 @@ public function updateBreakdown(Request $request, $busId, $breakdownId)
  */
 public function destroyBreakdown($busId, $breakdownId)
 {
-    $breakdown = BusBreakdown::where('bus_id', $busId)
+    $breakdown = \App\Models\BusBreakdown::where('bus_id', $busId)
         ->findOrFail($breakdownId);
     
     $breakdown->delete();
@@ -79,9 +81,11 @@ public function destroyBreakdown($busId, $breakdownId)
  */
 public function getBreakdowns($busId)
 {
-    $breakdowns = BusBreakdown::where('bus_id', $busId)
+    $breakdowns = \App\Models\BusBreakdown::where('bus_id', $busId)
         ->orderBy('date_panne', 'desc')
         ->get();
 
     return response()->json($breakdowns);
+}
+
 }

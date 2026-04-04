@@ -4096,8 +4096,8 @@ class _HomePageState extends ConsumerState<HomePage>
                         const SizedBox(height: 20),
                       ],
 
-                      // Section Laisser-passer (Super Admin et Admin uniquement)
-                      if (_isSuperAdminOrAdmin(user)) ...[
+                      // Section Laisser-passer (Super Admin, Admin, Chef agence)
+                      if (_isSuperAdminOrAdmin(user) || _isAdminOrChefAgence(user)) ...[
                         _buildProfileSection(
                           title: 'Laisser-passer',
                           icon: Icons.local_offer_rounded,

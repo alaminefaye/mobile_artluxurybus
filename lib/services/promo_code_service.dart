@@ -88,6 +88,7 @@ class PromoCodeService {
     required String customerName,
     String? description,
     String? expiresAt,
+    String? gare,
   }) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/promo-codes');
@@ -107,6 +108,10 @@ class PromoCodeService {
 
       if (expiresAt != null && expiresAt.isNotEmpty) {
         body['expires_at'] = expiresAt;
+      }
+
+      if (gare != null && gare.isNotEmpty) {
+        body['gare'] = gare;
       }
 
       debugPrint('🔄 [PromoCodeService] Création d\'un code promo...');
@@ -272,6 +277,49 @@ class PromoCodeService {
       return {
         'success': false,
         'message': ErrorMessageHelper.getOperationError('supprimer', error: e),
+      };
+    }
+  }
+
+  /// Mettre à jour le statut d'un code promotionnel (Super Admin uniquement)
+  static Future<Map<String, dynamic>> updatePromoCodeStatus(int id, String status) async {
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/promo-codes/$id/status');
+
+      final headers = {
+        ...ApiConfig.defaultHeaders,
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+
+      final body = {
+        'status': status,
+      };
+
+      debugPrint('🔄 [PromoCodeService] Mise à jour du statut du code promo #$id...');
+      
+      final response = await http.put(
+        uri,
+        headers: headers,
+        body: json.encode(body),
+      ).timeout(ApiConfig.requestTimeout);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Statut mis à jour.',
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'message': errorData['message'] ?? 'Erreur lors de la mise à jour.',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': ErrorMessageHelper.getOperationError('modifier le statut', error: e),
       };
     }
   }
