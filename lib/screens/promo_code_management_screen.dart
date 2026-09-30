@@ -1,6 +1,12 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/horaire_model.dart';
+import '../services/horaire_service.dart';
 import '../services/promo_code_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_message_helper.dart';
@@ -30,6 +36,15 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   // Helper pour les traductions
   String t(String key) {
     return TranslationService().translate(key);
+  }
+
+  bool _isTicketImage(String path) {
+    final lower = path.toLowerCase();
+    return lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.heic');
   }
 
   @override
@@ -132,15 +147,55 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   Future<void> _createPromoCode() async {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
-    final gareController = TextEditingController();
-    DateTime? selectedDate;
+    final today = DateTime.now();
+    DateTime selectedDate = DateTime(today.year, today.month, today.day);
+    List<Gare> gares = [];
+    Gare? selectedGare;
+    String? ticketPath;
+    var loadingGares = true;
+    String? garesError;
+    var loadStarted = false;
+    var dialogOpen = true;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Future<void> loadGares(StateSetter setDialogState) async {
+      if (!dialogOpen) return;
+      setDialogState(() {
+        loadingGares = true;
+        garesError = null;
+      });
+      try {
+        final token = await AuthService().getToken();
+        if (token != null) {
+          HoraireService.setToken(token);
+        }
+        final loaded = await HoraireService().fetchGares();
+        if (!dialogOpen || !mounted) return;
+        setDialogState(() {
+          gares = loaded;
+          loadingGares = false;
+        });
+      } catch (e) {
+        if (!dialogOpen || !mounted) return;
+        setDialogState(() {
+          loadingGares = false;
+          garesError = 'Impossible de charger les gares.';
+        });
+      }
+    }
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) {
+          if (!loadStarted) {
+            loadStarted = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              loadGares(setDialogState);
+            });
+          }
+          return AlertDialog(
           backgroundColor: isDark ? Colors.grey[900] : Colors.white,
           title: Text(
             'Créer un code promotionnel',
@@ -179,34 +234,88 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: gareController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Gare / Station',
-                    labelStyle: TextStyle(
-                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
-                    hintText: 'Entrez la gare ou station',
-                    hintStyle: TextStyle(
-                        color: isDark ? Colors.grey[600] : Colors.grey[500]),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                if (loadingGares)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (garesError != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        garesError!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: () => loadGares(setDialogState),
+                          child: const Text('Réessayer'),
+                        ),
+                      ),
+                    ],
+                  )
+                else if (gares.isEmpty)
+                  const Text('Aucune gare disponible.')
+                else
+                  DropdownButtonFormField<Gare>(
+                    initialValue: selectedGare,
+                    isExpanded: true,
+                    dropdownColor: isDark ? Colors.grey[800] : Colors.white,
+                    style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black),
+                    hint: Text(
+                      'Sélectionnez une gare',
+                      style: TextStyle(
+                          color: isDark ? Colors.grey[600] : Colors.grey[500]),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark
-                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
-                              : Colors.grey),
+                    decoration: InputDecoration(
+                      labelText: 'Gare / Station',
+                      labelStyle: TextStyle(
+                          color:
+                              isDark ? Colors.grey[400] : Colors.grey[700]),
+                      hintText: 'Sélectionnez une gare',
+                      hintStyle: TextStyle(
+                          color:
+                              isDark ? Colors.grey[600] : Colors.grey[500]),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange
+                                : Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange
+                                    .withValues(alpha: 0.5)
+                                : Colors.grey),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: AppTheme.primaryOrange, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[800] : Colors.white,
                     ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: AppTheme.primaryOrange, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: isDark ? Colors.grey[800] : Colors.white,
+                    items: gares
+                        .map(
+                          (gare) => DropdownMenuItem<Gare>(
+                            value: gare,
+                            child: Text(
+                              gare.nom,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedGare = value;
+                      });
+                    },
                   ),
-                ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
@@ -242,9 +351,10 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
-                      initialDate: DateTime.now().add(const Duration(days: 30)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                      initialDate: selectedDate,
+                      firstDate: DateTime(today.year, today.month, today.day),
+                      lastDate: DateTime(today.year, today.month, today.day)
+                          .add(const Duration(days: 365)),
                       locale: const Locale('fr', 'FR'),
                       helpText: 'Sélectionner une date d\'expiration',
                       cancelText: 'Annuler',
@@ -338,7 +448,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   },
                   child: InputDecorator(
                     decoration: InputDecoration(
-                      labelText: 'Date d\'expiration (optionnel)',
+                      labelText: 'Date d\'expiration',
                       labelStyle: TextStyle(
                           color: isDark ? Colors.grey[400] : Colors.grey[700]),
                       border: OutlineInputBorder(
@@ -365,12 +475,134 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                       ),
                     ),
                     child: Text(
-                      selectedDate != null
-                          ? DateFormat('dd/MM/yyyy').format(selectedDate!)
-                          : 'Aucune date',
+                      DateFormat('dd/MM/yyyy').format(selectedDate),
                       style: TextStyle(
                           color: isDark ? Colors.white : Colors.black),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Ticket (optionnel)',
+                    labelStyle: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: isDark
+                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                              : Colors.grey),
+                    ),
+                    filled: true,
+                    fillColor: isDark ? Colors.grey[800] : Colors.white,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (ticketPath != null) ...[
+                        if (_isTicketImage(ticketPath!))
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              File(ticketPath!),
+                              height: 140,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        else
+                          Text(
+                            ticketPath!.split('/').last,
+                            style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black),
+                          ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () {
+                              setDialogState(() => ticketPath = null);
+                            },
+                            icon: const Icon(Icons.close, color: Colors.red),
+                            label: const Text(
+                              'Retirer',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final result =
+                                      await FilePicker.platform.pickFiles(
+                                    type: FileType.custom,
+                                    allowedExtensions: [
+                                      'jpg',
+                                      'jpeg',
+                                      'png',
+                                      'webp',
+                                      'pdf',
+                                    ],
+                                  );
+                                  final path = result?.files.single.path;
+                                  if (path != null && dialogOpen) {
+                                    setDialogState(() => ticketPath = path);
+                                  }
+                                },
+                                icon: Icon(
+                                  Icons.upload_file,
+                                  color: isDark
+                                      ? AppTheme.primaryOrange
+                                      : Colors.black87,
+                                ),
+                                label: Text(
+                                  'Importer',
+                                  style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final photo = await ImagePicker().pickImage(
+                                    source: ImageSource.camera,
+                                    maxWidth: 1920,
+                                    maxHeight: 1080,
+                                    imageQuality: 85,
+                                  );
+                                  if (photo != null && dialogOpen) {
+                                    setDialogState(
+                                        () => ticketPath = photo.path);
+                                  }
+                                },
+                                icon: Icon(
+                                  Icons.photo_camera,
+                                  color: isDark
+                                      ? AppTheme.primaryOrange
+                                      : Colors.black87,
+                                ),
+                                label: Text(
+                                  'Photo',
+                                  style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -378,7 +610,10 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                dialogOpen = false;
+                Navigator.pop(context);
+              },
               child: Text(
                 'Annuler',
                 style: TextStyle(
@@ -397,17 +632,15 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                   return;
                 }
 
+                dialogOpen = false;
                 Navigator.pop(context, {
                   'customer_name': nameController.text.trim(),
                   'description': descriptionController.text.trim().isEmpty
                       ? null
                       : descriptionController.text.trim(),
-                  'gare': gareController.text.trim().isEmpty
-                      ? null
-                      : gareController.text.trim(),
-                  'expires_at': selectedDate != null
-                      ? DateFormat('yyyy-MM-dd').format(selectedDate!)
-                      : null,
+                  'gare': selectedGare?.nom,
+                  'expires_at': DateFormat('yyyy-MM-dd').format(selectedDate),
+                  'ticket_path': ticketPath,
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -417,7 +650,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
               child: const Text('Créer'),
             ),
           ],
-        ),
+          );
+        },
       ),
     );
 
@@ -432,6 +666,7 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
           description: result['description'],
           expiresAt: result['expires_at'],
           gare: result['gare'],
+          ticketPath: result['ticket_path'] as String?,
         );
 
         if (mounted) {
@@ -927,6 +1162,18 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                         if (gare != null && gare.isNotEmpty)
                                           Text(
                                             'Gare: $gare',
+                                            style: TextStyle(
+                                              color: isDark
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[700],
+                                            ),
+                                          ),
+                                        if (promoCode['ticket_file_url'] != null &&
+                                            promoCode['ticket_file_url']
+                                                .toString()
+                                                .isNotEmpty)
+                                          Text(
+                                            'Ticket joint',
                                             style: TextStyle(
                                               color: isDark
                                                   ? Colors.grey[400]

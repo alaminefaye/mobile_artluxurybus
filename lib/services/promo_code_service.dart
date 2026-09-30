@@ -89,40 +89,43 @@ class PromoCodeService {
     String? description,
     String? expiresAt,
     String? gare,
+    String? ticketPath,
   }) async {
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/promo-codes');
 
-      final headers = {
-        ...ApiConfig.defaultHeaders,
+      final request = http.MultipartRequest('POST', uri);
+      request.headers.addAll({
+        'Accept': 'application/json',
         if (_token != null) 'Authorization': 'Bearer $_token',
-      };
+      });
 
-      final body = <String, dynamic>{
-        'customer_name': customerName,
-      };
+      request.fields['customer_name'] = customerName;
 
       if (description != null && description.isNotEmpty) {
-        body['description'] = description;
+        request.fields['description'] = description;
       }
 
       if (expiresAt != null && expiresAt.isNotEmpty) {
-        body['expires_at'] = expiresAt;
+        request.fields['expires_at'] = expiresAt;
       }
 
       if (gare != null && gare.isNotEmpty) {
-        body['gare'] = gare;
+        request.fields['gare'] = gare;
+      }
+
+      if (ticketPath != null && ticketPath.isNotEmpty) {
+        request.files.add(
+          await http.MultipartFile.fromPath('ticket_file', ticketPath),
+        );
       }
 
       debugPrint('🔄 [PromoCodeService] Création d\'un code promo...');
       debugPrint('🔄 [PromoCodeService] URL: $uri');
-      debugPrint('🔄 [PromoCodeService] Body: $body');
+      debugPrint('🔄 [PromoCodeService] Ticket: ${ticketPath ?? 'aucun'}');
 
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: json.encode(body),
-      ).timeout(ApiConfig.requestTimeout);
+      final streamedResponse = await request.send().timeout(ApiConfig.requestTimeout);
+      final response = await http.Response.fromStream(streamedResponse);
 
       debugPrint('📡 [PromoCodeService] Réponse - Status: ${response.statusCode}');
       debugPrint('📡 [PromoCodeService] Réponse - Body: ${response.body}');
