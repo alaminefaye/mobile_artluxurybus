@@ -49,7 +49,9 @@ import '../services/recharge_service.dart';
 import '../providers/feature_permission_provider.dart';
 import '../models/feature_permission_model.dart';
 import '../providers/loyalty_provider.dart';
+import 'caisse_screen.dart';
 import 'promo_code_management_screen.dart';
+import '../services/caisse_service.dart';
 import 'expense_management_screen.dart';
 import 'admin_expense_screen.dart';
 import 'admin_dashboard_screen.dart';
@@ -110,6 +112,7 @@ class _HomePageState extends ConsumerState<HomePage>
           DepartService.setToken(token);
           ReservationService.setToken(token);
           RechargeService.setToken(token);
+          CaisseService.setToken(token);
 
           // Charger les notifications pour tous les utilisateurs
           // Le filtrage des notifications de feedback se fera côté affichage
@@ -553,6 +556,31 @@ class _HomePageState extends ConsumerState<HomePage>
     }
 
     return false;
+  }
+
+  bool _roleMatches(User user, bool Function(String role) test) {
+    final roles = <String>[];
+    if (user.role != null) roles.add(user.role!.toLowerCase());
+    if (user.displayRole != null) roles.add(user.displayRole!.toLowerCase());
+    if (user.rolesList != null) {
+      roles.addAll(user.rolesList!.map((r) => r.toString().toLowerCase()));
+    }
+    if (user.roles != null) {
+      roles.addAll(user.roles!.map((r) => r.toString().toLowerCase()));
+    }
+    return roles.any(test);
+  }
+
+  bool _isSuperAdminOnly(User user) {
+    return _roleMatches(
+      user,
+      (role) =>
+          role.contains('super admin') || role.contains('super_admin'),
+    );
+  }
+
+  bool _isSecretaire(User user) {
+    return _roleMatches(user, (role) => role.contains('secret'));
   }
 
   // Vérifier si l'utilisateur est Super Admin ou Admin (pas Chef Agence)
@@ -3275,6 +3303,9 @@ class _HomePageState extends ConsumerState<HomePage>
       case 'alert':
       case 'urgent':
         return Icons.warning_outlined;
+      case 'caisse_recharge':
+      case 'caisse_depense':
+        return Icons.account_balance_wallet_outlined;
       default:
         return Icons.notifications_outlined;
     }
@@ -3320,6 +3351,10 @@ class _HomePageState extends ConsumerState<HomePage>
       case 'alert':
       case 'urgent':
         return Colors.red;
+      case 'caisse_recharge':
+        return Colors.green;
+      case 'caisse_depense':
+        return Colors.orange;
       default:
         return primaryColor;
     }
@@ -4113,6 +4148,34 @@ class _HomePageState extends ConsumerState<HomePage>
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         const PromoCodeManagementScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      if (_isSuperAdminOnly(user) || _isSecretaire(user)) ...[
+                        _buildProfileSection(
+                          title: 'Caisse de Fonctionnement',
+                          icon: Icons.account_balance_wallet_rounded,
+                          options: [
+                            _buildModernProfileOption(
+                              icon: Icons.account_balance_wallet_outlined,
+                              title: 'Caisse de Fonctionnement',
+                              subtitle: _isSuperAdminOnly(user)
+                                  ? 'Recharger, enregistrer une dépense et gérer la caisse'
+                                  : 'Recharger la caisse ou enregistrer une dépense',
+                              color: const Color(0xFF0F2744),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CaisseScreen(
+                                      canManage: _isSuperAdminOnly(user),
+                                    ),
                                   ),
                                 );
                               },

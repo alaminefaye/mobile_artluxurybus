@@ -1330,6 +1330,10 @@ class _NotificationDetailScreenState
       case 'expense_pending':
       case 'new_expense':
         return 'Nouvelle dépense';
+      case 'caisse_recharge':
+        return 'Recharge de caisse';
+      case 'caisse_depense':
+        return 'Dépense de caisse';
       case 'breakdown_new':
       case 'new_breakdown':
         return t('notification_detail.type_breakdown_new');

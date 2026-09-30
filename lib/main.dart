@@ -37,6 +37,7 @@ import 'services/reservation_service.dart';
 import 'services/mail_api_service.dart';
 import 'services/bagage_api_service.dart';
 import 'services/recharge_service.dart';
+import 'services/caisse_service.dart';
 import 'services/feature_permission_service.dart';
 import 'services/version_check_service.dart';
 import 'debug/debug_screen.dart';
@@ -97,6 +98,7 @@ void main() async {
       MailApiService.setToken(token);
       BagageApiService.setToken(token);
       RechargeService.setToken(token);
+      CaisseService.setToken(token);
 
       // Charger les permissions de l'utilisateur au démarrage
       try {

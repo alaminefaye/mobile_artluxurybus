@@ -13,6 +13,7 @@ import '../services/depart_service.dart';
 import '../services/reservation_service.dart';
 import '../services/mail_api_service.dart';
 import '../services/bagage_api_service.dart';
+import '../services/caisse_service.dart';
 import '../services/promo_code_service.dart';
 import '../services/expense_service.dart';
 import '../utils/error_message_helper.dart';
@@ -106,6 +107,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         MailApiService.setToken(token);
         BagageApiService.setToken(token);
         PromoCodeService.setToken(token);
+        CaisseService.setToken(token);
         ExpenseService.setToken(token);
       }
     } catch (e) {

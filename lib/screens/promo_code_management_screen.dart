@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/horaire_model.dart';
 import '../services/horaire_service.dart';
 import '../services/promo_code_service.dart';
+import 'promo_code_detail_screen.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_message_helper.dart';
 import '../services/translation_service.dart';
@@ -58,10 +59,12 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
   Future<void> _checkAdminStatus() async {
     final authService = AuthService();
     final user = await authService.getSavedUser();
-    
+
     // On veut que _isAdmin soit vrai UNIQUEMENT pour les rôles qui peuvent valider.
-    final canValidate = user != null && 
-        (user.role == 'Super Admin' || user.role == 'Admin' || (user.permissions?.contains('manage_promo_codes') ?? false));
+    final canValidate = user != null &&
+        (user.role == 'Super Admin' ||
+            user.role == 'Admin' ||
+            (user.permissions?.contains('manage_promo_codes') ?? false));
 
     if (mounted) {
       setState(() {
@@ -196,261 +199,26 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
             });
           }
           return AlertDialog(
-          backgroundColor: isDark ? Colors.grey[900] : Colors.white,
-          title: Text(
-            'Créer un code promotionnel',
-            style: TextStyle(color: isDark ? Colors.white : Colors.black),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Nom du client *',
-                    labelStyle: TextStyle(
-                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
-                    hintText: 'Entrez le nom du client',
-                    hintStyle: TextStyle(
-                        color: isDark ? Colors.grey[600] : Colors.grey[500]),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark
-                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
-                              : Colors.grey),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: AppTheme.primaryOrange, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: isDark ? Colors.grey[800] : Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (loadingGares)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (garesError != null)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        garesError!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton(
-                          onPressed: () => loadGares(setDialogState),
-                          child: const Text('Réessayer'),
-                        ),
-                      ),
-                    ],
-                  )
-                else if (gares.isEmpty)
-                  const Text('Aucune gare disponible.')
-                else
-                  DropdownButtonFormField<Gare>(
-                    initialValue: selectedGare,
-                    isExpanded: true,
-                    dropdownColor: isDark ? Colors.grey[800] : Colors.white,
-                    style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black),
-                    hint: Text(
-                      'Sélectionnez une gare',
-                      style: TextStyle(
-                          color: isDark ? Colors.grey[600] : Colors.grey[500]),
-                    ),
+            backgroundColor: isDark ? Colors.grey[900] : Colors.white,
+            title: Text(
+              'Créer un code promotionnel',
+              style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black),
                     decoration: InputDecoration(
-                      labelText: 'Gare / Station',
-                      labelStyle: TextStyle(
-                          color:
-                              isDark ? Colors.grey[400] : Colors.grey[700]),
-                      hintText: 'Sélectionnez une gare',
-                      hintStyle: TextStyle(
-                          color:
-                              isDark ? Colors.grey[600] : Colors.grey[500]),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(
-                            color: isDark
-                                ? AppTheme.primaryOrange
-                                : Colors.grey),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(
-                            color: isDark
-                                ? AppTheme.primaryOrange
-                                    .withValues(alpha: 0.5)
-                                : Colors.grey),
-                      ),
-                      focusedBorder: const OutlineInputBorder(
-                        borderSide: BorderSide(
-                            color: AppTheme.primaryOrange, width: 2),
-                      ),
-                      filled: true,
-                      fillColor: isDark ? Colors.grey[800] : Colors.white,
-                    ),
-                    items: gares
-                        .map(
-                          (gare) => DropdownMenuItem<Gare>(
-                            value: gare,
-                            child: Text(
-                              gare.nom,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedGare = value;
-                      });
-                    },
-                  ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
-                  decoration: InputDecoration(
-                    labelText: 'Description (optionnel)',
-                    labelStyle: TextStyle(
-                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
-                    hintText: 'Description du code promo',
-                    hintStyle: TextStyle(
-                        color: isDark ? Colors.grey[600] : Colors.grey[500]),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark
-                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
-                              : Colors.grey),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide:
-                          BorderSide(color: AppTheme.primaryOrange, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: isDark ? Colors.grey[800] : Colors.white,
-                  ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                InkWell(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(today.year, today.month, today.day),
-                      lastDate: DateTime(today.year, today.month, today.day)
-                          .add(const Duration(days: 365)),
-                      locale: const Locale('fr', 'FR'),
-                      helpText: 'Sélectionner une date d\'expiration',
-                      cancelText: 'Annuler',
-                      confirmText: 'OK',
-                      builder: (context, child) {
-                        if (isDark) {
-                          return Theme(
-                            data: ThemeData.dark().copyWith(
-                              colorScheme: ColorScheme.dark(
-                                primary: AppTheme.primaryOrange,
-                                onPrimary: Colors.white,
-                                surface: Colors.grey[850]!,
-                                onSurface: Colors.white,
-                                secondary: AppTheme.primaryOrange,
-                                onSecondary: Colors.white,
-                                error: Colors.red,
-                                onError: Colors.white,
-                                brightness: Brightness.dark,
-                              ),
-                              dialogTheme: DialogThemeData(
-                                backgroundColor: Colors.grey[900],
-                              ),
-                              scaffoldBackgroundColor: Colors.grey[900],
-                              cardColor: Colors.grey[800]!,
-                              dividerColor: Colors.grey[700]!,
-                              primaryColor: AppTheme.primaryOrange,
-                              textTheme: ThemeData.dark().textTheme.apply(
-                                    bodyColor: Colors.white,
-                                    displayColor: Colors.white,
-                                  ),
-                              datePickerTheme: DatePickerThemeData(
-                                backgroundColor: Colors.grey[900]!,
-                                headerBackgroundColor: AppTheme.primaryOrange,
-                                headerForegroundColor: Colors.white,
-                                dayStyle: const TextStyle(color: Colors.white),
-                                weekdayStyle:
-                                    const TextStyle(color: Colors.white),
-                                yearStyle: const TextStyle(color: Colors.white),
-                                todayBorder: const BorderSide(
-                                    color: AppTheme.primaryOrange, width: 2),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        } else {
-                          return Theme(
-                            data: ThemeData.light().copyWith(
-                              colorScheme: const ColorScheme.light(
-                                primary: AppTheme.primaryOrange,
-                                onPrimary: Colors.white,
-                                surface: Colors.white,
-                                onSurface: Colors.black,
-                                secondary: AppTheme.primaryOrange,
-                                onSecondary: Colors.white,
-                                error: Colors.red,
-                                onError: Colors.white,
-                                brightness: Brightness.light,
-                              ),
-                              dialogTheme: const DialogThemeData(
-                                backgroundColor: Colors.white,
-                              ),
-                              scaffoldBackgroundColor: Colors.white,
-                              datePickerTheme: DatePickerThemeData(
-                                backgroundColor: Colors.white,
-                                headerBackgroundColor: AppTheme.primaryOrange,
-                                headerForegroundColor: Colors.white,
-                                dayStyle: const TextStyle(color: Colors.black),
-                                weekdayStyle:
-                                    const TextStyle(color: Colors.black),
-                                yearStyle: const TextStyle(color: Colors.black),
-                                todayBorder: const BorderSide(
-                                    color: AppTheme.primaryOrange, width: 2),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        }
-                      },
-                    );
-                    if (date != null) {
-                      setDialogState(() {
-                        selectedDate = date;
-                      });
-                    }
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(
-                      labelText: 'Date d\'expiration',
+                      labelText: 'Nom du client *',
                       labelStyle: TextStyle(
                           color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                      hintText: 'Entrez le nom du client',
+                      hintStyle: TextStyle(
+                          color: isDark ? Colors.grey[600] : Colors.grey[500]),
                       border: OutlineInputBorder(
                         borderSide: BorderSide(
                             color:
@@ -468,188 +236,447 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                       ),
                       filled: true,
                       fillColor: isDark ? Colors.grey[800] : Colors.white,
-                      suffixIcon: Icon(
-                        Icons.calendar_today,
-                        color:
-                            isDark ? AppTheme.primaryOrange : Colors.grey[700],
-                      ),
                     ),
-                    child: Text(
-                      DateFormat('dd/MM/yyyy').format(selectedDate),
+                  ),
+                  const SizedBox(height: 16),
+                  if (loadingGares)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (garesError != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          garesError!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                            onPressed: () => loadGares(setDialogState),
+                            child: const Text('Réessayer'),
+                          ),
+                        ),
+                      ],
+                    )
+                  else if (gares.isEmpty)
+                    const Text('Aucune gare disponible.')
+                  else
+                    DropdownButtonFormField<Gare>(
+                      initialValue: selectedGare,
+                      isExpanded: true,
+                      dropdownColor: isDark ? Colors.grey[800] : Colors.white,
                       style: TextStyle(
                           color: isDark ? Colors.white : Colors.black),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Ticket (optionnel)',
-                    labelStyle: TextStyle(
-                        color: isDark ? Colors.grey[400] : Colors.grey[700]),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark ? AppTheme.primaryOrange : Colors.grey),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: isDark
-                              ? AppTheme.primaryOrange.withValues(alpha: 0.5)
-                              : Colors.grey),
-                    ),
-                    filled: true,
-                    fillColor: isDark ? Colors.grey[800] : Colors.white,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (ticketPath != null) ...[
-                        if (_isTicketImage(ticketPath!))
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(ticketPath!),
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
+                      hint: Text(
+                        'Sélectionnez une gare',
+                        style: TextStyle(
+                            color:
+                                isDark ? Colors.grey[600] : Colors.grey[500]),
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'Gare / Station *',
+                        labelStyle: TextStyle(
+                            color:
+                                isDark ? Colors.grey[400] : Colors.grey[700]),
+                        hintText: 'Sélectionnez une gare',
+                        hintStyle: TextStyle(
+                            color:
+                                isDark ? Colors.grey[600] : Colors.grey[500]),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                              color: isDark
+                                  ? AppTheme.primaryOrange
+                                  : Colors.grey),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                              color: isDark
+                                  ? AppTheme.primaryOrange
+                                      .withValues(alpha: 0.5)
+                                  : Colors.grey),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppTheme.primaryOrange, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: isDark ? Colors.grey[800] : Colors.white,
+                      ),
+                      items: gares
+                          .map(
+                            (gare) => DropdownMenuItem<Gare>(
+                              value: gare,
+                              child: Text(
+                                gare.nom,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           )
-                        else
-                          Text(
-                            ticketPath!.split('/').last,
-                            style: TextStyle(
-                                color: isDark ? Colors.white : Colors.black),
-                          ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () {
-                              setDialogState(() => ticketPath = null);
-                            },
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            label: const Text(
-                              'Retirer',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ),
-                      ] else
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () async {
-                                  final result =
-                                      await FilePicker.platform.pickFiles(
-                                    type: FileType.custom,
-                                    allowedExtensions: [
-                                      'jpg',
-                                      'jpeg',
-                                      'png',
-                                      'webp',
-                                      'pdf',
-                                    ],
-                                  );
-                                  final path = result?.files.single.path;
-                                  if (path != null && dialogOpen) {
-                                    setDialogState(() => ticketPath = path);
-                                  }
-                                },
-                                icon: Icon(
-                                  Icons.upload_file,
-                                  color: isDark
-                                      ? AppTheme.primaryOrange
-                                      : Colors.black87,
-                                ),
-                                label: Text(
-                                  'Importer',
-                                  style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () async {
-                                  final photo = await ImagePicker().pickImage(
-                                    source: ImageSource.camera,
-                                    maxWidth: 1920,
-                                    maxHeight: 1080,
-                                    imageQuality: 85,
-                                  );
-                                  if (photo != null && dialogOpen) {
-                                    setDialogState(
-                                        () => ticketPath = photo.path);
-                                  }
-                                },
-                                icon: Icon(
-                                  Icons.photo_camera,
-                                  color: isDark
-                                      ? AppTheme.primaryOrange
-                                      : Colors.black87,
-                                ),
-                                label: Text(
-                                  'Photo',
-                                  style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                dialogOpen = false;
-                Navigator.pop(context);
-              },
-              child: Text(
-                'Annuler',
-                style: TextStyle(
-                    color: isDark ? Colors.grey[400] : Colors.grey[700]),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Le nom du client est obligatoire.'),
-                      backgroundColor: Colors.red,
+                          .toList(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          selectedGare = value;
+                        });
+                      },
                     ),
-                  );
-                  return;
-                }
-
-                dialogOpen = false;
-                Navigator.pop(context, {
-                  'customer_name': nameController.text.trim(),
-                  'description': descriptionController.text.trim().isEmpty
-                      ? null
-                      : descriptionController.text.trim(),
-                  'gare': selectedGare?.nom,
-                  'expires_at': DateFormat('yyyy-MM-dd').format(selectedDate),
-                  'ticket_path': ticketPath,
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryOrange,
-                foregroundColor: Colors.white,
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: descriptionController,
+                    style:
+                        TextStyle(color: isDark ? Colors.white : Colors.black),
+                    decoration: InputDecoration(
+                      labelText: 'Description (optionnel)',
+                      labelStyle: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                      hintText: 'Description du code promo',
+                      hintStyle: TextStyle(
+                          color: isDark ? Colors.grey[600] : Colors.grey[500]),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color:
+                                isDark ? AppTheme.primaryOrange : Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                                : Colors.grey),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: AppTheme.primaryOrange, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[800] : Colors.white,
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime(today.year, today.month, today.day),
+                        lastDate: DateTime(today.year, today.month, today.day)
+                            .add(const Duration(days: 365)),
+                        locale: const Locale('fr', 'FR'),
+                        helpText: 'Sélectionner une date d\'expiration',
+                        cancelText: 'Annuler',
+                        confirmText: 'OK',
+                        builder: (context, child) {
+                          if (isDark) {
+                            return Theme(
+                              data: ThemeData.dark().copyWith(
+                                colorScheme: ColorScheme.dark(
+                                  primary: AppTheme.primaryOrange,
+                                  onPrimary: Colors.white,
+                                  surface: Colors.grey[850]!,
+                                  onSurface: Colors.white,
+                                  secondary: AppTheme.primaryOrange,
+                                  onSecondary: Colors.white,
+                                  error: Colors.red,
+                                  onError: Colors.white,
+                                  brightness: Brightness.dark,
+                                ),
+                                dialogTheme: DialogThemeData(
+                                  backgroundColor: Colors.grey[900],
+                                ),
+                                scaffoldBackgroundColor: Colors.grey[900],
+                                cardColor: Colors.grey[800]!,
+                                dividerColor: Colors.grey[700]!,
+                                primaryColor: AppTheme.primaryOrange,
+                                textTheme: ThemeData.dark().textTheme.apply(
+                                      bodyColor: Colors.white,
+                                      displayColor: Colors.white,
+                                    ),
+                                datePickerTheme: DatePickerThemeData(
+                                  backgroundColor: Colors.grey[900]!,
+                                  headerBackgroundColor: AppTheme.primaryOrange,
+                                  headerForegroundColor: Colors.white,
+                                  dayStyle:
+                                      const TextStyle(color: Colors.white),
+                                  weekdayStyle:
+                                      const TextStyle(color: Colors.white),
+                                  yearStyle:
+                                      const TextStyle(color: Colors.white),
+                                  todayBorder: const BorderSide(
+                                      color: AppTheme.primaryOrange, width: 2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          } else {
+                            return Theme(
+                              data: ThemeData.light().copyWith(
+                                colorScheme: const ColorScheme.light(
+                                  primary: AppTheme.primaryOrange,
+                                  onPrimary: Colors.white,
+                                  surface: Colors.white,
+                                  onSurface: Colors.black,
+                                  secondary: AppTheme.primaryOrange,
+                                  onSecondary: Colors.white,
+                                  error: Colors.red,
+                                  onError: Colors.white,
+                                  brightness: Brightness.light,
+                                ),
+                                dialogTheme: const DialogThemeData(
+                                  backgroundColor: Colors.white,
+                                ),
+                                scaffoldBackgroundColor: Colors.white,
+                                datePickerTheme: DatePickerThemeData(
+                                  backgroundColor: Colors.white,
+                                  headerBackgroundColor: AppTheme.primaryOrange,
+                                  headerForegroundColor: Colors.white,
+                                  dayStyle:
+                                      const TextStyle(color: Colors.black),
+                                  weekdayStyle:
+                                      const TextStyle(color: Colors.black),
+                                  yearStyle:
+                                      const TextStyle(color: Colors.black),
+                                  todayBorder: const BorderSide(
+                                      color: AppTheme.primaryOrange, width: 2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          }
+                        },
+                      );
+                      if (date != null) {
+                        setDialogState(() {
+                          selectedDate = date;
+                        });
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Date d\'expiration',
+                        labelStyle: TextStyle(
+                            color:
+                                isDark ? Colors.grey[400] : Colors.grey[700]),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                              color: isDark
+                                  ? AppTheme.primaryOrange
+                                  : Colors.grey),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                              color: isDark
+                                  ? AppTheme.primaryOrange
+                                      .withValues(alpha: 0.5)
+                                  : Colors.grey),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(
+                              color: AppTheme.primaryOrange, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: isDark ? Colors.grey[800] : Colors.white,
+                        suffixIcon: Icon(
+                          Icons.calendar_today,
+                          color: isDark
+                              ? AppTheme.primaryOrange
+                              : Colors.grey[700],
+                        ),
+                      ),
+                      child: Text(
+                        DateFormat('dd/MM/yyyy').format(selectedDate),
+                        style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Ticket (optionnel)',
+                      labelStyle: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color:
+                                isDark ? AppTheme.primaryOrange : Colors.grey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? AppTheme.primaryOrange.withValues(alpha: 0.5)
+                                : Colors.grey),
+                      ),
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[800] : Colors.white,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (ticketPath != null) ...[
+                          if (_isTicketImage(ticketPath!))
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(ticketPath!),
+                                height: 140,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          else
+                            Text(
+                              ticketPath!.split('/').last,
+                              style: TextStyle(
+                                  color: isDark ? Colors.white : Colors.black),
+                            ),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              onPressed: () {
+                                setDialogState(() => ticketPath = null);
+                              },
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              label: const Text(
+                                'Retirer',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                            ),
+                          ),
+                        ] else
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final result =
+                                        await FilePicker.platform.pickFiles(
+                                      type: FileType.custom,
+                                      allowedExtensions: [
+                                        'jpg',
+                                        'jpeg',
+                                        'png',
+                                        'webp',
+                                        'pdf',
+                                      ],
+                                    );
+                                    final path = result?.files.single.path;
+                                    if (path != null && dialogOpen) {
+                                      setDialogState(() => ticketPath = path);
+                                    }
+                                  },
+                                  icon: Icon(
+                                    Icons.upload_file,
+                                    color: isDark
+                                        ? AppTheme.primaryOrange
+                                        : Colors.black87,
+                                  ),
+                                  label: Text(
+                                    'Importer',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final photo = await ImagePicker().pickImage(
+                                      source: ImageSource.camera,
+                                      maxWidth: 1920,
+                                      maxHeight: 1080,
+                                      imageQuality: 85,
+                                    );
+                                    if (photo != null && dialogOpen) {
+                                      setDialogState(
+                                          () => ticketPath = photo.path);
+                                    }
+                                  },
+                                  icon: Icon(
+                                    Icons.photo_camera,
+                                    color: isDark
+                                        ? AppTheme.primaryOrange
+                                        : Colors.black87,
+                                  ),
+                                  label: Text(
+                                    'Photo',
+                                    style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              child: const Text('Créer'),
             ),
-          ],
+            actions: [
+              TextButton(
+                onPressed: () {
+                  dialogOpen = false;
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'Annuler',
+                  style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[700]),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Le nom du client est obligatoire.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (selectedGare == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Veuillez choisir une gare.'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  dialogOpen = false;
+                  Navigator.pop(context, {
+                    'customer_name': nameController.text.trim(),
+                    'description': descriptionController.text.trim().isEmpty
+                        ? null
+                        : descriptionController.text.trim(),
+                    'gare': selectedGare!.nom,
+                    'expires_at': DateFormat('yyyy-MM-dd').format(selectedDate),
+                    'ticket_path': ticketPath,
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Créer'),
+              ),
+            ],
           );
         },
       ),
@@ -859,7 +886,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Statut mis à jour.'),
-          backgroundColor: result['success'] == true ? Colors.green : Colors.red,
+          backgroundColor:
+              result['success'] == true ? Colors.green : Colors.red,
         ),
       );
 
@@ -1099,7 +1127,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                 final promoCode = _promoCodes[index];
                                 final isUsed = promoCode['is_used'] == true;
                                 final code = promoCode['code'] ?? '';
-                                final status = promoCode['status'] ?? 'validated';
+                                final status =
+                                    promoCode['status'] ?? 'validated';
                                 final gare = promoCode['gare'];
                                 final customerName =
                                     promoCode['customer_name'] ?? '';
@@ -1123,6 +1152,23 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                   color:
                                       isDark ? Colors.grey[850] : Colors.white,
                                   child: ListTile(
+                                    onTap: () async {
+                                      final changed = await Navigator.push<bool>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PromoCodeDetailScreen(
+                                            promoCode:
+                                                Map<String, dynamic>.from(
+                                              promoCode as Map,
+                                            ),
+                                            canManage: _isAdmin,
+                                          ),
+                                        ),
+                                      );
+                                      if (changed == true && mounted) {
+                                        _loadPromoCodes(refresh: true);
+                                      }
+                                    },
                                     leading: CircleAvatar(
                                       backgroundColor: isUsed
                                           ? Colors.grey
@@ -1168,7 +1214,8 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                                   : Colors.grey[700],
                                             ),
                                           ),
-                                        if (promoCode['ticket_file_url'] != null &&
+                                        if (promoCode['ticket_file_url'] !=
+                                                null &&
                                             promoCode['ticket_file_url']
                                                 .toString()
                                                 .isNotEmpty)
@@ -1185,7 +1232,9 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                           style: TextStyle(
                                             color: status == 'pending'
                                                 ? Colors.orange
-                                                : (status == 'validated' ? Colors.green : Colors.red),
+                                                : (status == 'validated'
+                                                    ? Colors.green
+                                                    : Colors.red),
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
@@ -1226,33 +1275,38 @@ class _PromoCodeManagementScreenState extends State<PromoCodeManagementScreen> {
                                       builder: (shareContext) => Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          if (_isAdmin && status == 'pending') ...[
+                                          if (_isAdmin &&
+                                              status == 'pending') ...[
                                             IconButton(
-                                              icon: const Icon(Icons.check, color: Colors.green),
-                                              onPressed: () => _updateStatus(promoCode['id'], 'validated'),
+                                              icon: const Icon(Icons.check,
+                                                  color: Colors.green),
+                                              onPressed: () => _updateStatus(
+                                                  promoCode['id'], 'validated'),
                                               tooltip: 'Valider',
                                             ),
                                             IconButton(
-                                              icon: const Icon(Icons.close, color: Colors.red),
-                                              onPressed: () => _updateStatus(promoCode['id'], 'refused'),
+                                              icon: const Icon(Icons.close,
+                                                  color: Colors.red),
+                                              onPressed: () => _updateStatus(
+                                                  promoCode['id'], 'refused'),
                                               tooltip: 'Refuser',
                                             ),
                                           ],
                                           // Bouton de partage
                                           if (status == 'validated')
-                                          IconButton(
-                                            icon: Icon(
-                                              Icons.share,
-                                              color: isDark
-                                                  ? AppTheme.primaryOrange
-                                                  : AppTheme.primaryOrange,
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.share,
+                                                color: isDark
+                                                    ? AppTheme.primaryOrange
+                                                    : AppTheme.primaryOrange,
+                                              ),
+                                              onPressed: () => _sharePromoCode(
+                                                  code,
+                                                  customerName,
+                                                  shareContext),
+                                              tooltip: 'Partager le code',
                                             ),
-                                            onPressed: () => _sharePromoCode(
-                                                code,
-                                                customerName,
-                                                shareContext),
-                                            tooltip: 'Partager le code',
-                                          ),
                                           // Bouton de suppression (seulement si non utilisé)
                                           if (!isUsed)
                                             IconButton(
