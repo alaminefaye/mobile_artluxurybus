@@ -49,6 +49,7 @@ import '../services/recharge_service.dart';
 import '../providers/feature_permission_provider.dart';
 import '../models/feature_permission_model.dart';
 import '../providers/loyalty_provider.dart';
+import 'accounts_screen.dart';
 import 'caisse_screen.dart';
 import 'promo_code_management_screen.dart';
 import '../services/caisse_service.dart';
@@ -351,6 +352,19 @@ class _HomePageState extends ConsumerState<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      final previousId = previous?.user?.id;
+      final nextId = next.user?.id;
+      if (!next.isAuthenticated || nextId == null || previousId == nextId) {
+        return;
+      }
+      _loadSolde();
+      _loadSlides();
+      ref.read(notificationProvider.notifier).loadNotifications(refresh: true);
+      ref.read(loyaltyProvider.notifier).reset();
+      ref.invalidate(featurePermissionsProvider);
+    });
+
     final authState = ref.watch(authProvider);
     final user = authState.user;
 
@@ -4087,6 +4101,27 @@ class _HomePageState extends ConsumerState<HomePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildProfileSection(
+                        title: 'Comptes',
+                        icon: Icons.switch_account_rounded,
+                        options: [
+                          _buildModernProfileOption(
+                            icon: Icons.switch_account_outlined,
+                            title: 'Changer de compte',
+                            subtitle: 'Jusqu\'à 3 comptes sur cet appareil',
+                            color: AppTheme.primaryBlue,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AccountsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
                       // Section Dashboard (Super Admin, Admin, Chef agence et PDG uniquement)
                       if (_isSuperAdminOrAdmin(user) || _isAdminOrChefAgence(user) || _isPDG(user)) ...[
                         _buildProfileSection(

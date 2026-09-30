@@ -109,8 +109,8 @@ class DashboardApiService {
     }
   }
 
-  /// Récupérer les revenus mensuels de l'année en cours
-  Future<Map<int, double>> getMonthlyRevenue() async {
+  /// Revenus mensuels du guichet et de l'application pour l'année en cours.
+  Future<MonthlyRevenue> getMonthlyRevenue() async {
     try {
       final url = Uri.parse('$baseUrl/dashboard/monthly-revenue');
       debugPrint('🔗 [DashboardAPI] URL Monthly Revenue: $url');
@@ -132,35 +132,15 @@ class DashboardApiService {
         
         if (jsonResponse['success'] == true) {
           final data = jsonResponse['data'] as Map<String, dynamic>;
+          final art = jsonResponse['art'] as Map<String, dynamic>? ?? {};
           debugPrint('📊 [DashboardAPI] Data received: $data');
-          
-          final monthlyData = <int, double>{};
-          
-          // Convertir les clés String en int et les valeurs en double
-          data.forEach((key, value) {
-            final month = int.tryParse(key) ?? 0;
-            // Convertir explicitement en double
-            double revenue = 0.0;
-            if (value is num) {
-              revenue = value.toDouble();
-            } else if (value is String) {
-              revenue = double.tryParse(value) ?? 0.0;
-            }
-            
-            debugPrint('📊 [DashboardAPI] Mois $month: $revenue FCFA');
-            
-            if (month > 0 && month <= 12) {
-              monthlyData[month] = revenue;
-            }
-          });
-          
-          // Remplir les mois manquants avec 0
-          for (int i = 1; i <= 12; i++) {
-            monthlyData.putIfAbsent(i, () => 0.0);
-          }
-          
+
+          final monthlyData = _parseMonthlyMap(data);
+          final artData = _parseMonthlyMap(art);
+
           debugPrint('✅ [DashboardAPI] Monthly data final: $monthlyData');
-          return monthlyData;
+          debugPrint('✅ [DashboardAPI] Art monthly data: $artData');
+          return MonthlyRevenue(guichet: monthlyData, application: artData);
         } else {
           throw Exception(jsonResponse['message'] ??
               'Erreur lors de la récupération des revenus mensuels');
@@ -174,8 +154,48 @@ class DashboardApiService {
     } catch (e, stackTrace) {
       debugPrint('💥 [DashboardAPI] Exception monthly revenue: $e');
       debugPrint('💥 [DashboardAPI] Stack trace: $stackTrace');
-      // Retourner des données vides en cas d'erreur
-      return {for (int i = 1; i <= 12; i++) i: 0.0};
+      return MonthlyRevenue.empty();
     }
+  }
+
+  Map<int, double> _parseMonthlyMap(Map<String, dynamic> data) {
+    final monthlyData = <int, double>{};
+
+    data.forEach((key, value) {
+      final month = int.tryParse(key) ?? 0;
+      double revenue = 0.0;
+      if (value is num) {
+        revenue = value.toDouble();
+      } else if (value is String) {
+        revenue = double.tryParse(value) ?? 0.0;
+      }
+
+      if (month > 0 && month <= 12) {
+        monthlyData[month] = revenue;
+      }
+    });
+
+    for (int i = 1; i <= 12; i++) {
+      monthlyData.putIfAbsent(i, () => 0.0);
+    }
+
+    return monthlyData;
+  }
+}
+
+class MonthlyRevenue {
+  final Map<int, double> guichet;
+  final Map<int, double> application;
+
+  const MonthlyRevenue({
+    required this.guichet,
+    required this.application,
+  });
+
+  factory MonthlyRevenue.empty() {
+    return MonthlyRevenue(
+      guichet: {for (int i = 1; i <= 12; i++) i: 0.0},
+      application: {for (int i = 1; i <= 12; i++) i: 0.0},
+    );
   }
 }

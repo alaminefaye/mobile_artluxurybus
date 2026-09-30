@@ -14,7 +14,9 @@ class CaisseScreen extends StatefulWidget {
   State<CaisseScreen> createState() => _CaisseScreenState();
 }
 
-class _CaisseScreenState extends State<CaisseScreen> {
+class _CaisseScreenState extends State<CaisseScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabs;
   bool _loading = true;
   String? _error;
   bool _canManage = false;
@@ -25,14 +27,27 @@ class _CaisseScreenState extends State<CaisseScreen> {
   double _depensesMois = 0;
   List<dynamic> _recharges = [];
   List<dynamic> _depenses = [];
+  final _rechargeNameController = TextEditingController();
+  final _depenseNameController = TextEditingController();
+  DateTime? _rechargeDay;
+  DateTime? _depenseDay;
 
   final _money = NumberFormat.decimalPattern('fr');
 
   @override
   void initState() {
     super.initState();
+    _tabs = TabController(length: 3, vsync: this);
     _canManage = widget.canManage;
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabs.dispose();
+    _rechargeNameController.dispose();
+    _depenseNameController.dispose();
+    super.dispose();
   }
 
   String _fcfa(num value) => '${_money.format(value)} FCFA';
@@ -256,6 +271,19 @@ class _CaisseScreenState extends State<CaisseScreen> {
         title: const Text('Caisse de Fonctionnement'),
         backgroundColor: isDark ? Colors.grey[900] : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
+        bottom: _loading || _error != null
+            ? null
+            : TabBar(
+                controller: _tabs,
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                tabs: const [
+                  Tab(text: 'Solde'),
+                  Tab(text: 'Recharges'),
+                  Tab(text: 'Dépenses'),
+                ],
+              ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -276,11 +304,14 @@ class _CaisseScreenState extends State<CaisseScreen> {
                     ),
                   ),
                 )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
+              : TabBarView(
+                  controller: _tabs,
+                  children: [
+                    RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -309,26 +340,20 @@ class _CaisseScreenState extends State<CaisseScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: ElevatedButton.icon(
+                                  child: _actionButton(
+                                    label: 'Recharger',
+                                    icon: Icons.add,
+                                    color: Colors.green,
                                     onPressed: _showRechargeDialog,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    icon: const Icon(Icons.add),
-                                    label: const Text('Recharger'),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: ElevatedButton.icon(
+                                  child: _actionButton(
+                                    label: 'Dépense',
+                                    icon: Icons.remove,
+                                    color: Colors.orange,
                                     onPressed: _showDepenseDialog,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    icon: const Icon(Icons.remove),
-                                    label: const Text('Dépense'),
                                   ),
                                 ),
                               ],
@@ -337,86 +362,92 @@ class _CaisseScreenState extends State<CaisseScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _statCard('Rechargé', _fcfa(_totalRecharge), Colors.green),
-                          const SizedBox(width: 8),
-                          _statCard('Dépensé', _fcfa(_totalDepense), Colors.red),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _statCard('Ce mois +', _fcfa(_rechargesMois), Colors.blue),
-                          const SizedBox(width: 8),
-                          _statCard('Ce mois -', _fcfa(_depensesMois), Colors.amber),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Recharges',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _statCard('Rechargé', _fcfa(_totalRecharge), Colors.green),
+                            const SizedBox(width: 8),
+                            _statCard('Dépensé', _fcfa(_totalDepense), Colors.red),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 8),
-                      if (_recharges.isEmpty)
-                        const Text('Aucune recharge.')
-                      else
-                        ..._recharges.map((item) => _operationTile(
-                              title: _fcfa(item['montant'] ?? 0),
-                              subtitle: [
-                                if ((item['description'] ?? '').toString().isNotEmpty)
-                                  item['description'],
-                                if ((item['creator_name'] ?? '').toString().isNotEmpty)
-                                  'Par ${item['creator_name']}',
-                              ].join(' · '),
-                              color: Colors.green,
-                              onDelete: _canManage
-                                  ? () => _delete(
-                                        label: 'recharge',
-                                        action: () => CaisseService.deleteRecharge(
-                                          _asId(item['id']),
-                                        ),
-                                      )
-                                  : null,
-                            )),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Dépenses',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black,
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _statCard('Ce mois +', _fcfa(_rechargesMois), Colors.blue),
+                            const SizedBox(width: 8),
+                            _statCard('Ce mois -', _fcfa(_depensesMois), Colors.amber),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      if (_depenses.isEmpty)
-                        const Text('Aucune dépense.')
-                      else
-                        ..._depenses.map((item) => _operationTile(
-                              title: '${item['motif'] ?? ''} · ${_fcfa(item['montant'] ?? 0)}',
-                              subtitle: [
-                                if ((item['description'] ?? '').toString().isNotEmpty)
-                                  item['description'],
-                                if ((item['creator_name'] ?? '').toString().isNotEmpty)
-                                  'Par ${item['creator_name']}',
-                              ].where((part) => part.toString().isNotEmpty).join(' · '),
-                              color: Colors.red,
-                              onDelete: _canManage
-                                  ? () => _delete(
-                                        label: 'dépense',
-                                        action: () => CaisseService.deleteDepense(
-                                          _asId(item['id']),
-                                        ),
-                                      )
-                                  : null,
-                            )),
                     ],
-                  ),
+                      ),
+                    ),
+                    _operationList(
+                      items: _filteredItems(
+                        _recharges,
+                        name: _rechargeNameController.text,
+                        day: _rechargeDay,
+                      ),
+                      emptyLabel: _rechargeNameController.text.trim().isEmpty &&
+                              _rechargeDay == null
+                          ? 'Aucune recharge.'
+                          : 'Aucun résultat pour ce filtre.',
+                      isRecharge: true,
+                      isDark: isDark,
+                      nameController: _rechargeNameController,
+                      selectedDay: _rechargeDay,
+                      onDayChanged: (day) => setState(() => _rechargeDay = day),
+                    ),
+                    _operationList(
+                      items: _filteredItems(
+                        _depenses,
+                        name: _depenseNameController.text,
+                        day: _depenseDay,
+                      ),
+                      emptyLabel: _depenseNameController.text.trim().isEmpty &&
+                              _depenseDay == null
+                          ? 'Aucune dépense.'
+                          : 'Aucun résultat pour ce filtre.',
+                      isRecharge: false,
+                      isDark: isDark,
+                      nameController: _depenseNameController,
+                      selectedDay: _depenseDay,
+                      onDayChanged: (day) => setState(() => _depenseDay = day),
+                    ),
+                  ],
                 ),
+    );
+  }
+
+  Widget _actionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      height: 48,
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        icon: Icon(icon, size: 18),
+        label: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
     );
   }
 
@@ -443,30 +474,209 @@ class _CaisseScreenState extends State<CaisseScreen> {
     );
   }
 
-  Widget _operationTile({
-    required String title,
-    required String subtitle,
-    required Color color,
-    VoidCallback? onDelete,
+  List<dynamic> _filteredItems(
+    List<dynamic> items, {
+    required String name,
+    required DateTime? day,
   }) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.15),
-          child: Icon(
-            color == Colors.green ? Icons.arrow_upward : Icons.arrow_downward,
-            color: color,
+    final query = name.trim().toLowerCase();
+    return items.where((item) {
+      if (day != null) {
+        final created = DateTime.tryParse(item['created_at']?.toString() ?? '');
+        if (created == null ||
+            created.year != day.year ||
+            created.month != day.month ||
+            created.day != day.day) {
+          return false;
+        }
+      }
+      if (query.isNotEmpty) {
+        final creator = (item['creator_name'] ?? '').toString().toLowerCase();
+        final motif = (item['motif'] ?? '').toString().toLowerCase();
+        final description = (item['description'] ?? '').toString().toLowerCase();
+        if (!creator.contains(query) &&
+            !motif.contains(query) &&
+            !description.contains(query)) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
+  Widget _operationList({
+    required List<dynamic> items,
+    required String emptyLabel,
+    required bool isRecharge,
+    required bool isDark,
+    required TextEditingController nameController,
+    required DateTime? selectedDay,
+    required ValueChanged<DateTime?> onDayChanged,
+  }) {
+    final filters = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        children: [
+          TextField(
+            controller: nameController,
+            onChanged: (_) => setState(() {}),
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
+            decoration: InputDecoration(
+              hintText: 'Rechercher par nom',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: nameController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () {
+                        nameController.clear();
+                        setState(() {});
+                      },
+                    ),
+              filled: true,
+              fillColor: isDark ? Colors.grey[850] : Colors.white,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
-        ),
-        title: Text(title),
-        subtitle: subtitle.isEmpty ? null : Text(subtitle),
-        trailing: onDelete == null
-            ? null
-            : IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: onDelete,
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDay ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                      locale: const Locale('fr', 'FR'),
+                      helpText: 'Filtrer par jour',
+                    );
+                    if (picked != null) onDayChanged(picked);
+                  },
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Jour',
+                      filled: true,
+                      fillColor: isDark ? Colors.grey[850] : Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.calendar_today),
+                    ),
+                    child: Text(
+                      selectedDay == null
+                          ? 'Tous les jours'
+                          : DateFormat('dd/MM/yyyy').format(selectedDay),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
               ),
+              if (selectedDay != null)
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => onDayChanged(null),
+                ),
+            ],
+          ),
+        ],
       ),
+    );
+
+    return Column(
+      children: [
+        filters,
+        Expanded(
+          child: RefreshIndicator(
+      onRefresh: _load,
+      child: items.isEmpty
+          ? ListView(
+              children: [
+                const SizedBox(height: 80),
+                Center(
+                  child: Text(
+                    emptyLabel,
+                    style: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                final createdAt =
+                    DateTime.tryParse(item['created_at']?.toString() ?? '');
+                final detail = isRecharge
+                    ? (item['description'] ?? '').toString()
+                    : [
+                        (item['motif'] ?? '').toString(),
+                        (item['description'] ?? '').toString(),
+                      ].where((part) => part.isNotEmpty).join(' — ');
+                final creator = (item['creator_name'] ?? '').toString();
+                final subtitle = [
+                  if (detail.isNotEmpty) detail,
+                  if (creator.isNotEmpty) 'Par $creator',
+                  if (createdAt != null)
+                    DateFormat('dd/MM/yyyy').format(createdAt),
+                ].join('\n');
+
+                return Card(
+                  color: isDark ? Colors.grey[850] : Colors.white,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor:
+                          (isRecharge ? Colors.green : Colors.red)
+                              .withValues(alpha: 0.15),
+                      child: Icon(
+                        isRecharge
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        color: isRecharge ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    title: Text(
+                      isRecharge
+                          ? _fcfa(item['montant'] ?? 0)
+                          : '${item['motif'] ?? ''} · ${_fcfa(item['montant'] ?? 0)}',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: subtitle.isEmpty
+                        ? null
+                        : Text(
+                            subtitle,
+                            style: TextStyle(
+                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                            ),
+                          ),
+                    trailing: _canManage
+                        ? IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _delete(
+                              label: isRecharge ? 'recharge' : 'dépense',
+                              action: () => isRecharge
+                                  ? CaisseService.deleteRecharge(_asId(item['id']))
+                                  : CaisseService.deleteDepense(_asId(item['id'])),
+                            ),
+                          )
+                        : null,
+                  ),
+                );
+              },
+            ),
+      ),
+        ),
+      ],
     );
   }
 }

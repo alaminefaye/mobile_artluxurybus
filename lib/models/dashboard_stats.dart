@@ -16,6 +16,8 @@ class DashboardStats {
   final String date;
   final String dateFormatted;
   final double totalDailyRevenue;
+  final double artDailyRevenue;
+  final double artTotalRevenue;
   final TicketStats tickets;
   final DepartStats departs;
   final FuelStats fuel;
@@ -30,6 +32,8 @@ class DashboardStats {
     required this.date,
     required this.dateFormatted,
     required this.totalDailyRevenue,
+    this.artDailyRevenue = 0,
+    this.artTotalRevenue = 0,
     required this.tickets,
     required this.departs,
     required this.fuel,
@@ -54,6 +58,8 @@ class DashboardStats {
       date: data['date'] ?? '',
       dateFormatted: data['date_formatted'] ?? '',
       totalDailyRevenue: _parseDouble(data['total_daily_revenue']),
+      artDailyRevenue: _parseDouble(data['art_daily_revenue']),
+      artTotalRevenue: _parseDouble(data['art_total_revenue']),
       tickets: TicketStats.fromJson(data['tickets'] ?? {}),
       departs: DepartStats.fromJson(data['departs'] ?? {}),
       fuel: FuelStats.fromJson(data['fuel'] ?? {}),

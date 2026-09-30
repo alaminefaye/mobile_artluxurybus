@@ -24,6 +24,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   DashboardApiService? _dashboardService;
   DashboardStats? _dashboardStats;
   Map<int, double> _monthlyRevenue = {};
+  Map<int, double> _artMonthlyRevenue = {};
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -86,7 +87,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
       setState(() {
         _dashboardStats = stats;
-        _monthlyRevenue = monthly;
+        _monthlyRevenue = monthly.guichet;
+        _artMonthlyRevenue = monthly.application;
         _isLoading = false;
       });
     } catch (e, stackTrace) {
@@ -237,8 +239,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _buildDateHeader(),
           const SizedBox(height: 16),
 
-          // Revenu total du jour
+          _buildCombinedRevenueCard(),
+          const SizedBox(height: 16),
+
           _buildTotalRevenueCard(),
+          const SizedBox(height: 16),
+
+          _buildArtRevenueCard(),
           const SizedBox(height: 16),
 
           // Revenus détaillés (Tickets et Courriers+Bagages)
@@ -274,9 +281,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           _buildBusesCard(),
           const SizedBox(height: 24),
 
-          // Graphique des revenus mensuels
-          _buildSectionTitle('Chiffre d\'affaires de l\'année'),
-          _buildMonthlyRevenueChart(),
+          _buildSectionTitle('Chiffre d\'affaires du guichet'),
+          _buildMonthlyRevenueChart(
+            title: 'Guichet',
+            revenue: _monthlyRevenue,
+            barColor: Theme.of(context).brightness == Brightness.dark
+                ? AppTheme.primaryOrange.withValues(alpha: 0.8)
+                : AppTheme.primaryBlue,
+          ),
+          const SizedBox(height: 16),
+          _buildSectionTitle('Chiffre d\'affaires de l\'application'),
+          _buildMonthlyRevenueChart(
+            title: 'Application',
+            revenue: _artMonthlyRevenue,
+            barColor: const Color(0xFF0F6E56),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionTitle('Chiffre d\'affaires guichet + application'),
+          _buildMonthlyRevenueChart(
+            title: 'Guichet + application',
+            revenue: _combinedMonthlyRevenue(),
+            barColor: const Color(0xFF1B3A4B),
+          ),
           const SizedBox(height: 24),
         ],
       ),
@@ -358,7 +384,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         child: Column(
           children: [
             const Text(
-              'REVENU TOTAL DU JOUR',
+              'REVENU TOTAL DU GUICHET',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 14,
@@ -374,6 +400,86 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArtRevenueCard() {
+    final stats = _dashboardStats!;
+    return Card(
+      elevation: 4,
+      color: const Color(0xFF0F6E56),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Text(
+              'REVENU DANS L\'APPLICATION',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Revenu du jour',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_numberFormat.format(stats.artDailyRevenue.toInt())} FCFA',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCombinedRevenueCard() {
+    final stats = _dashboardStats!;
+    final daily = stats.totalDailyRevenue + stats.artDailyRevenue;
+
+    return Card(
+      elevation: 4,
+      color: const Color(0xFF1B3A4B),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Text(
+              'REVENU TOTAL DU JOUR',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_numberFormat.format(daily.toInt())} FCFA',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Agence + application',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
             ),
           ],
         ),
@@ -477,7 +583,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       crossAxisCount: 2,
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.5,
+      childAspectRatio: 1.15,
       children: [
         _buildStatCard(
           'Billets',
@@ -517,20 +623,24 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
+            Icon(icon, size: 28, color: color),
+            const SizedBox(height: 4),
             Text(
               value,
+              maxLines: 1,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
+                height: 1.1,
                 fontWeight: FontWeight.bold,
                 color: isDark ? Colors.white : color,
               ),
             ),
             Text(
               title,
+              maxLines: 1,
               style: TextStyle(
                 fontSize: 12,
+                height: 1.1,
                 color: isDark ? Colors.white70 : Colors.grey,
               ),
             ),
@@ -750,7 +860,18 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildMonthlyRevenueChart() {
+  Map<int, double> _combinedMonthlyRevenue() {
+    return {
+      for (var month = 1; month <= 12; month++)
+        month: (_monthlyRevenue[month] ?? 0) + (_artMonthlyRevenue[month] ?? 0),
+    };
+  }
+
+  Widget _buildMonthlyRevenueChart({
+    required String title,
+    required Map<int, double> revenue,
+    required Color barColor,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Noms des mois en français
@@ -770,12 +891,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     ];
 
     // Vérifier si on a des données
-    final hasData = _monthlyRevenue.isNotEmpty &&
-        _monthlyRevenue.values.any((value) => value > 0);
+    final hasData =
+        revenue.isNotEmpty && revenue.values.any((value) => value > 0);
 
     // Trouver le montant maximum pour l'échelle
     final maxRevenue = hasData
-        ? _monthlyRevenue.values.reduce((a, b) => a > b ? a : b)
+        ? revenue.values.reduce((a, b) => a > b ? a : b)
         : 1000000.0;
 
     // Arrondir au million supérieur pour une belle échelle
@@ -793,12 +914,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Revenus Tickets mensuels (FCFA)',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white70 : Colors.grey.shade700,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white70 : Colors.grey.shade700,
+                    ),
                   ),
                 ),
                 if (!hasData)
@@ -954,16 +1077,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   ),
                   barGroups: List.generate(12, (index) {
                     final month = index + 1;
-                    final revenue = _monthlyRevenue[month] ?? 0.0;
+                    final amount = revenue[month] ?? 0.0;
 
                     return BarChartGroupData(
                       x: index,
                       barRods: [
                         BarChartRodData(
-                          toY: revenue,
-                          color: isDark
-                              ? AppTheme.primaryOrange.withValues(alpha: 0.8)
-                              : AppTheme.primaryBlue,
+                          toY: amount,
+                          color: barColor,
                           width: 16,
                           borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(4),

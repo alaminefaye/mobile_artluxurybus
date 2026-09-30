@@ -12,7 +12,14 @@ import '../public_screen.dart';
 import '../client_search_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final bool addAccount;
+  final String? initialEmail;
+
+  const LoginScreen({
+    super.key,
+    this.addAccount = false,
+    this.initialEmail,
+  });
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -33,6 +40,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialEmail != null) {
+      _emailController.text = widget.initialEmail!;
+    }
 
     // Charger les traductions de manière asynchrone
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -124,6 +134,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             duration: const Duration(seconds: 1),
           ),
         );
+
+        if (widget.addAccount) {
+          Navigator.of(context).pop(true);
+          return;
+        }
 
         // Naviguer vers AuthWrapper qui redirigera automatiquement selon le rôle
         // PDG -> AdminDashboard, Courrier -> ManagementHub, etc.

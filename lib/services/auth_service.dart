@@ -14,6 +14,8 @@ import '../utils/error_message_helper.dart';
 class AuthService {
   static const String tokenKey = 'auth_token';
   static const String userKey = 'user_data';
+  static const String accountsKey = 'saved_accounts';
+  static const int maxAccounts = 3;
 
   // Headers par défaut
   Map<String, String> get _headers => ApiConfig.defaultHeaders;
@@ -272,6 +274,128 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(tokenKey, authData.token);
     await prefs.setString(userKey, json.encode(authData.user.toJson()));
+    await _upsertAccount(authData.user, authData.token);
+  }
+
+  Future<List<Map<String, dynamic>>> getSavedAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(accountsKey);
+    if (raw == null || raw.isEmpty) return [];
+    final decoded = json.decode(raw);
+    if (decoded is! List) return [];
+    return decoded
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  Future<void> rememberCurrentAccount() async {
+    final token = await getToken();
+    final user = await getSavedUser();
+    if (token == null || user == null) return;
+    await _upsertAccount(user, token);
+  }
+
+  Future<String?> accountLimitMessage(String email) async {
+    final accounts = await getSavedAccounts();
+    final exists = accounts.any(
+      (account) =>
+          (account['email'] as String?)?.toLowerCase() == email.toLowerCase(),
+    );
+    if (!exists && accounts.length >= maxAccounts) {
+      return 'Vous pouvez enregistrer 3 comptes au maximum.';
+    }
+    return null;
+  }
+
+  Future<void> _upsertAccount(User user, String token) async {
+    final accounts = await getSavedAccounts();
+    final email = user.email.toLowerCase();
+    final entry = {
+      'email': user.email,
+      'token': token,
+      'user': user.toJson(),
+    };
+    final index = accounts.indexWhere(
+      (account) => (account['email'] as String?)?.toLowerCase() == email,
+    );
+    if (index >= 0) {
+      accounts[index] = entry;
+    } else if (accounts.length < maxAccounts) {
+      accounts.add(entry);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(accountsKey, json.encode(accounts));
+  }
+
+  Future<void> _syncAccountUser(User user) async {
+    final accounts = await getSavedAccounts();
+    final email = user.email.toLowerCase();
+    final index = accounts.indexWhere(
+      (account) => (account['email'] as String?)?.toLowerCase() == email,
+    );
+    if (index < 0) return;
+    final token = accounts[index]['token'];
+    if (token is! String || token.isEmpty) return;
+    accounts[index] = {
+      'email': user.email,
+      'token': token,
+      'user': user.toJson(),
+    };
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(accountsKey, json.encode(accounts));
+  }
+
+  Future<void> removeSavedAccount(String email) async {
+    final accounts = await getSavedAccounts();
+    accounts.removeWhere(
+      (account) =>
+          (account['email'] as String?)?.toLowerCase() == email.toLowerCase(),
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(accountsKey, json.encode(accounts));
+  }
+
+  /// Active un compte déjà enregistré. Restaure le compte précédent si le token est invalide.
+  Future<User?> activateAccount(String email) async {
+    final accounts = await getSavedAccounts();
+    Map<String, dynamic>? account;
+    for (final item in accounts) {
+      if ((item['email'] as String?)?.toLowerCase() == email.toLowerCase()) {
+        account = item;
+        break;
+      }
+    }
+    if (account == null || account['token'] is! String) return null;
+
+    final prefs = await SharedPreferences.getInstance();
+    final previousToken = prefs.getString(tokenKey);
+    final previousUser = prefs.getString(userKey);
+
+    await prefs.setString(tokenKey, account['token'] as String);
+    await prefs.setString(userKey, json.encode(account['user']));
+
+    final profile = await getUserProfile();
+    if (profile == null) {
+      if (previousToken != null) {
+        await prefs.setString(tokenKey, previousToken);
+      } else {
+        await prefs.remove(tokenKey);
+      }
+      if (previousUser != null) {
+        await prefs.setString(userKey, previousUser);
+      } else {
+        await prefs.remove(userKey);
+      }
+      return null;
+    }
+
+    await saveUser(profile);
+    final currentToken = await getToken();
+    if (currentToken != null) {
+      await _upsertAccount(profile, currentToken);
+    }
+    return profile;
   }
 
   // Supprimer les données d'authentification
@@ -285,6 +409,7 @@ class AuthService {
   Future<void> _saveUser(User user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(userKey, json.encode(user.toJson()));
+    await _syncAccountUser(user);
   }
 
   // Sauvegarder l'utilisateur (méthode publique)

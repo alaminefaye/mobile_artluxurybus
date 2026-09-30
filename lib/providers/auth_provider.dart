@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/simple_auth_models.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../services/feedback_api_service.dart';
 import '../services/notification_api_service.dart';
 import '../services/ads_api_service.dart';
@@ -75,6 +76,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Définir les tokens pour les services si connecté
         if (user != null) {
           await _setTokensForAllServices();
+          await _authService.rememberCurrentAccount();
         }
       } else {
         state = state.copyWith(
@@ -117,7 +119,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // Connexion
   Future<bool> login(String email, String password) async {
-    state = state.copyWith(isLoading: true, error: null);
+    final limitMessage = await _authService.accountLimitMessage(email);
+    if (limitMessage != null) {
+      state = AuthState(
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        isLoading: false,
+        error: limitMessage,
+      );
+      return false;
+    }
+
+    final wasAuthenticated = state.isAuthenticated;
+    final previousUser = state.user;
+    state = state.copyWith(isLoading: true);
 
     try {
       final loginRequest = LoginRequest(email: email, password: password);
@@ -137,30 +152,72 @@ class AuthNotifier extends StateNotifier<AuthState> {
         
         // ✅ IMPORTANT: Définir le token IMMÉDIATEMENT pour tous les services API
         await _setTokensForAllServices();
+        await NotificationService.registerTokenOnServer();
         
         return true;
       } else {
-        state = state.copyWith(
-          error: response.message,
+        state = AuthState(
+          user: previousUser,
+          isAuthenticated: wasAuthenticated,
           isLoading: false,
-          isAuthenticated: false,
+          error: response.message,
         );
         return false;
       }
     } catch (e) {
-      // Utiliser ErrorMessageHelper pour convertir l'erreur technique en message user-friendly
       final userFriendlyError = ErrorMessageHelper.getUserFriendlyError(
         e,
         defaultMessage: 'Impossible de se connecter. Vérifiez vos identifiants et votre connexion internet.',
       );
       
-      state = state.copyWith(
-        error: userFriendlyError,
+      state = AuthState(
+        user: previousUser,
+        isAuthenticated: wasAuthenticated,
         isLoading: false,
-        isAuthenticated: false,
+        error: userFriendlyError,
       );
       return false;
     }
+  }
+
+  Future<String?> switchAccount(String email) async {
+    if (state.user?.email.toLowerCase() == email.toLowerCase()) {
+      return null;
+    }
+
+    state = state.copyWith(isLoading: true);
+    final user = await _authService.activateAccount(email);
+    if (user == null) {
+      final current = await _authService.getSavedUser();
+      state = AuthState(
+        user: current,
+        isAuthenticated: current != null,
+        isLoading: false,
+        error: 'La session de ce compte a expiré. Reconnectez-le.',
+      );
+      if (current != null) {
+        await _setTokensForAllServices();
+      }
+      return 'La session de ce compte a expiré. Reconnectez-le.';
+    }
+
+    state = AuthState(
+      user: user,
+      isAuthenticated: true,
+      isLoading: false,
+    );
+    await _setTokensForAllServices();
+    await NotificationService.registerTokenOnServer();
+    return null;
+  }
+
+  Future<void> removeAccount(String email) async {
+    final isCurrent = state.user?.email.toLowerCase() == email.toLowerCase();
+    if (isCurrent) {
+      await logout();
+      return;
+    }
+    await _authService.removeSavedAccount(email);
   }
 
   // Inscription
@@ -202,14 +259,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Déconnexion
   Future<void> logout() async {
     state = state.copyWith(isLoading: true);
-    
+    final email = state.user?.email;
+
     try {
       await _authService.logout();
-      state = const AuthState(isAuthenticated: false, isLoading: false);
     } catch (e) {
-      // Même en cas d'erreur, on déconnecte localement
-      state = const AuthState(isAuthenticated: false, isLoading: false);
+      await _authService.logout();
     }
+
+    if (email != null) {
+      await _authService.removeSavedAccount(email);
+    }
+
+    final accounts = await _authService.getSavedAccounts();
+    if (accounts.isNotEmpty) {
+      final nextEmail = accounts.first['email']?.toString();
+      if (nextEmail != null && nextEmail.isNotEmpty) {
+        final user = await _authService.activateAccount(nextEmail);
+        if (user != null) {
+          state = AuthState(
+            user: user,
+            isAuthenticated: true,
+            isLoading: false,
+          );
+          await _setTokensForAllServices();
+          await NotificationService.registerTokenOnServer();
+          return;
+        }
+      }
+    }
+
+    state = const AuthState(isAuthenticated: false, isLoading: false);
   }
 
   // Mot de passe oublié
