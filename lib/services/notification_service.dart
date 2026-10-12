@@ -33,7 +33,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   static FirebaseMessaging? _messaging;
   static FlutterLocalNotificationsPlugin? _localNotifications;
-  static StreamController<Map<String, dynamic>>? _notificationStreamController;
+  // Créé dès le départ : MyApp s'abonne avant la fin de initialize().
+  static StreamController<Map<String, dynamic>>? _notificationStreamController =
+      StreamController<Map<String, dynamic>>.broadcast();
   static bool _bgHandlerRegistered = false;
   static String? _deviceId;
   static bool _isClientUser = false;
@@ -204,7 +206,7 @@ class NotificationService {
       }
 
       // Initialiser le stream controller
-      _notificationStreamController =
+      _notificationStreamController ??=
           StreamController<Map<String, dynamic>>.broadcast();
 
       debugPrint(
@@ -216,10 +218,22 @@ class NotificationService {
       );
       debugPrint('Stack trace: $stackTrace');
       // NE PAS faire crasher l'app - initialiser quand même le stream
-      _notificationStreamController =
+      _notificationStreamController ??=
           StreamController<Map<String, dynamic>>.broadcast();
     }
   }
+
+  // L'identifiant doit rester identique à celui envoyé par le serveur (vibrate_only)
+  static const AndroidNotificationChannel _caisseVibrationChannel =
+      AndroidNotificationChannel(
+    'caisse_vibration_channel',
+    'Caisse de fonctionnement',
+    description: 'Recharges et dépenses de caisse (vibreur uniquement)',
+    importance: Importance.high,
+    playSound: false,
+    enableVibration: true,
+    showBadge: true,
+  );
 
   /// Initialiser les notifications locales
   static Future<void> _initializeLocalNotifications() async {
@@ -245,6 +259,7 @@ class NotificationService {
 
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(channel);
+      await androidPlugin.createNotificationChannel(_caisseVibrationChannel);
       debugPrint('✅ [NotificationService] Canal Android créé: ${channel.id}');
       debugPrint('   - Importance: ${channel.importance}');
       debugPrint('   - Son activé: ${channel.playSound}');
@@ -709,6 +724,36 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     if (_localNotifications == null) return;
+
+    if (data?['vibrate_only']?.toString() == '1') {
+      await _localNotifications!.show(
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _caisseVibrationChannel.id,
+            _caisseVibrationChannel.name,
+            channelDescription: _caisseVibrationChannel.description,
+            importance: Importance.high,
+            priority: Priority.high,
+            showWhen: true,
+            icon: '@mipmap/ic_launcher',
+            playSound: false,
+            enableVibration: true,
+          ),
+          // iOS n'a pas de mode vibreur seul : un son muet déclenche la vibration
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            sound: 'silence.caf',
+          ),
+        ),
+        payload: data?.toString(),
+      );
+      return;
+    }
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(

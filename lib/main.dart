@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'firebase_options.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'providers/auth_provider.dart';
@@ -49,6 +52,7 @@ import 'screens/admin_dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  var hasToken = false;
 
   try {
     debugPrint('🚀 [Main] Initialisation de l\'application...');
@@ -87,6 +91,7 @@ void main() async {
     // Initialiser l'authentification AVANT les notifications
     final authService = AuthService();
     final token = await authService.getToken();
+    hasToken = token != null;
 
     if (token != null) {
       debugPrint('✅ [Main] Token d\'authentification trouvé');
@@ -99,39 +104,17 @@ void main() async {
       BagageApiService.setToken(token);
       RechargeService.setToken(token);
       CaisseService.setToken(token);
-
-      // Charger les permissions de l'utilisateur au démarrage
-      try {
-        debugPrint('📋 [Main] Chargement des permissions utilisateur...');
-        final featurePermissionService = FeaturePermissionService();
-        await featurePermissionService.syncPermissions();
-        debugPrint('✅ [Main] Permissions chargées avec succès');
-      } catch (e) {
-        debugPrint('⚠️ [Main] Erreur lors du chargement des permissions: $e');
-        // Continuer malgré l'erreur
-      }
     } else {
       debugPrint('⚠️ [Main] Aucun token d\'authentification');
     }
 
-    // Initialiser les notifications Firebase APRÈS l'auth
-    debugPrint('🔔 [Main] Initialisation Firebase Messaging...');
-    await NotificationService.initialize().timeout(
-      const Duration(seconds: 10),
-      onTimeout: () {
-        debugPrint('⚠️ [Main] Timeout Firebase - continue quand même');
-      },
-    );
-    debugPrint('✅ [Main] Firebase Messaging initialisé');
-
-    // Initialiser le gestionnaire d'annonces GLOBALEMENT
+    // Firebase doit être prêt avant runApp (FirebaseMessaging est utilisé par MyApp)
     try {
-      debugPrint('📢 [Main] Démarrage AnnouncementManager...');
-      await AnnouncementManager().start();
-      debugPrint('✅ [Main] AnnouncementManager démarré');
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     } catch (e) {
-      debugPrint('⚠️ [Main] Erreur AnnouncementManager: $e');
-      // Continuer malgré l'erreur
+      debugPrint('⚠️ [Main] Erreur Firebase.initializeApp: $e');
     }
 
     // Vérifier la version de l'application (en arrière-plan, ne bloque pas le démarrage)
@@ -161,6 +144,45 @@ void main() async {
   }
 
   runApp(const ProviderScope(child: MyApp()));
+
+  // Ces initialisations font des appels réseau / demandes de permission :
+  // elles ne doivent jamais retarder le premier affichage.
+  unawaited(_initializeBackgroundServices(hasToken: hasToken));
+}
+
+Future<void> _initializeBackgroundServices({required bool hasToken}) async {
+  if (hasToken) {
+    unawaited(() async {
+      try {
+        debugPrint('📋 [Main] Chargement des permissions utilisateur...');
+        await FeaturePermissionService().syncPermissions();
+        debugPrint('✅ [Main] Permissions chargées avec succès');
+      } catch (e) {
+        debugPrint('⚠️ [Main] Erreur lors du chargement des permissions: $e');
+      }
+    }());
+  }
+
+  try {
+    debugPrint('🔔 [Main] Initialisation Firebase Messaging...');
+    await NotificationService.initialize().timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        debugPrint('⚠️ [Main] Timeout Firebase - continue quand même');
+      },
+    );
+    debugPrint('✅ [Main] Firebase Messaging initialisé');
+  } catch (e) {
+    debugPrint('⚠️ [Main] Erreur NotificationService: $e');
+  }
+
+  try {
+    debugPrint('📢 [Main] Démarrage AnnouncementManager...');
+    await AnnouncementManager().start();
+    debugPrint('✅ [Main] AnnouncementManager démarré');
+  } catch (e) {
+    debugPrint('⚠️ [Main] Erreur AnnouncementManager: $e');
+  }
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -776,16 +798,10 @@ class _AuthWrapperState extends ConsumerState<AuthWrapper> {
     final isOnboardingCompleted =
         await OnboardingService.isOnboardingCompleted();
 
-    setState(() {
-      _shouldShowOnboarding = !isOnboardingCompleted;
-      _onboardingChecked = true;
-    });
-
-    // Attendre un peu pour l'animation du splash
-    await Future.delayed(const Duration(milliseconds: 3000));
-
     if (mounted) {
       setState(() {
+        _shouldShowOnboarding = !isOnboardingCompleted;
+        _onboardingChecked = true;
         _showSplash = false;
       });
     }

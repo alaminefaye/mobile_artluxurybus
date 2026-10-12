@@ -76,6 +76,23 @@ class CaisseService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateNotificationSettings({
+    required bool vibrateOnly,
+  }) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse('${ApiConfig.baseUrl}/caisse/notification-settings'),
+            headers: _headers,
+            body: json.encode({'vibrate_only': vibrateOnly}),
+          )
+          .timeout(ApiConfig.requestTimeout);
+      return _decode(response, 'modifier les notifications');
+    } catch (e) {
+      return _error('modifier les notifications', e);
+    }
+  }
+
   static Future<Map<String, dynamic>> deleteRecharge(int id) async {
     try {
       final response = await http
@@ -112,6 +129,7 @@ class CaisseService {
         'message': data['message'],
         'data': data['data'],
         'can_manage': data['can_manage'] == true,
+        'notification_vibrate_only': data['notification_vibrate_only'] != false,
       };
     }
     return {

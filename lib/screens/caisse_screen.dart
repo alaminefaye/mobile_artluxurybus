@@ -20,6 +20,8 @@ class _CaisseScreenState extends State<CaisseScreen>
   bool _loading = true;
   String? _error;
   bool _canManage = false;
+  bool _vibrateOnly = true;
+  bool _savingNotifSetting = false;
   double _solde = 0;
   double _totalRecharge = 0;
   double _totalDepense = 0;
@@ -65,6 +67,7 @@ class _CaisseScreenState extends State<CaisseScreen>
       final data = result['data'] as Map<String, dynamic>? ?? {};
       setState(() {
         _canManage = result['can_manage'] == true;
+        _vibrateOnly = result['notification_vibrate_only'] != false;
         _solde = (data['solde'] as num?)?.toDouble() ?? 0;
         _totalRecharge = (data['total_recharge'] as num?)?.toDouble() ?? 0;
         _totalDepense = (data['total_depense'] as num?)?.toDouble() ?? 0;
@@ -254,6 +257,22 @@ class _CaisseScreenState extends State<CaisseScreen>
     if (result['success'] == true) _load();
   }
 
+  Future<void> _toggleVibrateOnly() async {
+    final previous = _vibrateOnly;
+    setState(() {
+      _vibrateOnly = !previous;
+      _savingNotifSetting = true;
+    });
+    final result =
+        await CaisseService.updateNotificationSettings(vibrateOnly: !previous);
+    if (!mounted) return;
+    setState(() {
+      _savingNotifSetting = false;
+      if (result['success'] != true) _vibrateOnly = previous;
+    });
+    _toast(result);
+  }
+
   void _toast(Map<String, dynamic> result) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -271,6 +290,20 @@ class _CaisseScreenState extends State<CaisseScreen>
         title: const Text('Caisse de Fonctionnement'),
         backgroundColor: isDark ? Colors.grey[900] : AppTheme.primaryBlue,
         foregroundColor: Colors.white,
+        actions: [
+          if (_canManage && !_loading && _error == null)
+            IconButton(
+              tooltip: _vibrateOnly
+                  ? 'Notifications de caisse : vibreur uniquement (toucher pour activer le son)'
+                  : 'Notifications de caisse : son activé (toucher pour passer en vibreur)',
+              icon: Icon(
+                _vibrateOnly
+                    ? Icons.vibration
+                    : Icons.notifications_active_outlined,
+              ),
+              onPressed: _savingNotifSetting ? null : _toggleVibrateOnly,
+            ),
+        ],
         bottom: _loading || _error != null
             ? null
             : TabBar(

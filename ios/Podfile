@@ -48,6 +48,7 @@ post_install do |installer|
     # Force minimum deployment target iOS 15.0
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
+      config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'
     end
   end
 end
