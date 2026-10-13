@@ -17,8 +17,6 @@ class DashboardStats {
   final String dateFormatted;
   final double totalDailyRevenue;
   final double artDailyRevenue;
-  final double artBilletsRevenue;
-  final double artRechargesRevenue;
   final double artTotalRevenue;
   final TicketStats tickets;
   final DepartStats departs;
@@ -35,8 +33,6 @@ class DashboardStats {
     required this.dateFormatted,
     required this.totalDailyRevenue,
     this.artDailyRevenue = 0,
-    this.artBilletsRevenue = 0,
-    this.artRechargesRevenue = 0,
     this.artTotalRevenue = 0,
     required this.tickets,
     required this.departs,
@@ -63,8 +59,6 @@ class DashboardStats {
       dateFormatted: data['date_formatted'] ?? '',
       totalDailyRevenue: _parseDouble(data['total_daily_revenue']),
       artDailyRevenue: _parseDouble(data['art_daily_revenue']),
-      artBilletsRevenue: _parseDouble(data['art_billets_revenue']),
-      artRechargesRevenue: _parseDouble(data['art_recharges_revenue']),
       artTotalRevenue: _parseDouble(data['art_total_revenue']),
       tickets: TicketStats.fromJson(data['tickets'] ?? {}),
       departs: DepartStats.fromJson(data['departs'] ?? {}),
