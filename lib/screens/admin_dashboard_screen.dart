@@ -510,6 +510,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Billets ${_numberFormat.format(stats.artBilletsRevenue.toInt())}'
+              ' · Recharges ${_numberFormat.format(stats.artRechargesRevenue.toInt())} FCFA',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
           ],
         ),
       ),
@@ -965,9 +972,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         revenue.isNotEmpty && revenue.values.any((value) => value > 0);
 
     // Trouver le montant maximum pour l'échelle
-    final maxRevenue = hasData
-        ? revenue.values.reduce((a, b) => a > b ? a : b)
-        : 1000000.0;
+    final maxRevenue =
+        hasData ? revenue.values.reduce((a, b) => a > b ? a : b) : 1000000.0;
 
     // Arrondir au million supérieur pour une belle échelle
     final maxY = maxRevenue > 0
