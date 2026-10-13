@@ -79,7 +79,8 @@ class _CaisseScreenState extends State<CaisseScreen>
       });
     } else {
       setState(() {
-        _error = result['message']?.toString() ?? 'Impossible de charger la caisse.';
+        _error =
+            result['message']?.toString() ?? 'Impossible de charger la caisse.';
         _loading = false;
       });
     }
@@ -345,78 +346,82 @@ class _CaisseScreenState extends State<CaisseScreen>
                       child: ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F2744),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'SOLDE ACTUEL DE LA CAISSE',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                letterSpacing: 1,
-                              ),
+                          Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F2744),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _fcfa(_solde),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
+                            child: Column(
                               children: [
-                                Expanded(
-                                  child: _actionButton(
-                                    label: 'Recharger',
-                                    icon: Icons.add,
-                                    color: Colors.green,
-                                    onPressed: _showRechargeDialog,
+                                const Text(
+                                  'SOLDE ACTUEL DE LA CAISSE',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    letterSpacing: 1,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _actionButton(
-                                    label: 'Dépense',
-                                    icon: Icons.remove,
-                                    color: Colors.orange,
-                                    onPressed: _showDepenseDialog,
+                                const SizedBox(height: 8),
+                                Text(
+                                  _fcfa(_solde),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
                                   ),
+                                ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _actionButton(
+                                        label: 'Recharger',
+                                        icon: Icons.add,
+                                        color: Colors.green,
+                                        onPressed: _showRechargeDialog,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _actionButton(
+                                        label: 'Dépense',
+                                        icon: Icons.remove,
+                                        color: Colors.orange,
+                                        onPressed: _showDepenseDialog,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _statCard('Rechargé', _fcfa(_totalRecharge), Colors.green),
-                            const SizedBox(width: 8),
-                            _statCard('Dépensé', _fcfa(_totalDepense), Colors.red),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _statCard('Ce mois +', _fcfa(_rechargesMois), Colors.blue),
-                            const SizedBox(width: 8),
-                            _statCard('Ce mois -', _fcfa(_depensesMois), Colors.amber),
-                          ],
-                        ),
-                      ),
-                    ],
+                          ),
+                          const SizedBox(height: 12),
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _statCard('Rechargé', _fcfa(_totalRecharge),
+                                    Colors.green),
+                                const SizedBox(width: 8),
+                                _statCard('Dépensé', _fcfa(_totalDepense),
+                                    Colors.red),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _statCard('Ce mois +', _fcfa(_rechargesMois),
+                                    Colors.blue),
+                                const SizedBox(width: 8),
+                                _statCard('Ce mois -', _fcfa(_depensesMois),
+                                    Colors.amber),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     _operationList(
@@ -526,7 +531,8 @@ class _CaisseScreenState extends State<CaisseScreen>
       if (query.isNotEmpty) {
         final creator = (item['creator_name'] ?? '').toString().toLowerCase();
         final motif = (item['motif'] ?? '').toString().toLowerCase();
-        final description = (item['description'] ?? '').toString().toLowerCase();
+        final description =
+            (item['description'] ?? '').toString().toLowerCase();
         if (!creator.contains(query) &&
             !motif.contains(query) &&
             !description.contains(query)) {
@@ -568,7 +574,8 @@ class _CaisseScreenState extends State<CaisseScreen>
                     ),
               filled: true,
               fillColor: isDark ? Colors.grey[850] : Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
           const SizedBox(height: 8),
@@ -624,90 +631,95 @@ class _CaisseScreenState extends State<CaisseScreen>
         filters,
         Expanded(
           child: RefreshIndicator(
-      onRefresh: _load,
-      child: items.isEmpty
-          ? ListView(
-              children: [
-                const SizedBox(height: 80),
-                Center(
-                  child: Text(
-                    emptyLabel,
-                    style: TextStyle(
-                      color: isDark ? Colors.grey[400] : Colors.grey[700],
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final createdAt =
-                    DateTime.tryParse(item['created_at']?.toString() ?? '');
-                final detail = isRecharge
-                    ? (item['description'] ?? '').toString()
-                    : [
-                        (item['motif'] ?? '').toString(),
-                        (item['description'] ?? '').toString(),
-                      ].where((part) => part.isNotEmpty).join(' — ');
-                final creator = (item['creator_name'] ?? '').toString();
-                final subtitle = [
-                  if (detail.isNotEmpty) detail,
-                  if (creator.isNotEmpty) 'Par $creator',
-                  if (createdAt != null)
-                    DateFormat('dd/MM/yyyy').format(createdAt),
-                ].join('\n');
+            onRefresh: _load,
+            child: items.isEmpty
+                ? ListView(
+                    children: [
+                      const SizedBox(height: 80),
+                      Center(
+                        child: Text(
+                          emptyLabel,
+                          style: TextStyle(
+                            color: isDark ? Colors.grey[400] : Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final createdAt = DateTime.tryParse(
+                          item['created_at']?.toString() ?? '');
+                      final detail = isRecharge
+                          ? (item['description'] ?? '').toString()
+                          : [
+                              (item['motif'] ?? '').toString(),
+                              (item['description'] ?? '').toString(),
+                            ].where((part) => part.isNotEmpty).join(' — ');
+                      final creator = (item['creator_name'] ?? '').toString();
+                      final subtitle = [
+                        if (detail.isNotEmpty) detail,
+                        if (creator.isNotEmpty) 'Par $creator',
+                        if (createdAt != null)
+                          DateFormat('dd/MM/yyyy').format(createdAt),
+                      ].join('\n');
 
-                return Card(
-                  color: isDark ? Colors.grey[850] : Colors.white,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor:
-                          (isRecharge ? Colors.green : Colors.red)
-                              .withValues(alpha: 0.15),
-                      child: Icon(
-                        isRecharge
-                            ? Icons.arrow_upward
-                            : Icons.arrow_downward,
-                        color: isRecharge ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    title: Text(
-                      isRecharge
-                          ? _fcfa(item['montant'] ?? 0)
-                          : '${item['motif'] ?? ''} · ${_fcfa(item['montant'] ?? 0)}',
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: subtitle.isEmpty
-                        ? null
-                        : Text(
-                            subtitle,
-                            style: TextStyle(
-                              color: isDark ? Colors.grey[400] : Colors.grey[700],
+                      return Card(
+                        color: isDark ? Colors.grey[850] : Colors.white,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                (isRecharge ? Colors.green : Colors.red)
+                                    .withValues(alpha: 0.15),
+                            child: Icon(
+                              isRecharge
+                                  ? Icons.arrow_upward
+                                  : Icons.arrow_downward,
+                              color: isRecharge ? Colors.green : Colors.red,
                             ),
                           ),
-                    trailing: _canManage
-                        ? IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _delete(
-                              label: isRecharge ? 'recharge' : 'dépense',
-                              action: () => isRecharge
-                                  ? CaisseService.deleteRecharge(_asId(item['id']))
-                                  : CaisseService.deleteDepense(_asId(item['id'])),
+                          title: Text(
+                            isRecharge
+                                ? _fcfa(item['montant'] ?? 0)
+                                : '${item['motif'] ?? ''} · ${_fcfa(item['montant'] ?? 0)}',
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.w600,
                             ),
-                          )
-                        : null,
+                          ),
+                          subtitle: subtitle.isEmpty
+                              ? null
+                              : Text(
+                                  subtitle,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[700],
+                                  ),
+                                ),
+                          trailing: _canManage
+                              ? IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Colors.red),
+                                  onPressed: () => _delete(
+                                    label: isRecharge ? 'recharge' : 'dépense',
+                                    action: () => isRecharge
+                                        ? CaisseService.deleteRecharge(
+                                            _asId(item['id']))
+                                        : CaisseService.deleteDepense(
+                                            _asId(item['id'])),
+                                  ),
+                                )
+                              : null,
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
-      ),
+          ),
         ),
       ],
     );

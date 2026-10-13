@@ -223,12 +223,14 @@ class NotificationService {
     }
   }
 
+  // Canal "vibreur uniquement" partagé (caisse, suggestions…).
   // L'identifiant doit rester identique à celui envoyé par le serveur (vibrate_only)
   static const AndroidNotificationChannel _caisseVibrationChannel =
       AndroidNotificationChannel(
     'caisse_vibration_channel',
-    'Caisse de fonctionnement',
-    description: 'Recharges et dépenses de caisse (vibreur uniquement)',
+    'Notifications en vibreur',
+    description:
+        'Caisse, suggestions et autres notifications sans son (vibreur uniquement)',
     importance: Importance.high,
     playSound: false,
     enableVibration: true,

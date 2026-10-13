@@ -24,16 +24,57 @@ class _FeedbackListScreenState extends ConsumerState<FeedbackListScreen> {
   final int _perPage = 100;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  bool _vibrateOnly = true;
+  bool _notifSettingLoaded = false;
+  bool _savingNotifSetting = false;
 
   @override
   void initState() {
     super.initState();
+    _loadNotificationSetting();
     // Si un ID est fourni, tenter d'ouvrir le détail après le build
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (widget.initialFeedbackId != null) {
         await _openFeedbackDetail(widget.initialFeedbackId!);
       }
     });
+  }
+
+  Future<void> _loadNotificationSetting() async {
+    try {
+      final vibrateOnly = await FeedbackApiService.getNotificationVibrateOnly();
+      if (!mounted) return;
+      setState(() {
+        _vibrateOnly = vibrateOnly;
+        _notifSettingLoaded = true;
+      });
+    } catch (_) {
+      // Le bouton reste masqué si le réglage n'a pas pu être chargé
+    }
+  }
+
+  Future<void> _toggleVibrateOnly() async {
+    final previous = _vibrateOnly;
+    setState(() {
+      _vibrateOnly = !previous;
+      _savingNotifSetting = true;
+    });
+    String message;
+    try {
+      final result =
+          await FeedbackApiService.updateNotificationVibrateOnly(!previous);
+      message = result['message']?.toString() ??
+          (!previous
+              ? 'Notifications de suggestions : vibreur uniquement.'
+              : 'Notifications de suggestions : son activé.');
+    } catch (e) {
+      message = e.toString().replaceFirst('Exception: ', '');
+      if (mounted) setState(() => _vibrateOnly = previous);
+    }
+    if (!mounted) return;
+    setState(() => _savingNotifSetting = false);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openFeedbackDetail(int id) async {
@@ -438,6 +479,20 @@ class _FeedbackListScreenState extends ConsumerState<FeedbackListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Suggestions et préoccupations'),
+        actions: [
+          if (_notifSettingLoaded)
+            IconButton(
+              tooltip: _vibrateOnly
+                  ? 'Notifications de suggestions : vibreur uniquement (toucher pour activer le son)'
+                  : 'Notifications de suggestions : son activé (toucher pour passer en vibreur)',
+              icon: Icon(
+                _vibrateOnly
+                    ? Icons.vibration
+                    : Icons.notifications_active_outlined,
+              ),
+              onPressed: _savingNotifSetting ? null : _toggleVibrateOnly,
+            ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(12),

@@ -27,6 +27,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Map<int, double> _artMonthlyRevenue = {};
   bool _isLoading = true;
   String? _errorMessage;
+  DateTime _selectedDate = _today();
+
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  bool get _isToday => _selectedDate == _today();
 
   // Formateur de nombres avec séparateurs de milliers
   final _numberFormat = NumberFormat('#,###', 'fr_FR');
@@ -78,7 +86,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
       debugPrint('📡 [AdminDashboard] Appel API dashboard...');
       // Charger les statistiques
-      final stats = await _dashboardService!.getDashboardStats();
+      final stats = await _dashboardService!.getDashboardStats(
+        date: _isToday ? null : _selectedDate,
+      );
       debugPrint('✅ [AdminDashboard] Statistiques reçues');
 
       // Charger les revenus mensuels
@@ -100,6 +110,26 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: _today(),
+      helpText: 'Choisir la date des statistiques',
+      cancelText: 'Annuler',
+      confirmText: 'Valider',
+    );
+    if (picked == null || picked == _selectedDate) return;
+    setState(() => _selectedDate = picked);
+    await _initializeDashboard();
+  }
+
+  Future<void> _goToToday() async {
+    setState(() => _selectedDate = _today());
+    await _initializeDashboard();
   }
 
   /// Déconnexion de l'utilisateur
@@ -319,30 +349,70 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today, color: Colors.white),
-            const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Statistiques du jour',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
+              child: InkWell(
+                onTap: _pickDate,
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _isToday
+                                ? 'Statistiques du jour'
+                                : 'Statistiques du',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _dashboardStats!.dateFormatted,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                          if (!_isToday)
+                            GestureDetector(
+                              onTap: _goToToday,
+                              child: const Padding(
+                                padding: EdgeInsets.only(top: 4),
+                                child: Text(
+                                  '← Revenir à aujourd\'hui',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    _dashboardStats!.dateFormatted,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             // Bouton Analyse
             ElevatedButton.icon(
               onPressed: () {

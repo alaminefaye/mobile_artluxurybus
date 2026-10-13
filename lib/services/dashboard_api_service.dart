@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import '../models/dashboard_stats.dart';
 import '../utils/error_message_helper.dart';
 import 'package:flutter/foundation.dart';
@@ -10,10 +11,14 @@ class DashboardApiService {
 
   DashboardApiService({required this.baseUrl, required this.token});
 
-  /// Récupérer les statistiques du dashboard pour aujourd'hui
-  Future<DashboardStats> getDashboardStats() async {
+  /// Récupérer les statistiques du dashboard pour [date] (aujourd'hui par défaut)
+  Future<DashboardStats> getDashboardStats({DateTime? date}) async {
     try {
-      final url = Uri.parse('$baseUrl/dashboard');
+      final url = Uri.parse('$baseUrl/dashboard').replace(
+        queryParameters: date == null
+            ? null
+            : {'date': DateFormat('yyyy-MM-dd').format(date)},
+      );
       debugPrint('🔗 [DashboardAPI] URL: $url');
       debugPrint('🔑 [DashboardAPI] Token: ${token.substring(0, 20)}...');
 

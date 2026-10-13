@@ -158,6 +158,60 @@ class FeedbackApiService {
     }
   }
 
+  /// Mode de notification push des suggestions (true = vibreur uniquement)
+  static Future<bool> getNotificationVibrateOnly() async {
+    if (_token == null) {
+      throw Exception('Token d\'authentification requis');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/feedbacks/notification-settings'),
+        headers: _headers,
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data['data']?['vibrate_only'] != false;
+      } else {
+        throw Exception(data['message'] ?? 'Erreur lors de la récupération');
+      }
+    } on SocketException {
+      throw Exception('Pas de connexion internet');
+    } catch (e) {
+      throw Exception('Erreur: ${e.toString()}');
+    }
+  }
+
+  /// Modifier le mode de notification push des suggestions
+  static Future<Map<String, dynamic>> updateNotificationVibrateOnly(
+      bool vibrateOnly) async {
+    if (_token == null) {
+      throw Exception('Token d\'authentification requis');
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/feedbacks/notification-settings'),
+        headers: _headers,
+        body: jsonEncode({'vibrate_only': vibrateOnly}),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return data;
+      } else {
+        throw Exception(data['message'] ?? 'Erreur lors de la mise à jour');
+      }
+    } on SocketException {
+      throw Exception('Pas de connexion internet');
+    } catch (e) {
+      throw Exception('Erreur: ${e.toString()}');
+    }
+  }
+
   /// Lister les feedbacks (admin uniquement)
   static Future<Map<String, dynamic>> getFeedbacks({
     int page = 1,
